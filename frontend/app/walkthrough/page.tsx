@@ -1,12 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { WagmiProvider } from "wagmi";
-import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
-import { wagmiConfig } from "@/lib/wagmi";
-import '@rainbow-me/rainbowkit/styles.css';
-import { sepolia } from 'wagmi/chains';
+import { WalletProvider } from '@/components/WalletProvider';
 import { WalletConnectButton } from "@/components/WalletConnectButton";
 import Link from "next/link";
 import { useAccount } from 'wagmi';
@@ -146,10 +141,7 @@ export default function WalkthroughPage() {
   }
   
   return (
-    <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider initialChain={sepolia}>
-          <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen">
             <header className="backdrop-blur-md bg-black/20 border-b border-white/10">
               <div className="container mx-auto px-4 py-3 flex justify-between items-center">
                 <div className="text-white font-bold text-xl">
@@ -190,8 +182,5 @@ export default function WalkthroughPage() {
               </div>
             </footer>
           </div>
-        </RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
   );
 } 

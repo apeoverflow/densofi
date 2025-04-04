@@ -1,12 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { WagmiProvider } from "wagmi";
-import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
-import { wagmiConfig } from "@/lib/wagmi";
-import '@rainbow-me/rainbowkit/styles.css';
-import { sepolia } from 'wagmi/chains';
+import { WalletProvider } from '@/components/WalletProvider';
 import { WalletConnectButton } from "@/components/WalletConnectButton";
 import Link from "next/link";
 import Image from "next/image";
@@ -16,7 +11,6 @@ import { GlassCard } from "@/components/ui/GlassCard";
 export default function ClientPage() {
   // Client-side only flag
   const [isClient, setIsClient] = useState(false);
-  const [queryClient] = useState(() => new QueryClient());
   
   // Mock token data
   const mockTokens = [
@@ -35,33 +29,30 @@ export default function ClientPage() {
   }
   
   return (
-    <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider initialChain={sepolia}>
-          <div className="flex flex-col min-h-screen bg-gradient-to-b from-slate-900 to-black overflow-hidden">
-            {/* Background decorative elements */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-              <div className="absolute top-0 left-1/4 w-1/2 h-1/2 bg-blue-500/10 rounded-full blur-3xl"></div>
-              <div className="absolute bottom-0 right-1/4 w-1/2 h-1/2 bg-purple-500/10 rounded-full blur-3xl"></div>
-              <div className="absolute top-1/3 right-1/3 w-1/3 h-1/3 bg-teal-500/10 rounded-full blur-3xl"></div>
+      <div className="flex flex-col min-h-screen bg-gradient-to-b from-slate-900 to-black overflow-hidden">
+        {/* Background decorative elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+          <div className="absolute top-0 left-1/4 w-1/2 h-1/2 bg-blue-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 right-1/4 w-1/2 h-1/2 bg-purple-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute top-1/3 right-1/3 w-1/3 h-1/3 bg-teal-500/10 rounded-full blur-3xl"></div>
+        </div>
+        
+        <header className="relative z-10 backdrop-blur-md bg-black/20 border-b border-white/10">
+          <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div className="text-white font-bold text-xl">
+              Denso.fi
             </div>
-            
-            <header className="relative z-10 backdrop-blur-md bg-black/20 border-b border-white/10">
-              <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-                <div className="text-white font-bold text-xl">
-                  Denso.fi
-                </div>
-                <div className="flex items-center gap-4">
-                  <Link href="/tokens" className="text-white hover:text-blue-400">
-                    Tokens
-                  </Link>
-                  <Link href="/walkthrough" className="text-white hover:text-blue-400">
-                    Walkthrough
-                  </Link>
-                  <WalletConnectButton />
-                </div>
-              </div>
-            </header>
+            <div className="flex items-center gap-4">
+              <Link href="/tokens" className="text-white hover:text-blue-400">
+                Tokens
+              </Link>
+              <Link href="/walkthrough" className="text-white hover:text-blue-400">
+                Walkthrough
+              </Link>
+              <WalletConnectButton />
+            </div>
+          </div>
+        </header>
 
             <main className="relative z-10 flex-grow">
               {/* Hero Section */}
@@ -207,8 +198,5 @@ export default function ClientPage() {
               </div>
             </footer>
           </div>
-        </RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
   );
 }

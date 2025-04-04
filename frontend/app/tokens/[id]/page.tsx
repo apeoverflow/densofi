@@ -1,6 +1,10 @@
 import { TokenPageClient } from './client-page';
 
-// @ts-expect-error - Params type conflict
-export default function TokenPage({ params }: any) {
-  return <TokenPageClient id={params.id} />;
+interface PageParams {
+  params: Promise<{ id: string }> | { id: string };
+}
+
+export default async function TokenPage({ params }: PageParams) {
+  const resolvedParams = await params;
+  return <TokenPageClient id={resolvedParams.id} />;
 }

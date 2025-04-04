@@ -1,12 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { WagmiProvider } from "wagmi";
-import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
-import { wagmiConfig } from "@/lib/wagmi";
-import '@rainbow-me/rainbowkit/styles.css';
-import { sepolia } from 'wagmi/chains';
+import { WalletProvider } from '@/components/WalletProvider';
 import { WalletConnectButton } from "@/components/WalletConnectButton";
 import Link from "next/link";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -14,7 +9,6 @@ import { GlassCard } from "@/components/ui/GlassCard";
 export function TokensClient() {
   // Client-side only flag
   const [isClient, setIsClient] = useState(false);
-  const [queryClient] = useState(() => new QueryClient());
   
   useEffect(() => {
     setIsClient(true);
@@ -26,10 +20,7 @@ export function TokensClient() {
   }
   
   return (
-    <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider initialChain={sepolia}>
-          <div className="flex flex-col min-h-screen bg-gradient-to-b from-slate-900 to-black overflow-hidden">
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-slate-900 to-black overflow-hidden">
             {/* Background decorative elements */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
               <div className="absolute top-0 left-1/4 w-1/2 h-1/2 bg-blue-500/10 rounded-full blur-3xl"></div>
@@ -119,8 +110,5 @@ export function TokensClient() {
               </div>
             </footer>
           </div>
-        </RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
   );
 }
