@@ -48,39 +48,38 @@ contract NFTMinterTest is Test {
     }
     
     /// @notice Tests that the deployment sets the right owner.
-    function test_deployment_setsRightOwner() public {
+    function test_deployment_setsRightOwner() public view {
         assertTrue(nftMinter.hasRole(DEFAULT_ADMIN_ROLE, owner));
     }
     
     /// @notice Tests that the deployment assigns the minter role to the owner.
-    function test_deployment_assignsMinterRole() public {
+    function test_deployment_assignsMinterRole() public view {
         assertTrue(nftMinter.hasRole(MINTER_ROLE, owner));
     }
     
     /// @notice Tests that minting an NFT sets the correct name.
     function test_mint_setsCorrectName() public {
-        string memory name = "Test NFT";
-        
         vm.startPrank(owner);
-        nftMinter.mint(name);
+        uint256 tokenId = nftMinter.mint("Test NFT");
         vm.stopPrank();
         
-        assertEq(nftMinter.tokenName(0), name);
+        assertEq(nftMinter.tokenName(tokenId), "Test NFT");
     }
     
     /// @notice Tests that minting an NFT increments the token ID counter.
     function test_mint_incrementsTokenId() public {
         vm.startPrank(owner);
-        nftMinter.mint("First NFT");
-        nftMinter.mint("Second NFT");
+        uint256 tokenId1 = nftMinter.mint("NFT 1");
+        uint256 tokenId2 = nftMinter.mint("NFT 2");
         vm.stopPrank();
         
-        assertEq(nftMinter.tokenName(1), "Second NFT");
+        assertEq(tokenId1, 0);
+        assertEq(tokenId2, 1);
     }
     
     /// @notice Tests that non-minter cannot mint NFTs.
     function test_mint_nonMinterCannotMint() public {
-        vm.prank(alice);
+        vm.startPrank(alice);
         vm.expectRevert(
             abi.encodeWithSignature(
                 "AccessControlUnauthorizedAccount(address,bytes32)",
@@ -89,42 +88,44 @@ contract NFTMinterTest is Test {
             )
         );
         nftMinter.mint("Test NFT");
+        vm.stopPrank();
     }
     
     /// @notice Tests that the URI is correctly formatted.
     function test_uri_returnsCorrectFormat() public {
         vm.startPrank(owner);
-        nftMinter.mint("Test NFT");
+        uint256 tokenId = nftMinter.mint("Test NFT");
         vm.stopPrank();
         
-        assertEq(nftMinter.tokenURI(0), "ipfs://0");
+        assertEq(nftMinter.tokenURI(tokenId), "ipfs://0");
     }
     
     /// @notice Tests that tokens can be transferred.
     function test_transfer_succeeds() public {
         vm.startPrank(owner);
-        nftMinter.mint("Test NFT");
-        nftMinter.transferFrom(owner, address(aliceHelper), 0);
+        uint256 tokenId = nftMinter.mint("Test NFT");
+        nftMinter.transferFrom(owner, alice, tokenId);
         vm.stopPrank();
         
-        assertEq(nftMinter.ownerOf(0), address(aliceHelper));
+        assertEq(nftMinter.ownerOf(tokenId), alice);
     }
     
     /// @notice Tests that transferring without approval reverts.
     function test_transfer_noApproval_reverts() public {
         vm.startPrank(owner);
-        nftMinter.mint("Test NFT");
+        uint256 tokenId = nftMinter.mint("Test NFT");
         vm.stopPrank();
-
-        vm.prank(alice);
+        
+        vm.startPrank(alice);
         vm.expectRevert(
             abi.encodeWithSignature(
                 "ERC721InsufficientApproval(address,uint256)",
                 alice,
-                0
+                tokenId
             )
         );
-        nftMinter.transferFrom(owner, address(bobHelper), 0);
+        nftMinter.transferFrom(owner, bob, tokenId);
+        vm.stopPrank();
     }
     
     /// @notice Tests that the minter role can be granted.
@@ -138,7 +139,7 @@ contract NFTMinterTest is Test {
     
     /// @notice Tests that only admin can grant roles.
     function test_grantRole_nonAdmin_reverts() public {
-        vm.prank(alice);
+        vm.startPrank(alice);
         vm.expectRevert(
             abi.encodeWithSignature(
                 "AccessControlUnauthorizedAccount(address,bytes32)",
@@ -147,6 +148,7 @@ contract NFTMinterTest is Test {
             )
         );
         nftMinter.grantRole(MINTER_ROLE, bob);
+        vm.stopPrank();
     }
     
     /// @notice Tests that the minter role can be revoked.
@@ -164,8 +166,8 @@ contract NFTMinterTest is Test {
         vm.startPrank(owner);
         nftMinter.grantRole(MINTER_ROLE, alice);
         vm.stopPrank();
-
-        vm.prank(alice);
+        
+        vm.startPrank(alice);
         vm.expectRevert(
             abi.encodeWithSignature(
                 "AccessControlUnauthorizedAccount(address,bytes32)",
@@ -173,6 +175,18 @@ contract NFTMinterTest is Test {
                 DEFAULT_ADMIN_ROLE
             )
         );
-        nftMinter.revokeRole(MINTER_ROLE, bob);
+        nftMinter.revokeRole(MINTER_ROLE, alice);
+        vm.stopPrank();
+    }
+    
+    /// @notice Tests that minting emits the NFTMinted event.
+    function test_mint_emitsEvent() public {
+        vm.startPrank(owner);
+        vm.expectEmit(true, true, true, true);
+        emit NFTMinter.NFTMinted(0, owner, "Test NFT");
+        uint256 tokenId = nftMinter.mint("Test NFT");
+        vm.stopPrank();
+        
+        assertEq(tokenId, 0);
     }
 } 

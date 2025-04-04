@@ -17,6 +17,9 @@ contract NFTMinter is ERC721, AccessControl {
     // Counter for token IDs
     uint256 private _tokenIdCounter;
     
+    // Event emitted when a new NFT is minted
+    event NFTMinted(uint256 indexed tokenId, address indexed to, string name);
+    
     constructor() ERC721("NFTMinter", "NFTM") {
         // Grant the contract deployer both the default admin role and minter role
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -26,13 +29,18 @@ contract NFTMinter is ERC721, AccessControl {
     /**
      * @dev Mints a new NFT with the given name
      * @param name The name of the NFT
+     * @return tokenId The ID of the newly minted token
      */
-    function mint(string memory name) public onlyRole(MINTER_ROLE) {
-        uint256 tokenId = _tokenIdCounter;
+    function mint(string memory name) public onlyRole(MINTER_ROLE) returns (uint256 tokenId) {
+        tokenId = _tokenIdCounter;
         _tokenIdCounter++;
         
         _tokenNames[tokenId] = name;
         _safeMint(msg.sender, tokenId);
+        
+        emit NFTMinted(tokenId, msg.sender, name);
+        
+        return tokenId;
     }
     
     /**
