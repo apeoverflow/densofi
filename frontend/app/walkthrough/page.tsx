@@ -49,6 +49,7 @@ const Step = ({ number, title, completed, active, children }: StepProps) => {
 // The walkthrough interface content
 const WalkthroughContent = () => {
   const { isConnected } = useAccount();
+  const [dnsVerified, setDnsVerified] = useStateReact(false);
   
   return (
     <div className="space-y-6">
@@ -75,9 +76,9 @@ const WalkthroughContent = () => {
       
       <Step 
         number={2} 
-        title="Enable your Domain for ENS" 
-        completed={false} 
-        active={isConnected}
+        title="Update your DNS records for ENS" 
+        completed={dnsVerified} 
+        active={isConnected && !dnsVerified}
       >
         {!isConnected ? (
           <p className="text-gray-400">Complete step 1 to proceed</p>
@@ -120,20 +121,36 @@ const WalkthroughContent = () => {
                 Verify Your DNS Record Setup
               </h4>
 
-              <DnsVerifier />
+              <DnsVerifier onVerificationSuccess={() => setDnsVerified(true)} />
             </div>
           </>
         )}
       </Step>
       
+      <Step 
+        number={3} 
+        title="Submit DNSSEC Proof" 
+        completed={false} 
+        active={isConnected && dnsVerified}
+      >
+        {!isConnected || !dnsVerified ? (
+          <p className="text-gray-400">Complete steps 1 and 2 to proceed</p>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-gray-300">
+              Now that your DNS is properly configured and verified, you can submit proof to the DNSRegistrar smart contract:
+            </p>
+          </div>
+        )}
+      </Step>
+      
       <div className="mt-8 text-center">
-        <p className="text-gray-400 italic">Complete these steps to proceed to the next phase</p>
+        <p className="text-gray-400 italic">Complete these steps to register your domain with ENS</p>
       </div>
     </div>
   );
 };
 
-// Add this component after the WalkthroughContent component
 const WalletAddressDisplay = () => {
   const { isConnected, address } = useWalletConnection();
   return (
@@ -154,8 +171,13 @@ interface DnsVerificationResult {
   error?: string;
 }
 
-// Add this new component just before the WalletAddressDisplay component
-const DnsVerifier = () => {
+// Add interface for DnsVerifier props
+interface DnsVerifierProps {
+  onVerificationSuccess: () => void;
+}
+
+// Update the component with the interface
+const DnsVerifier = ({ onVerificationSuccess }: DnsVerifierProps) => {
   const { address } = useWalletConnection();
   const [domain, setDomain] = useStateReact('');
   const [isChecking, setIsChecking] = useStateReact(false);
@@ -192,13 +214,19 @@ const DnsVerifier = () => {
       }
       
       const expectedValue = `a=${address}`;
+      const success = foundRecord && txtValue === expectedValue;
       
       setResult({
-        success: foundRecord && txtValue === expectedValue,
+        success,
         found: foundRecord,
         expected: expectedValue,
         actual: txtValue
       });
+      
+      // If verification is successful, call the success callback
+      if (success && onVerificationSuccess) {
+        onVerificationSuccess();
+      }
     } catch (error) {
       setResult({
         success: false,
@@ -207,7 +235,7 @@ const DnsVerifier = () => {
     } finally {
       setIsChecking(false);
     }
-  }, [domain, address]);
+  }, [domain, address, onVerificationSuccess]);
   
   return (
     <div className="space-y-4 mt-3">
