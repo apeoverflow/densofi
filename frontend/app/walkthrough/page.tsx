@@ -11,6 +11,7 @@ import { WalletConnectButton } from "@/components/WalletConnectButton";
 import Link from "next/link";
 import { useAccount } from 'wagmi';
 import { ReactNode } from 'react';
+import { useWalletConnection } from "@/hooks/useWalletConnection";
 
 // Step component props interface
 interface StepProps {
@@ -73,7 +74,7 @@ const WalkthroughContent = () => {
       
       <Step 
         number={2} 
-        title="Set Up DNSSEC on Your Domain Registrar" 
+        title="Enable your Domain for ENS" 
         completed={false} 
         active={isConnected}
       >
@@ -90,10 +91,7 @@ const WalkthroughContent = () => {
               <li>Navigate to the DNS management section for your domain</li>
               <li>Look for DNSSEC settings and <span className="text-blue-400 font-semibold">enable DNSSEC</span></li>
               <li>Add a new TXT record with the following format:
-                <div className="bg-slate-700 p-3 mt-2 rounded-md font-mono text-sm overflow-auto">
-                  TXT @ _ens a=&lt;eth-address&gt;
-                </div>
-                <p className="text-sm text-gray-400 mt-2">Replace &lt;eth-address&gt; with your Ethereum address (e.g., 0x123...)</p>
+                <WalletAddressDisplay />
               </li>
               <li>Save your changes and wait for DNS propagation (may take up to 24-48 hours)</li>
             </ol>
@@ -117,6 +115,18 @@ const WalkthroughContent = () => {
       <div className="mt-8 text-center">
         <p className="text-gray-400 italic">Complete these steps to proceed to the next phase</p>
       </div>
+    </div>
+  );
+};
+
+// Add this component after the WalkthroughContent component
+const WalletAddressDisplay = () => {
+  const { isConnected, address } = useWalletConnection();
+  return (
+    <div className="bg-slate-700 p-3 mt-2 rounded-md font-mono text-sm overflow-auto">
+        {isConnected 
+        ? `TXT @ _ens a=${address}`
+        : "Connect your wallet to see your address here"}
     </div>
   );
 };
@@ -153,7 +163,7 @@ export default function WalkthroughPage() {
               <div className="max-w-4xl mx-auto">
                 <div className="text-center mb-8">
                   <h1 className="text-4xl font-bold text-white mb-6">
-                    DNSSEC Setup Walkthrough
+                  Enable your Domain for ENS
                   </h1>
                   <p className="text-gray-300 max-w-2xl mx-auto">
                     Follow these steps to properly set up DNSSEC for your domain. This process ensures your 
