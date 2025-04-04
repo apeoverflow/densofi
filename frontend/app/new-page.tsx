@@ -7,11 +7,10 @@ import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { wagmiConfig } from "@/lib/wagmi";
 import '@rainbow-me/rainbowkit/styles.css';
 import { sepolia } from 'wagmi/chains';
-import { StorageInterface } from "@/components/StorageInterface";
 import { WalletConnectButton } from "@/components/WalletConnectButton";
 import Link from "next/link";
 
-export default function ClientPage() {
+export default function NewPage() {
   // Client-side only flag
   const [isClient, setIsClient] = useState(false);
   const [queryClient] = useState(() => new QueryClient());
@@ -35,12 +34,7 @@ export default function ClientPage() {
                 <div className="text-white font-bold text-xl">
                   Denso.fi
                 </div>
-                <div className="flex items-center gap-4">
-                  <Link href="/new-page" className="text-white hover:text-blue-400">
-                    New Page
-                  </Link>
-                  <WalletConnectButton />
-                </div>
+                <WalletConnectButton />
               </div>
             </header>
 
@@ -48,16 +42,19 @@ export default function ClientPage() {
               <div className="max-w-4xl mx-auto">
                 <div className="text-center mb-12">
                   <h1 className="text-4xl font-bold text-white mb-6">
-                    Denso.fi
+                    New Page
                   </h1>
                   <p className="text-gray-300 max-w-2xl mx-auto">
-                    A simple decentralized application that interacts with a storage contract on the Sepolia testnet. 
-                    Connect your wallet to store and retrieve values on the blockchain.
+                    This is a new blank page following the Denso.fi design system. You can add your custom content here.
                   </p>
                 </div>
 
-                <div className="mt-12">
-                  <StorageInterface />
+                <div className="bg-slate-800/50 border border-white/10 rounded-lg p-6 shadow-xl">
+                  <h2 className="text-2xl font-bold text-white mb-4">Content Section</h2>
+                  <p className="text-gray-300">
+                    Add your components and content in this section. This page is set up with the same providers
+                    and styling as the main application, ensuring a consistent look and functionality.
+                  </p>
                 </div>
               </div>
             </main>
@@ -81,4 +78,4 @@ export default function ClientPage() {
       </QueryClientProvider>
     </WagmiProvider>
   );
-}
+} 
