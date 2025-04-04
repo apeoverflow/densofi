@@ -56,7 +56,7 @@ export default function ClientPage() {
                     Tokens
                   </Link>
                   <Link href="/walkthrough" className="text-white hover:text-blue-400">
-                    DNSSEC Walkthrough
+                    Walkthrough
                   </Link>
                   <WalletConnectButton />
                 </div>
