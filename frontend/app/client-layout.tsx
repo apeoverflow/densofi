@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { WalletProvider } from '@/components/WalletProvider';
+import Layout from '@/components/Layout';
 
 export default function ClientLayout({ 
   children 
@@ -20,6 +21,12 @@ export default function ClientLayout({
     return null;
   }
   
-  // Only render the WalletProvider on the client side
-  return <WalletProvider>{children}</WalletProvider>;
+  // Only render the WalletProvider and Layout on the client side
+  return (
+    <WalletProvider>
+      <Layout>
+        {children}
+      </Layout>
+    </WalletProvider>
+  );
 }

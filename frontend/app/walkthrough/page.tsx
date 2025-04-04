@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { WalletProvider } from '@/components/WalletProvider';
 import { WalletConnectButton } from "@/components/WalletConnectButton";
 import Link from "next/link";
 import { useAccount } from 'wagmi';
 import { ReactNode } from 'react';
 import { useWalletConnection } from "@/hooks/useWalletConnection";
+import { QueryClient } from '@tanstack/react-query';
 
 // Step component props interface
 interface StepProps {
@@ -142,45 +142,21 @@ export default function WalkthroughPage() {
   
   return (
     <div className="flex flex-col min-h-screen">
-            <header className="backdrop-blur-md bg-black/20 border-b border-white/10">
-              <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-                <div className="text-white font-bold text-xl">
-                  Denso.fi
-                </div>
-                <WalletConnectButton />
-              </div>
-            </header>
-
-            <main className="flex-grow container mx-auto px-4 py-12">
-              <div className="max-w-4xl mx-auto">
-                <div className="text-center mb-8">
-                  <h1 className="text-4xl font-bold text-white mb-6">
-                  Enable your Domain for ENS
-                  </h1>
-                  <p className="text-gray-300 max-w-2xl mx-auto">
-                    Follow these steps to properly set up DNSSEC for your domain. This process ensures your 
-                    domain can interact securely with the DNSRegistrar smart contract.
-                  </p>
-                </div>
-
-                <WalkthroughContent />
-              </div>
-            </main>
-
-            <footer className="backdrop-blur-md bg-black/20 border-t border-white/10 py-6">
-              <div className="container mx-auto px-4 text-center text-white/60 text-sm">
-                <p>
-                  Built with Next.js, Wagmi, and RainbowKit. Contract at{" "}
-                  <Link 
-                    href={`https://sepolia.etherscan.io/address/0x7C1bF65D5ec86b526680ec0f195C115c17a90797`}
-                    target="_blank"
-                    className="text-blue-400 hover:underline"
-                  >
-                    0x7C1bF65D5ec86b526680ec0f195C115c17a90797
-                  </Link>
-                </p>
-              </div>
-            </footer>
+      <main className="flex-grow container mx-auto px-4 py-12">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-white mb-6">
+            Enable your Domain for ENS
+            </h1>
+            <p className="text-gray-300 max-w-2xl mx-auto">
+              Follow these steps to properly set up DNSSEC for your domain. This process ensures your 
+              domain can interact securely with the DNSRegistrar smart contract.
+            </p>
           </div>
+
+          <WalkthroughContent />
+        </div>
+      </main>
+    </div>
   );
 } 
