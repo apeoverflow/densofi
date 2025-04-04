@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
-contract NFTMinter is ERC1155, AccessControl {
+contract NFTMinter is ERC721, AccessControl {
     using Strings for uint256;
     
     // Define the minter role
@@ -18,7 +17,7 @@ contract NFTMinter is ERC1155, AccessControl {
     // Counter for token IDs
     uint256 private _tokenIdCounter;
     
-    constructor() ERC1155("") {
+    constructor() ERC721("NFTMinter", "NFTM") {
         // Grant the contract deployer both the default admin role and minter role
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
@@ -27,14 +26,13 @@ contract NFTMinter is ERC1155, AccessControl {
     /**
      * @dev Mints a new NFT with the given name
      * @param name The name of the NFT
-     * @param amount The amount of tokens to mint
      */
-    function mint(string memory name, uint256 amount) public onlyRole(MINTER_ROLE) {
+    function mint(string memory name) public onlyRole(MINTER_ROLE) {
         uint256 tokenId = _tokenIdCounter;
         _tokenIdCounter++;
         
         _tokenNames[tokenId] = name;
-        _mint(msg.sender, tokenId, amount, "");
+        _safeMint(msg.sender, tokenId);
     }
     
     /**
@@ -49,15 +47,16 @@ contract NFTMinter is ERC1155, AccessControl {
      * @dev Returns the URI for a given token ID
      * @param tokenId The ID of the token
      */
-    function uri(uint256 tokenId) public view virtual override returns (string memory) {
+    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
+        _requireOwned(tokenId);
         return string(abi.encodePacked("ipfs://", tokenId.toString()));
     }
     
-    // The following function is needed to properly override both ERC1155 and AccessControl
+    // The following function is needed to properly override both ERC721 and AccessControl
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC1155, AccessControl)
+        override(ERC721, AccessControl)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);

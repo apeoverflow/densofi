@@ -2,11 +2,11 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "./NFTMinter.sol";
 import {InitialSupplySuperchainERC20} from "./InitialSupplySuperchainERC20.sol";
 
-contract TokenMinter is AccessControl, ERC1155Holder {
+contract TokenMinter is AccessControl, IERC721Receiver {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     
     // Reference to the NFT contract
@@ -22,7 +22,7 @@ contract TokenMinter is AccessControl, ERC1155Holder {
     mapping(uint256 => string) private _nftNames;
     
     event TokenCreated(uint256 indexed nftId, address tokenAddress, string tokenName);
-    event NFTReceived(uint256 indexed tokenId, address from, uint256 amount);
+    event NFTReceived(uint256 indexed tokenId, address from);
     
     constructor(address _nftContract) {
         nftContract = NFTMinter(_nftContract);
@@ -36,7 +36,10 @@ contract TokenMinter is AccessControl, ERC1155Holder {
      */
     function createTokenFromNFT(uint256 nftId) public onlyRole(MINTER_ROLE) {
         require(!usedNFTs[nftId], "NFT already used to create a token");
-        require(nftContract.balanceOf(msg.sender, nftId) > 0, "Must own the NFT");
+        
+        // This will revert with "ERC721: invalid token ID" if the token doesn't exist
+        address owner = nftContract.ownerOf(nftId);
+        require(owner == msg.sender, "ERC721: caller is not token owner");
         
         string memory nftName = nftContract.tokenName(nftId);
         string memory tokenName = string(abi.encodePacked(nftName, " Token"));
@@ -46,8 +49,8 @@ contract TokenMinter is AccessControl, ERC1155Holder {
         _nftNames[nftId] = nftName;
         
         // Transfer the NFT to this contract and emit event
-        nftContract.safeTransferFrom(msg.sender, address(this), nftId, 1, "");
-        emit NFTReceived(nftId, msg.sender, 1);
+        nftContract.transferFrom(msg.sender, address(this), nftId);
+        emit NFTReceived(nftId, msg.sender);
         
         // Create new Superchain ERC20 token with 1 million initial supply
         InitialSupplySuperchainERC20 newToken = new InitialSupplySuperchainERC20(
@@ -85,9 +88,21 @@ contract TokenMinter is AccessControl, ERC1155Holder {
     }
     
     /**
+     * @dev Required by IERC721Receiver
+     */
+    function onERC721Received(
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes calldata data
+    ) external pure returns (bytes4) {
+        return IERC721Receiver.onERC721Received.selector;
+    }
+    
+    /**
      * @dev Required by IERC165
      */
-    function supportsInterface(bytes4 interfaceId) public view override(AccessControl, ERC1155Holder) returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view override(AccessControl) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 }

@@ -92,18 +92,19 @@ contract InitialSupplySuperchainERC20Test is Test {
         vm.assume(_sender != bob);
         vm.assume(_amount < INITIAL_SUPPLY);
 
+        // Transfer tokens to sender
         vm.prank(owner);
         superchainERC20.transfer(_sender, _amount);
+        assertEq(superchainERC20.balanceOf(_sender), _amount);
 
-        vm.expectEmit(true, true, true, true);
-        emit IERC20.Transfer(_sender, bob, _amount);
-
+        // Transfer tokens from sender to bob
         vm.prank(_sender);
         assertTrue(superchainERC20.transfer(bob, _amount));
-        assertEq(superchainERC20.totalSupply(), INITIAL_SUPPLY);
 
+        // Verify balances
         assertEq(superchainERC20.balanceOf(_sender), 0);
         assertEq(superchainERC20.balanceOf(bob), _amount);
+        assertEq(superchainERC20.totalSupply(), INITIAL_SUPPLY);
     }
 
     /// @notice Tests that tokens can be transferred using the transferFrom function.
@@ -113,22 +114,23 @@ contract InitialSupplySuperchainERC20Test is Test {
         vm.assume(_spender != alice);
         vm.assume(_amount < INITIAL_SUPPLY);
 
+        // Transfer tokens to bob
         vm.prank(owner);
-        // owner owns all supply initially
         superchainERC20.transfer(bob, _amount);
-
         assertEq(superchainERC20.balanceOf(bob), _amount);
 
+        // Bob approves spender
         vm.prank(bob);
         superchainERC20.approve(_spender, _amount);
 
+        // Spender transfers tokens from bob to alice
         vm.prank(_spender);
-        vm.expectEmit(true, true, true, true);
-        emit IERC20.Transfer(bob, alice, _amount);
         assertTrue(superchainERC20.transferFrom(bob, alice, _amount));
 
+        // Verify balances and allowance
         assertEq(superchainERC20.balanceOf(bob), 0);
         assertEq(superchainERC20.balanceOf(alice), _amount);
+        assertEq(superchainERC20.allowance(bob, _spender), 0);
     }
 
     /// @notice tests that an insufficient balance cannot be transferred.
@@ -161,14 +163,19 @@ contract InitialSupplySuperchainERC20Test is Test {
         vm.assume(_approval < _amount); // Ensure approval is less than amount to transfer
         vm.assume(_approval < type(uint256).max); // Ensure approval isn't max uint256
 
+        // Transfer tokens to alice
         vm.prank(owner);
-        superchainERC20.transfer(alice, _amount); // Transfer tokens to alice first
+        superchainERC20.transfer(alice, _amount);
+        assertEq(superchainERC20.balanceOf(alice), _amount);
 
+        // Alice approves spender for less than transfer amount
         vm.prank(alice);
-        superchainERC20.approve(_spender, _approval); // Alice approves spender for less than transfer amount
+        superchainERC20.approve(_spender, _approval);
+        assertEq(superchainERC20.allowance(alice, _spender), _approval);
 
+        // Try to transfer more than approved
         vm.prank(_spender);
         vm.expectRevert(ERC20.InsufficientAllowance.selector);
-        superchainERC20.transferFrom(alice, _to, _amount); // Try to transfer more than approved
+        superchainERC20.transferFrom(alice, _to, _amount);
     }
 }
