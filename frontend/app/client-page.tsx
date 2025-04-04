@@ -61,7 +61,7 @@ export default function ClientPage() {
                     </div>
                   </div>
                   <div className="flex justify-center">
-                    <div className="relative w-[300px] h-[300px] md:w-[400px] md:h-[400px] animate-float">
+                    <div className="relative w-[400px] h-[500px] md:w-[400px] md:h-[500px] animate-float">
                       <Image 
                         src="/dino.png" 
                         alt="Dino mascot" 
@@ -73,10 +73,22 @@ export default function ClientPage() {
                     </div>
                   </div>
                 </div>
+                <div className="flex justify-center mt-12">
+                  <button 
+                    onClick={() => document.getElementById('how-it-works')?.scrollIntoView({behavior: 'smooth'})}
+                    className="w-14 h-14 rounded-full backdrop-blur-xl flex items-center justify-center border border-white/10 hover:border-white/20 transition-all duration-300 shadow-lg shadow-blue-500/5 hover:shadow-blue-500/15"
+                    aria-label="Scroll down to How It Works"
+                    style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)' }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                </div>
               </section>
 
               {/* How It Works Section */}
-              <section className="py-20 relative">
+              <section id="how-it-works" className="py-20 relative">
                 <div className="container mx-auto px-4">
                   <h2 className="text-3xl md:text-4xl font-bold text-white mb-12 text-center">How It Works</h2>
                   <div className="grid md:grid-cols-3 gap-8">
