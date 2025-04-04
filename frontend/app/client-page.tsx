@@ -55,8 +55,8 @@ export default function ClientPage() {
                   <Link href="/tokens" className="text-white hover:text-blue-400">
                     Tokens
                   </Link>
-                  <Link href="/new-page" className="text-white hover:text-blue-400">
-                    New Page
+                  <Link href="/walkthrough" className="text-white hover:text-blue-400">
+                    Walkthrough
                   </Link>
                   <WalletConnectButton />
                 </div>
