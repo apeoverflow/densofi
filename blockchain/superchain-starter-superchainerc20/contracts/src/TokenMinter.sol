@@ -6,6 +6,14 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "./NFTMinter.sol";
 import {InitialSupplySuperchainERC20} from "./InitialSupplySuperchainERC20.sol";
 
+/**
+ * @title TokenMinter
+ * @dev Contract that allows creating ERC20 tokens from NFTs
+ * 
+ * This contract allows users with the MINTER_ROLE to create ERC20 tokens
+ * based on NFTs they own. The NFT is transferred to this contract and
+ * becomes the backing for the new ERC20 token.
+ */
 contract TokenMinter is AccessControl, IERC721Receiver {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     
@@ -24,6 +32,10 @@ contract TokenMinter is AccessControl, IERC721Receiver {
     event TokenCreated(uint256 indexed nftId, address tokenAddress, string tokenName);
     event NFTReceived(uint256 indexed tokenId, address from);
     
+    /**
+     * @dev Constructor initializes the contract with the NFT contract address
+     * @param _nftContract Address of the NFTMinter contract
+     */
     constructor(address _nftContract) {
         nftContract = NFTMinter(_nftContract);
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -33,6 +45,11 @@ contract TokenMinter is AccessControl, IERC721Receiver {
     /**
      * @dev Creates a new Superchain ERC20 token based on an NFT
      * @param nftId The ID of the NFT to use as reference
+     * 
+     * Requirements:
+     * - Caller must have the MINTER_ROLE
+     * - NFT must not have been used to create a token before
+     * - Caller must own the NFT
      */
     function createTokenFromNFT(uint256 nftId) public onlyRole(MINTER_ROLE) {
         require(!usedNFTs[nftId], "NFT already used to create a token");
@@ -74,6 +91,7 @@ contract TokenMinter is AccessControl, IERC721Receiver {
     /**
      * @dev Returns the token contract address for a given NFT ID
      * @param nftId The ID of the token
+     * @return The address of the token contract created from this NFT
      */
     function getTokenAddress(uint256 nftId) public view returns (address) {
         return nftToToken[nftId];
@@ -82,6 +100,7 @@ contract TokenMinter is AccessControl, IERC721Receiver {
     /**
      * @dev Returns the name of the NFT stored in the contract
      * @param nftId The ID of the NFT
+     * @return The name of the NFT
      */
     function getStoredNFTName(uint256 nftId) public view returns (string memory) {
         return _nftNames[nftId];
@@ -89,6 +108,12 @@ contract TokenMinter is AccessControl, IERC721Receiver {
     
     /**
      * @dev Required by IERC721Receiver
+     * This function is called when an NFT is transferred to this contract
+     * @param operator The address which called `safeTransferFrom` function
+     * @param from The address which previously owned the token
+     * @param tokenId The NFT identifier which is being transferred
+     * @param data Additional data with no specified format
+     * @return `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))` unless throwing
      */
     function onERC721Received(
         address operator,
@@ -96,13 +121,15 @@ contract TokenMinter is AccessControl, IERC721Receiver {
         uint256 tokenId,
         bytes calldata data
     ) external pure returns (bytes4) {
+        // We accept any NFT transfer
         return IERC721Receiver.onERC721Received.selector;
     }
     
     /**
      * @dev Required by IERC165
+     * This function is used to check which interfaces this contract supports
      */
     function supportsInterface(bytes4 interfaceId) public view override(AccessControl) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
-}
+} 
