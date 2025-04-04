@@ -299,12 +299,6 @@ const DnsVerifier = ({ onVerificationSuccess }: DnsVerifierProps) => {
         <li><a href={`https://mxtoolbox.com/SuperTool.aspx?action=txt%3a_ens.${domain || '[your-domain]'}&run=toolpage`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">MX Toolbox</a></li>
         <li><a href="https://dnschecker.org/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">DNS Checker</a></li>
       </ul>
-      
-      <div className="mt-3 p-2 border border-indigo-700/30 rounded bg-indigo-900/20">
-        <p className="text-indigo-300 text-sm">
-          <strong>Tip:</strong> DNS propagation can take time (24-48 hours). If the record doesn't appear after this period, double-check your DNS configuration with your domain registrar.
-        </p>
-      </div>
     </div>
   );
 };
