@@ -1,8 +1,17 @@
 import "./globals.css";
 import { Inter } from "next/font/google";
+import { Metadata } from "next";
 
 // Use cache-busting technique for Inter font
 const inter = Inter({ subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "Denso.fi",
+  description: "Fractional tokenization platform for domain names",
+  icons: {
+    icon: "/dino.svg",
+  },
+};
 
 export default function RootLayout({
   children,
