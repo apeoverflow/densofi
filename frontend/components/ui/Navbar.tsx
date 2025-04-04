@@ -11,10 +11,9 @@ type NavLink = {
 };
 
 const navLinks: NavLink[] = [
-  { label: 'Home', href: '/', showOn: ['/tokens', '/tokens/[id]'] },
   { label: 'Tokens', href: '/tokens', showOn: ['/', '/walkthrough'] },
   { label: 'All Tokens', href: '/tokens', showOn: ['/tokens/[id]'] },
-  { label: 'Walkthrough', href: '/walkthrough', showOn: ['/'] },
+  { label: 'Walkthrough', href: '/walkthrough', showOn: ['/', '/tokens'] },
 ];
 
 export default function Navbar() {
