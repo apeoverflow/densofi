@@ -9,9 +9,10 @@ import '@rainbow-me/rainbowkit/styles.css';
 import { sepolia } from 'wagmi/chains';
 import { WalletConnectButton } from "@/components/WalletConnectButton";
 import Link from "next/link";
-import { useAccount } from 'wagmi';
-import { ReactNode } from 'react';
+import { useAccount, useWalletClient } from 'wagmi';
+import { ReactNode, useState as useStateReact } from 'react';
 import { useWalletConnection } from "@/hooks/useWalletConnection";
+import { useCallback } from 'react';
 
 // Step component props interface
 interface StepProps {
@@ -131,6 +132,142 @@ const WalletAddressDisplay = () => {
   );
 };
 
+// Add this interface after the imports
+interface DnsVerificationResult {
+  success: boolean;
+  found?: boolean;
+  expected?: string;
+  actual?: string;
+  error?: string;
+}
+
+// Add this new component just before the WalletAddressDisplay component
+const DnsVerifier = () => {
+  const { address } = useWalletConnection();
+  const [domain, setDomain] = useStateReact('');
+  const [isChecking, setIsChecking] = useStateReact(false);
+  const [result, setResult] = useStateReact<DnsVerificationResult | null>(null);
+  
+  const checkDnsRecord = useCallback(async () => {
+    if (!domain) return;
+    
+    setIsChecking(true);
+    setResult(null);
+    
+    try {
+      // In a browser environment, we need to use a DNS lookup service API
+      // This is a simulated check using a public DNS API
+      const dnsApiUrl = `https://dns.google/resolve?name=_ens.${domain}&type=TXT`;
+      
+      const response = await fetch(dnsApiUrl);
+      const data = await response.json();
+      
+      // Process the response
+      let foundRecord = false;
+      let txtValue = null;
+      
+      if (data.Answer && Array.isArray(data.Answer)) {
+        for (const record of data.Answer) {
+          // TXT records come with quotes that need to be removed
+          const value = record.data.replace(/"/g, '');
+          if (value.startsWith('a=')) {
+            foundRecord = true;
+            txtValue = value;
+            break;
+          }
+        }
+      }
+      
+      const expectedValue = `a=${address}`;
+      
+      setResult({
+        success: foundRecord && txtValue === expectedValue,
+        found: foundRecord,
+        expected: expectedValue,
+        actual: txtValue
+      });
+    } catch (error) {
+      setResult({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      });
+    } finally {
+      setIsChecking(false);
+    }
+  }, [domain, address]);
+  
+  return (
+    <div className="space-y-4 mt-3">
+      <p className="text-gray-300">
+        Verify your TXT record is set up correctly by entering your domain name below:
+      </p>
+      
+      <div className="flex space-x-2">
+        <input
+          type="text"
+          value={domain}
+          onChange={(e) => setDomain(e.target.value)}
+          placeholder="example.com"
+          className="flex-grow bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <button
+          onClick={checkDnsRecord}
+          disabled={isChecking || !domain}
+          className={`px-4 py-2 rounded ${isChecking || !domain ? 'bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+        >
+          {isChecking ? 'Checking...' : 'Verify'}
+        </button>
+      </div>
+      
+      {result && (
+        <div className={`p-4 rounded ${result.success ? 'bg-green-900/30 border border-green-500/30' : 'bg-red-900/30 border border-red-500/30'}`}>
+          {result.success ? (
+            <div className="text-green-400 flex items-start">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <div>
+                <p className="font-medium">Success! Your TXT record is correctly configured.</p>
+                <p className="text-sm mt-1">Found: {result.actual}</p>
+              </div>
+            </div>
+          ) : result.error ? (
+            <div className="text-red-400">
+              <p className="font-medium">Error checking DNS record: {result.error}</p>
+              <p className="text-sm mt-1">Please try again or use an online DNS lookup tool.</p>
+            </div>
+          ) : result.found ? (
+            <div className="text-yellow-400">
+              <p className="font-medium">TXT record found but does not match your wallet address:</p>
+              <p className="text-sm mt-1">Found: {result.actual}</p>
+              <p className="text-sm">Expected: {result.expected}</p>
+            </div>
+          ) : (
+            <div className="text-red-400">
+              <p className="font-medium">No ENS TXT record found for {domain}</p>
+              <p className="text-sm mt-1">Please make sure you've added the TXT record correctly and DNS has propagated.</p>
+            </div>
+          )}
+        </div>
+      )}
+      
+      <p className="text-gray-300 mt-3">
+        Alternatively, you can use these online DNS lookup tools to check your TXT records:
+      </p>
+      <ul className="list-disc pl-5 space-y-2 text-gray-300">
+        <li><a href={`https://mxtoolbox.com/SuperTool.aspx?action=txt%3a_ens.${domain || '[your-domain]'}&run=toolpage`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">MX Toolbox</a></li>
+        <li><a href="https://dnschecker.org/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">DNS Checker</a></li>
+      </ul>
+      
+      <div className="mt-3 p-2 border border-indigo-700/30 rounded bg-indigo-900/20">
+        <p className="text-indigo-300 text-sm">
+          <strong>Tip:</strong> DNS propagation can take time (24-48 hours). If the record doesn't appear after this period, double-check your DNS configuration with your domain registrar.
+        </p>
+      </div>
+    </div>
+  );
+};
+
 export default function WalkthroughPage() {
   // Client-side only flag
   const [isClient, setIsClient] = useState(false);
@@ -172,6 +309,17 @@ export default function WalkthroughPage() {
                 </div>
 
                 <WalkthroughContent />
+
+                <div className="bg-indigo-900/30 border border-indigo-700/50 p-4 rounded-md mt-6 mb-6">
+                  <h4 className="text-indigo-400 font-bold flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    Verify Your DNS Record Setup
+                  </h4>
+                  
+                  <DnsVerifier />
+                </div>
               </div>
             </main>
 
