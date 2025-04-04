@@ -93,7 +93,7 @@ const WalkthroughContent = () => {
                 <li>Log into your domain registrar account (e.g., GoDaddy, Namecheap, Google Domains)</li>
                 <li>Navigate to the DNS management section for your domain</li>
                 <li>Look for DNSSEC settings and <span className="text-blue-400 font-semibold">enable DNSSEC</span></li>
-                <li>Add a new TXT record with the following format:
+                <li>Add a new TXT record with the following format with your wallet address:
                   <WalletAddressDisplay />
                 </li>
                 <li>Save your changes and wait for DNS propagation (may take up to 24-48 hours)</li>
