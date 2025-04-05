@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
@@ -13,6 +15,8 @@ import { useAccount, useWalletClient } from 'wagmi';
 import { ReactNode, useState as useStateReact } from 'react';
 import { useWalletConnection } from "@/hooks/useWalletConnection";
 import { useCallback } from 'react';
+import { Button } from "@/components/ui/button";
+import type { Address, Chain, Client, PublicClient, Transport, WalletClient } from 'viem';
 
 // Step component props interface
 interface StepProps {
@@ -49,8 +53,105 @@ const Step = ({ number, title, completed, active, children }: StepProps) => {
 // The walkthrough interface content
 const WalkthroughContent = () => {
   const { isConnected } = useAccount();
+  const { address } = useWalletConnection();
+  const { data: walletClient } = useWalletClient();
   const [dnsVerified, setDnsVerified] = useStateReact(false);
+  const [verifiedDomain, setVerifiedDomain] = useStateReact('');
   
+  // Setup the state
+  const [isSubmittingProof, setIsSubmittingProof] = useStateReact(false);
+  const [isWrappingName, setIsWrappingName] = useStateReact(false);
+  const [proofStatus, setProofStatus] = useStateReact<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [wrapStatus, setWrapStatus] = useStateReact<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [proofHash, setProofHash] = useStateReact('');
+  const [wrapHash, setWrapHash] = useStateReact('');
+  const [errorMessage, setErrorMessage] = useStateReact('');
+
+  // Replace ENS configuration interface with a simpler mock object
+  interface EnsConfig {
+    isReady: boolean;
+    address: string | undefined;
+  }
+
+  const [ensConfig, setEnsConfig] = useStateReact<EnsConfig | null>(null);
+
+  // Simplified effect to set up the mock ENS configuration
+  useEffect(() => {
+    if (!address) return;
+    
+    // Set up a simpler mock ENS configuration
+    setEnsConfig({
+      isReady: true,
+      address
+    });
+    
+    console.log("ENS configuration set up successfully");
+  }, [address]);
+
+  // Mock DNSSEC proof submission
+  const submitDnsProof = async () => {
+    if (!verifiedDomain || !ensConfig) {
+      setErrorMessage('Configuration not ready. Please connect your wallet and try again.');
+      return;
+    }
+    
+    setIsSubmittingProof(true);
+    setProofStatus('submitting');
+    setErrorMessage('');
+    
+    try {
+      console.log(`Submitting DNSSEC proof for domain: ${verifiedDomain}`);
+      
+      // Simulate API call and blockchain interaction with a delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Generate a mock transaction hash
+      const hash = `0x${Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
+      setProofHash(hash);
+      setProofStatus('success');
+      console.log(`DNS proof submitted with hash: ${hash}`);
+    } catch (error) {
+      console.error('Error submitting DNS proof:', error);
+      setProofStatus('error');
+      setErrorMessage(error instanceof Error ? error.message : 'Unknown error occurred');
+    } finally {
+      setIsSubmittingProof(false);
+    }
+  };
+
+  // Mock domain wrapping
+  const wrapDomainName = async () => {
+    if (!verifiedDomain || !ensConfig || proofStatus !== 'success') {
+      return;
+    }
+    
+    setIsWrappingName(true);
+    setWrapStatus('submitting');
+    setErrorMessage('');
+    
+    try {
+      console.log(`Wrapping domain name: ${verifiedDomain} for owner: ${ensConfig.address}`);
+      
+      // Simulate blockchain interaction with a delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Generate a mock transaction hash
+      const hash = `0x${Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
+      setWrapHash(hash);
+      setWrapStatus('success');
+      console.log(`Domain wrapped with hash: ${hash}`);
+      
+      // Display success message
+      setErrorMessage('');
+    } catch (error) {
+      console.error('Error wrapping domain name:', error);
+      setWrapStatus('error');
+      setErrorMessage(error instanceof Error ? error.message : 'Unknown error occurred');
+    } finally {
+      setIsWrappingName(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Step 
@@ -121,7 +222,12 @@ const WalkthroughContent = () => {
                 Verify Your DNS Record Setup
               </h4>
 
-              <DnsVerifier onVerificationSuccess={() => setDnsVerified(true)} />
+              <DnsVerifier 
+                onVerificationSuccess={(domain) => {
+                  setDnsVerified(true);
+                  setVerifiedDomain(domain);
+                }} 
+              />
             </div>
           </>
         )}
@@ -129,18 +235,14 @@ const WalkthroughContent = () => {
       
       <Step 
         number={3} 
-        title="Submit DNSSEC Proof" 
+        title="Register via ENS Resolver" 
         completed={false} 
         active={isConnected && dnsVerified}
       >
         {!isConnected || !dnsVerified ? (
           <p className="text-gray-400">Complete steps 1 and 2 to proceed</p>
         ) : (
-          <div className="space-y-4">
-            <p className="text-gray-300">
-              Now that your DNS is properly configured and verified, you can submit proof to the DNSRegistrar smart contract:
-            </p>
-          </div>
+          <DnsProofAndWrapper domain={verifiedDomain} />
         )}
       </Step>
       
@@ -156,7 +258,7 @@ const WalletAddressDisplay = () => {
   return (
     <div className="bg-slate-700 p-3 mt-2 rounded-md font-mono text-sm overflow-auto">
         {isConnected 
-        ? `TXT @ _ens a=${address}`
+        ? `TXT _ens a=${address}`
         : "Connect your wallet to see your address here"}
     </div>
   );
@@ -173,7 +275,7 @@ interface DnsVerificationResult {
 
 // Add interface for DnsVerifier props
 interface DnsVerifierProps {
-  onVerificationSuccess: () => void;
+  onVerificationSuccess: (domain: string) => void;
 }
 
 // Update the component with the interface
@@ -225,7 +327,7 @@ const DnsVerifier = ({ onVerificationSuccess }: DnsVerifierProps) => {
       
       // If verification is successful, call the success callback
       if (success && onVerificationSuccess) {
-        onVerificationSuccess();
+        onVerificationSuccess(domain);
       }
     } catch (error) {
       setResult({
@@ -303,6 +405,171 @@ const DnsVerifier = ({ onVerificationSuccess }: DnsVerifierProps) => {
   );
 };
 
+// Fix the interface naming to avoid conflicts with the existing StepProps interface
+interface DnsWrapperProps {
+  onComplete?: () => void;
+  onBack?: () => void;
+  domain?: string;
+}
+
+const DnsProofAndWrapper = ({ onComplete, onBack, domain }: DnsWrapperProps) => {
+  const { address } = useWalletConnection();
+  const [isSubmittingProof, setIsSubmittingProof] = useStateReact(false);
+  const [isWrappingName, setIsWrappingName] = useStateReact(false);
+  const [proofStatus, setProofStatus] = useStateReact<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [wrapStatus, setWrapStatus] = useStateReact<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [proofHash, setProofHash] = useStateReact('');
+  const [wrapHash, setWrapHash] = useStateReact('');
+  const [errorMessage, setErrorMessage] = useStateReact('');
+  
+  // Simplified ENS configuration
+  const [ensReady, setEnsReady] = useStateReact(false);
+  
+  // Effect to initialize ENS
+  useEffect(() => {
+    if (!address) return;
+    
+    // Mock ENS initialization
+    const timer = setTimeout(() => {
+      setEnsReady(true);
+      console.log("ENS configuration set up successfully");
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [address]);
+  
+  // Mock DNSSEC proof submission
+  const submitDnsProof = async () => {
+    if (!domain || !ensReady) {
+      setErrorMessage('Configuration not ready. Please connect your wallet and try again.');
+      return;
+    }
+    
+    setIsSubmittingProof(true);
+    setProofStatus('submitting');
+    setErrorMessage('');
+    
+    try {
+      console.log(`Submitting DNSSEC proof for domain: ${domain}`);
+      
+      // Simulate blockchain interaction with a delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Generate a mock transaction hash
+      const hash = `0x${Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
+      setProofHash(hash);
+      setProofStatus('success');
+      console.log(`DNS proof submitted with hash: ${hash}`);
+    } catch (error) {
+      console.error('Error submitting DNS proof:', error);
+      setProofStatus('error');
+      setErrorMessage(error instanceof Error ? error.message : 'Unknown error occurred');
+    } finally {
+      setIsSubmittingProof(false);
+    }
+  };
+  
+  // Mock domain wrapping
+  const wrapDomainName = async () => {
+    if (!domain || !ensReady || proofStatus !== 'success') {
+      return;
+    }
+    
+    setIsWrappingName(true);
+    setWrapStatus('submitting');
+    setErrorMessage('');
+    
+    try {
+      console.log(`Wrapping domain name: ${domain} for owner: ${address}`);
+      
+      // Simulate blockchain interaction with a delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Generate a mock transaction hash
+      const hash = `0x${Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
+      setWrapHash(hash);
+      setWrapStatus('success');
+      console.log(`Domain wrapped with hash: ${hash}`);
+    } catch (error) {
+      console.error('Error wrapping domain name:', error);
+      setWrapStatus('error');
+      setErrorMessage(error instanceof Error ? error.message : 'Unknown error occurred');
+    } finally {
+      setIsWrappingName(false);
+    }
+  };
+  
+  // Production notice component
+  const ProductionNotice = () => (
+    <div className="border border-yellow-400 bg-yellow-50 p-4 rounded-md mb-6">
+      <h3 className="text-yellow-800 font-semibold flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+        </svg>
+        ENS Integration
+      </h3>
+      <ul className="mt-2 text-sm text-yellow-700 list-disc list-inside">
+        <li>Make sure you have a wallet with Sepolia ETH connected</li>
+        <li>Ensure you have DNSSEC Enabled in your DNS Dashboard</li>
+      </ul>
+    </div>
+  );
+
+  return (
+    <div className="h-full overflow-auto">
+      {/* Educational section */}
+      <div className="mb-8 bg-blue-50 border border-blue-200 p-6 rounded-lg">
+        <h2 className="text-xl font-semibold mb-4 text-blue-800">About Name Wrapping</h2>
+        <p className="text-gray-700 mb-2">
+          Wrapping your domain provides several benefits:
+        </p>
+        <ul className="list-disc pl-5 space-y-1 text-gray-700 mb-4">
+          <li>Enhanced security through permission restrictions</li>
+          <li>Better subdomain management</li>
+          <li>Improved compatibility with the latest ENS features</li>
+          <li>Setting permissions and fuses for subdomains</li>
+        </ul>
+        <p className="text-sm text-gray-600">
+          Learn more in the <a href="https://docs.ens.domains/ensjs-v3" target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium hover:underline">ENS.js documentation</a>.
+        </p>
+      </div>
+      <ProductionNotice />
+      <p className="text-white mb-6">
+        Now that you've verified ownership of your domain, you can submit DNSSEC proof and wrap your domain name via the ENS Resolver. Ensure you select Onchain.
+      </p>
+
+
+      <Button
+        
+        onClick={() => { window.open("https://sepolia.app.ens.domains/" + domain, '_blank', 'noopener,noreferrer'); }}
+        disabled={isSubmittingProof || proofStatus === 'success' || !ensReady}
+        className={` bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mb-4`}
+      >
+        ENS Resolver
+      </Button>
+
+      {/* Display domain */}
+
+      {errorMessage && (
+        <div className="mb-8 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+          <strong>Error:</strong> {errorMessage}
+        </div>
+      )}
+
+
+      {/* Navigation buttons */}
+      <div className="flex justify-between mt-8">
+        <Button onClick={onBack} className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded">
+          Back
+        </Button>
+        <Button onClick={onComplete} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+          Finish
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 export default function WalkthroughPage() {
   // Client-side only flag
   const [isClient, setIsClient] = useState(false);
@@ -325,10 +592,6 @@ export default function WalkthroughPage() {
             <h1 className="text-4xl font-bold text-white mb-6">
             Enable your Domain for ENS
             </h1>
-            <p className="text-gray-300 max-w-2xl mx-auto">
-              Follow these steps to properly set up DNSSEC for your domain. This process ensures your 
-              domain can interact securely with the DNSRegistrar smart contract.
-            </p>
           </div>
 
           <WalkthroughContent />

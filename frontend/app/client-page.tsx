@@ -5,6 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { MiniKit } from '@worldcoin/minikit-js'
+
 
 export default function ClientPage() {
   // Client-side only flag
@@ -18,6 +20,7 @@ export default function ClientPage() {
   ];
   
   useEffect(() => {
+    console.log(MiniKit.isInstalled)
     setIsClient(true);
   }, []);
   
@@ -48,7 +51,7 @@ export default function ClientPage() {
                       <p>Enabling NFT to ERC20 support and subdomain registration for utility.</p>
                     </div>
                     <div className="flex flex-wrap gap-4">
-                      <Link href="/tokens">
+                      <Link href="/walkthrough">
                         <Button size="lg" className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:brightness-110 transition-all">
                           Get Started
                         </Button>

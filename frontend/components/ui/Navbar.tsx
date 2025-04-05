@@ -13,7 +13,7 @@ type NavLink = {
 const navLinks: NavLink[] = [
   { label: 'Tokens', href: '/tokens', showOn: ['/', '/walkthrough'] },
   { label: 'All Tokens', href: '/tokens', showOn: ['/tokens/[id]'] },
-  { label: 'Walkthrough', href: '/walkthrough', showOn: ['/', '/tokens'] },
+  { label: 'Walkthrough', href: '/walkthrough', showOn: ['/', '/tokens', '/tokens/[id]'] },
 ];
 
 export default function Navbar() {

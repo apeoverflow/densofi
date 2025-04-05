@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { WalletProvider } from '@/components/WalletProvider';
 import Layout from '@/components/Layout';
+import MiniKitProvider from '@/components/minikit-provider';
 
 export default function ClientLayout({ 
   children 
@@ -23,10 +24,12 @@ export default function ClientLayout({
   
   // Only render the WalletProvider and Layout on the client side
   return (
-    <WalletProvider>
-      <Layout>
-        {children}
-      </Layout>
-    </WalletProvider>
+    <MiniKitProvider>
+      <WalletProvider>
+        <Layout>
+          {children}
+        </Layout>
+      </WalletProvider>
+    </MiniKitProvider>
   );
 }
