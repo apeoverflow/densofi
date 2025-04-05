@@ -5,6 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { MiniKit } from '@worldcoin/minikit-js'
+
 
 export default function ClientPage() {
   // Client-side only flag
@@ -18,6 +20,7 @@ export default function ClientPage() {
   ];
   
   useEffect(() => {
+    console.log(MiniKit.isInstalled)
     setIsClient(true);
   }, []);
   

@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
@@ -233,7 +235,7 @@ const WalkthroughContent = () => {
       
       <Step 
         number={3} 
-        title="Submit DNSSEC Proof and Wrap Name" 
+        title="Register via ENS Resolver" 
         completed={false} 
         active={isConnected && dnsVerified}
       >
@@ -508,115 +510,13 @@ const DnsProofAndWrapper = ({ onComplete, onBack, domain }: DnsWrapperProps) => 
       </h3>
       <ul className="mt-2 text-sm text-yellow-700 list-disc list-inside">
         <li>Make sure you have a wallet with Sepolia ETH connected</li>
-        <li>Confirm DNS TXT records are properly set up and propagated</li>
-        <li>Transactions may take a few minutes to be processed</li>
+        <li>Ensure you have DNSSEC Enabled in your DNS Dashboard</li>
       </ul>
     </div>
   );
 
   return (
     <div className="h-full overflow-auto">
-      <ProductionNotice />
-      <p className="text-white mb-6">
-        Now that you've verified ownership of your domain, you can submit DNSSEC proof and wrap your domain name.
-      </p>
-
-      {/* Display domain */}
-      <div className="mb-8 bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold mb-4 text-gray-700">Your Verified Domain</h2>
-        <p className="text-gray-600 mb-2">
-          You're working with: <span className="font-medium text-black">{domain}</span>
-        </p>
-      </div>
-
-      {/* DNS Proof Submission Section */}
-      <div className="mb-8 bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold mb-4 text-gray-700">Step 1: Submit DNSSEC Proof</h2>
-        <p className="text-gray-700 mb-4">
-          Submit DNSSEC proof to prove ownership of your domain on the blockchain. This step is required before wrapping.
-        </p>
-        <div className="flex flex-col space-y-4">
-          <div className="flex items-center space-x-4">
-            <Button
-              onClick={submitDnsProof}
-              disabled={isSubmittingProof || proofStatus === 'success' || !ensReady}
-              className={`${proofStatus === 'success' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'} text-white px-4 py-2 rounded`}
-            >
-              {isSubmittingProof ? (
-                'Submitting...'
-              ) : proofStatus === 'success' ? (
-                'Proof Submitted'
-              ) : !ensReady ? (
-                'Initializing ENS...'
-              ) : (
-                'Submit DNSSEC Proof'
-              )}
-            </Button>
-            {proofStatus === 'success' && (
-              <span className="text-green-600 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                Success
-              </span>
-            )}
-          </div>
-          {proofHash && (
-            <div className="text-sm text-gray-700">
-              Transaction Hash: <a href={`https://sepolia.etherscan.io/tx/${proofHash}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">{proofHash}</a>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Domain Wrapping Section */}
-      <div className="mb-8 bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold mb-4 text-gray-700">Step 2: Wrap Domain Name</h2>
-        <p className="text-gray-700 mb-4">
-          Wrap your domain name to enable better management and enhanced features. This step must be done after submitting DNSSEC proof.
-        </p>
-        <div className="flex flex-col space-y-4">
-          <div className="flex items-center space-x-4">
-            <Button
-              onClick={wrapDomainName}
-              disabled={isWrappingName || wrapStatus === 'success' || proofStatus !== 'success' || !ensReady}
-              className={`${wrapStatus === 'success' 
-                ? 'bg-green-600 hover:bg-green-700' 
-                : proofStatus !== 'success' 
-                  ? 'bg-gray-400 cursor-not-allowed' 
-                  : 'bg-blue-600 hover:bg-blue-700'} text-white px-4 py-2 rounded`}
-            >
-              {isWrappingName ? (
-                'Wrapping...'
-              ) : wrapStatus === 'success' ? (
-                'Domain Wrapped'
-              ) : (
-                'Wrap Domain Name'
-              )}
-            </Button>
-            {wrapStatus === 'success' && (
-              <span className="text-green-600 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                Success
-              </span>
-            )}
-          </div>
-          {wrapHash && (
-            <div className="text-sm text-gray-700">
-              Transaction Hash: <a href={`https://sepolia.etherscan.io/tx/${wrapHash}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">{wrapHash}</a>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {errorMessage && (
-        <div className="mb-8 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-          <strong>Error:</strong> {errorMessage}
-        </div>
-      )}
-
       {/* Educational section */}
       <div className="mb-8 bg-blue-50 border border-blue-200 p-6 rounded-lg">
         <h2 className="text-xl font-semibold mb-4 text-blue-800">About Name Wrapping</h2>
@@ -633,6 +533,29 @@ const DnsProofAndWrapper = ({ onComplete, onBack, domain }: DnsWrapperProps) => 
           Learn more in the <a href="https://docs.ens.domains/ensjs-v3" target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium hover:underline">ENS.js documentation</a>.
         </p>
       </div>
+      <ProductionNotice />
+      <p className="text-white mb-6">
+        Now that you've verified ownership of your domain, you can submit DNSSEC proof and wrap your domain name via the ENS Resolver. Ensure you select Onchain.
+      </p>
+
+
+      <Button
+        
+        onClick={() => { window.open("https://sepolia.app.ens.domains/" + domain, '_blank', 'noopener,noreferrer'); }}
+        disabled={isSubmittingProof || proofStatus === 'success' || !ensReady}
+        className={` bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mb-4`}
+      >
+        ENS Resolver
+      </Button>
+
+      {/* Display domain */}
+
+      {errorMessage && (
+        <div className="mb-8 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+          <strong>Error:</strong> {errorMessage}
+        </div>
+      )}
+
 
       {/* Navigation buttons */}
       <div className="flex justify-between mt-8">
