@@ -13,8 +13,8 @@ type NavLink = {
 const navLinks: NavLink[] = [
   { label: 'Tokens', href: '/tokens', showOn: ['/', '/walkthrough', '/mint-nft', '/create-token'] },
   { label: 'All Tokens', href: '/tokens', showOn: ['/tokens/[id]'] },
-  { label: 'Mint NFT', href: '/mint-nft', showOn: ['/', '/tokens', '/tokens/[id]', '/create-token', '/walkthrough'] },
-  { label: 'Create Token', href: '/create-token', showOn: ['/', '/tokens', '/tokens/[id]', '/mint-nft', '/walkthrough'] },
+  // { label: 'Mint NFT', href: '/mint-nft', showOn: ['/', '/tokens', '/tokens/[id]', '/create-token', '/walkthrough'] },
+  // { label: 'Create Token', href: '/create-token', showOn: ['/', '/tokens', '/tokens/[id]', '/mint-nft', '/walkthrough'] },
   { label: 'Walkthrough', href: '/walkthrough', showOn: ['/', '/tokens', '/tokens/[id]', '/mint-nft', '/create-token'] },
 ];
 
