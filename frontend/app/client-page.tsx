@@ -48,7 +48,7 @@ export default function ClientPage() {
                       <p>Enabling NFT to ERC20 support and subdomain registration for utility.</p>
                     </div>
                     <div className="flex flex-wrap gap-4">
-                      <Link href="/tokens">
+                      <Link href="/walkthrough">
                         <Button size="lg" className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:brightness-110 transition-all">
                           Get Started
                         </Button>
