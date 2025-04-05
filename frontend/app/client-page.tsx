@@ -79,7 +79,7 @@ export default function ClientPage() {
                 <div className="flex justify-center mt-12">
                   <button 
                     onClick={() => document.getElementById('how-it-works')?.scrollIntoView({behavior: 'smooth'})}
-                    className="w-14 h-14 rounded-full backdrop-blur-xl flex items-center justify-center border border-white/10 hover:border-white/20 transition-all duration-300 shadow-lg shadow-blue-500/5 hover:shadow-blue-500/15"
+                    className="opacity-60 w-14 h-14 rounded-full backdrop-blur-xl flex items-center justify-center border border-white/10 hover:border-white/20 transition-all duration-300 shadow-lg shadow-blue-500/5 hover:shadow-blue-500/15 "
                     aria-label="Scroll down to How It Works"
                     style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)' }}
                   >
