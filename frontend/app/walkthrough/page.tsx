@@ -592,10 +592,6 @@ export default function WalkthroughPage() {
             <h1 className="text-4xl font-bold text-white mb-6">
             Enable your Domain for ENS
             </h1>
-            <p className="text-gray-300 max-w-2xl mx-auto">
-              Follow these steps to properly set up DNSSEC for your domain. This process ensures your 
-              domain can interact securely with the DNSRegistrar smart contract.
-            </p>
           </div>
 
           <WalkthroughContent />
