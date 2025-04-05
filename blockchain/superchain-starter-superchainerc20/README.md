@@ -25,7 +25,7 @@ IERC20 token = IERC20(tokenAddress);
 // You now have 1 million tokens
 ```
 
-deploy
+deploy - note the addr 0xf39 is the default anvil address acc 1. 
 ```
 forge script script/DeployNFTTokenMinter.s.sol:DeployNFTTokenMinter --rpc-url http://localhost:8545 --broadcast -vvvv
     export FOUNDRY_PRIVATE_KEY=<pk>
