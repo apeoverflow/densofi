@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@ensdomains/ensjs": "^4.0.2"
+  }
+}

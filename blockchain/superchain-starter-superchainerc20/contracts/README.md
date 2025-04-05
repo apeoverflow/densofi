@@ -61,3 +61,19 @@ forge test
 ## License
 
 MIT
+
+
+# Deploy Script
+
+Address is the NameWrapper on Sepolia
+
+```
+forge create --rpc-url "https://ethereum-sepolia-rpc.publicnode.com" \
+    --broadcast
+    --private-key <your_private_key> \
+    --etherscan-api-key "KH2SPPRHM1F1MD5WQ4SSTF7BB9ZBBVIE8G" \
+    --verify \
+    src/TokenMinter.sol:TokenMinter
+```
+
+Deployed to 0xc3867159d9D75b2330240106c8e54Ce097d09366
