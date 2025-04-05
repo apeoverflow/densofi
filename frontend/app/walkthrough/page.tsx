@@ -587,7 +587,7 @@ const NFTMinter = ({ domain }: { domain: string }) => {
   const [domainName, setDomainName] = useState(domain || "");
   const [showSuccess, setShowSuccess] = useState(false);
   const [transactionHash, setTransactionHash] = useState("");
-  const [mintMethod, setMintMethod] = useState<"standard" | "resolver">("resolver");
+  const [mintMethod] = useState<"standard" | "resolver">("standard");
 
   const { 
     mintNFT, 
@@ -609,12 +609,7 @@ const NFTMinter = ({ domain }: { domain: string }) => {
     e.preventDefault();
     if (!domainName) return;
 
-    let success = false;
-    if (mintMethod === "standard") {
-      success = await mintNFT(domainName);
-    } else {
-      success = await mintNFTViaResolver(domainName);
-    }
+    const success = await mintNFT(domainName);
 
     if (success && hash) {
       setTransactionHash(hash);
@@ -666,37 +661,6 @@ const NFTMinter = ({ domain }: { domain: string }) => {
       ) : (
         <form onSubmit={handleSubmit}>
           <h2 className="text-xl font-semibold mb-6">Mint Domain NFT</h2>
-          
-          <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">Mint Method</label>
-            <div className="flex gap-4">
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="mintMethod"
-                  checked={mintMethod === "standard"}
-                  onChange={() => setMintMethod("standard")}
-                  className="mr-2"
-                />
-                <span>Standard (Admin)</span>
-              </label>
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="mintMethod"
-                  checked={mintMethod === "resolver"}
-                  onChange={() => setMintMethod("resolver")}
-                  className="mr-2"
-                />
-                <span>Via Resolver</span>
-              </label>
-            </div>
-            {mintMethod === "resolver" && (
-              <p className="text-xs text-gray-400 mt-2">
-                Note: You must own the ENS domain to mint via resolver
-              </p>
-            )}
-          </div>
           
           <div className="mb-6">
             <label htmlFor="domainName" className="block text-sm font-medium mb-2">
