@@ -506,10 +506,6 @@ const DnsProofAndWrapper = ({ onComplete, onBack, domain }: DnsWrapperProps) => 
         </svg>
         ENS Integration
       </h3>
-      <p className="mt-2 text-sm text-yellow-700">
-        This implementation performs real blockchain transactions to the Sepolia testnet. 
-        For production use, you'd need to thoroughly test and audit your code.
-      </p>
       <ul className="mt-2 text-sm text-yellow-700 list-disc list-inside">
         <li>Make sure you have a wallet with Sepolia ETH connected</li>
         <li>Confirm DNS TXT records are properly set up and propagated</li>
@@ -521,14 +517,13 @@ const DnsProofAndWrapper = ({ onComplete, onBack, domain }: DnsWrapperProps) => 
   return (
     <div className="h-full overflow-auto">
       <ProductionNotice />
-      <h1 className="text-3xl font-bold mt-6 mb-4">Step 3: Submit DNSSEC Proof and Wrap Name</h1>
-      <p className="text-gray-700 mb-6">
+      <p className="text-white mb-6">
         Now that you've verified ownership of your domain, you can submit DNSSEC proof and wrap your domain name.
       </p>
 
       {/* Display domain */}
       <div className="mb-8 bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold mb-4">Your Verified Domain</h2>
+        <h2 className="text-xl font-semibold mb-4 text-gray-700">Your Verified Domain</h2>
         <p className="text-gray-600 mb-2">
           You're working with: <span className="font-medium text-black">{domain}</span>
         </p>
@@ -536,7 +531,7 @@ const DnsProofAndWrapper = ({ onComplete, onBack, domain }: DnsWrapperProps) => 
 
       {/* DNS Proof Submission Section */}
       <div className="mb-8 bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold mb-4">Step 1: Submit DNSSEC Proof</h2>
+        <h2 className="text-xl font-semibold mb-4 text-gray-700">Step 1: Submit DNSSEC Proof</h2>
         <p className="text-gray-700 mb-4">
           Submit DNSSEC proof to prove ownership of your domain on the blockchain. This step is required before wrapping.
         </p>
@@ -576,7 +571,7 @@ const DnsProofAndWrapper = ({ onComplete, onBack, domain }: DnsWrapperProps) => 
 
       {/* Domain Wrapping Section */}
       <div className="mb-8 bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold mb-4">Step 2: Wrap Domain Name</h2>
+        <h2 className="text-xl font-semibold mb-4 text-gray-700">Step 2: Wrap Domain Name</h2>
         <p className="text-gray-700 mb-4">
           Wrap your domain name to enable better management and enhanced features. This step must be done after submitting DNSSEC proof.
         </p>
