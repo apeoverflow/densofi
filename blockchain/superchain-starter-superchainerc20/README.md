@@ -27,14 +27,21 @@ IERC20 token = IERC20(tokenAddress);
 
 deploy - note the addr 0xf39 is the default anvil address acc 1. 
 ```
+may need to run `pnpm run dev` first
+
 forge script script/DeployNFTTokenMinter.s.sol:DeployNFTTokenMinter --rpc-url http://localhost:8545 --broadcast -vvvv
     export FOUNDRY_PRIVATE_KEY=<pk>
     forge script script/DeployNFTTokenMinter.s.sol:DeployNFTTokenMinter \
-      --rpc-url http://localhost:8545 \
+      --rpc-url $RPC \
       --broadcast \
       --sender 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 \
       -vvvv
   
+export RPC=http://localhost:9545 && !! 
+
+export RPC="https://testnet.evm.nodes.onflow.org/"
+export RPC="https://alfajores-forno.celo-testnet.org/"
+export RPC="worldchain-sepolia.g.alchemy.com/public"
 ```
 
 # Superchain Starter Kit: InitialSupplySuperchainERC20
