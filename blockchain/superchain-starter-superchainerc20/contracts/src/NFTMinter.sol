@@ -30,8 +30,8 @@ contract NFTMinter is ERC1155, AccessControl {
     
     constructor() ERC1155("ipfs://") {
         // Grant the contract deployer both the default admin role and minter role
-        _grantRole(DEFAULT_ADMIN_ROLE, tx.origin);
-        _grantRole(MINTER_ROLE, tx.origin);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(MINTER_ROLE, msg.sender);
     }
     
     /**

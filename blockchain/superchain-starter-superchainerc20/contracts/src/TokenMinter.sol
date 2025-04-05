@@ -39,8 +39,8 @@ contract TokenMinter is AccessControl, IERC1155Receiver {
      */
     constructor(address _nftContract) {
         nftContract = NFTMinter(_nftContract);
-        _grantRole(DEFAULT_ADMIN_ROLE, tx.origin);
-        _grantRole(MINTER_ROLE, tx.origin);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(MINTER_ROLE, msg.sender);
     }
     
     /**
