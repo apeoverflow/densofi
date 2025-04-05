@@ -6,6 +6,11 @@ export const metadata: Metadata = {
   description: 'Register subdomains by staking your domain tokens',
 };
 
-export default function TokenSubdomainsPage({ params }: { params: { id: string } }) {
-  return <TokenSubdomainsClient id={params.id} />;
+interface PageParams {
+  params: Promise<{ id: string }> | { id: string };
+}
+
+export default async function TokenSubdomainsPage({ params }: PageParams) {
+  const resolvedParams = await params;
+  return <TokenSubdomainsClient id={resolvedParams.id} />;
 }
