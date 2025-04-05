@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useTokenMinterContract } from "@/hooks/useTokenMinterContract";
 import { WalletConnectButton } from "@/components/WalletConnectButton";
-import { useAccount, useReadContract } from "wagmi";
+import { useAccount } from "wagmi";
 import { NFT_MINTER_ABI, NFT_MINTER_SEPOLIA_ADDRESS } from "@/constants/contract";
 
 interface NFT {
@@ -22,9 +22,11 @@ export default function TokenMinterClient() {
 
   const { 
     createTokenFromNFT, 
+    getTokenAddress,
     isProcessing, 
     isConfirmed,
     transactionHash: hash,
+    transactionCompleted,
     writeError
   } = useTokenMinterContract();
 
@@ -41,22 +43,31 @@ export default function TokenMinterClient() {
         const nfts: NFT[] = [];
         
         for (const id of potentialNFTs) {
-          const { data: balance } = await useReadContract({
-            address: NFT_MINTER_SEPOLIA_ADDRESS,
-            abi: NFT_MINTER_ABI,
-            functionName: 'balanceOf',
-            args: [address, id],
+          const balanceResult = await window.ethereum.request({
+            method: 'eth_call',
+            params: [{
+              to: NFT_MINTER_SEPOLIA_ADDRESS,
+              data: `0x00fdd58e000000000000000000000000${address.slice(2)}${id.toString(16).padStart(64, '0')}`
+            }, 'latest']
           });
           
-          if (balance && (balance as bigint) > BigInt(0)) {
-            const { data: name } = await useReadContract({
-              address: NFT_MINTER_SEPOLIA_ADDRESS,
-              abi: NFT_MINTER_ABI,
-              functionName: 'tokenName',
-              args: [id],
+          const balance = parseInt(balanceResult, 16);
+          
+          if (balance > 0) {
+            const nameResult = await window.ethereum.request({
+              method: 'eth_call',
+              params: [{
+                to: NFT_MINTER_SEPOLIA_ADDRESS,
+                data: `0x4e3e6d4f${id.toString(16).padStart(64, '0')}`
+              }, 'latest']
             });
             
-            nfts.push({ id, name: name as string });
+            // Parse the name from the response (this is a simplified version)
+            const nameHex = nameResult.slice(130);
+            const nameLength = parseInt(nameResult.slice(66, 130), 16);
+            const name = Buffer.from(nameHex.slice(0, nameLength * 2), 'hex').toString('utf8');
+            
+            nfts.push({ id, name });
           }
         }
         
@@ -71,26 +82,31 @@ export default function TokenMinterClient() {
     loadUserNFTs();
   }, [isConnected, address]);
 
+  // Check for transaction completion and get token address
+  useEffect(() => {
+    if (isConfirmed && transactionCompleted && selectedNftId !== null) {
+      const fetchTokenAddress = async () => {
+        try {
+          const { data } = getTokenAddress(selectedNftId);
+          if (data && typeof data === 'string' && data !== '0x0000000000000000000000000000000000000000') {
+            setCreatedTokenAddress(data);
+            setTransactionHash(hash || "");
+            setShowSuccess(true);
+          }
+        } catch (error) {
+          console.error("Error getting token address:", error);
+        }
+      };
+      
+      fetchTokenAddress();
+    }
+  }, [isConfirmed, transactionCompleted, selectedNftId, hash, getTokenAddress]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedNftId === null) return;
 
-    const success = await createTokenFromNFT(selectedNftId);
-
-    if (success && hash) {
-      // Get the created token address from the event logs
-      // In a real app, you would parse the transaction receipt for the TokenCreated event
-      const { data: tokenAddress } = await useReadContract({
-        address: NFT_MINTER_SEPOLIA_ADDRESS,
-        abi: NFT_MINTER_ABI,
-        functionName: 'nftToToken',
-        args: [selectedNftId],
-      });
-      
-      setCreatedTokenAddress(tokenAddress as string);
-      setTransactionHash(hash);
-      setShowSuccess(true);
-    }
+    await createTokenFromNFT(selectedNftId);
   };
 
   const resetForm = () => {
