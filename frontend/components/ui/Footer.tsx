@@ -20,7 +20,7 @@ export default function Footer() {
                 <h4 className="font-medium text-white mb-4">Quick Links</h4>
                 <div className="space-y-2">
                   <Link href="/tokens" className="block text-gray-400 hover:text-white">Explore Tokens</Link>
-                  <Link href="/new-page" className="block text-gray-400 hover:text-white">Documentation</Link>
+                  <Link href="/walkthrough" className="block text-gray-400 hover:text-white">Get Started</Link>
                 </div>
               </div>
               <div>
