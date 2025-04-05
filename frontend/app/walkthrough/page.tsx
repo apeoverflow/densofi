@@ -12,6 +12,7 @@ import { useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { useNFTMinterContract } from "@/hooks/useNFTMinterContract";
 import { useTokenMinterContract } from "@/hooks/useTokenMinterContract";
+import { Alchemy, Network, OwnedNft } from "alchemy-sdk";
 
 // Step component props interface
 interface StepProps {
@@ -47,7 +48,13 @@ const Step = ({ number, title, completed, active, children }: StepProps) => {
 
 // Alchemy API setup for token minter
 const apiKey = "rpHRPKA38BMxeGGjtjkGTEAZc0nRtb9D";
-const endpoint = `https://eth-sepolia.alchemyapi.io/v2/${apiKey}`;
+// Configure Alchemy SDK
+const alchemySettings = {
+  apiKey: apiKey,
+  network: Network.ETH_SEPOLIA,
+};
+// Initialize Alchemy client
+const alchemy = new Alchemy(alchemySettings);
 const CONTRACT_ADDRESS = "0xAC7333a355be9F4E8F64B91F090cCBBB96e6CF78";
 
 // NFT interface for token minter
@@ -83,6 +90,14 @@ const WalkthroughContent = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [registrationComplete, setRegistrationComplete] = useState(false);
   const [nftCreated, setNftCreated] = useState(false);
+
+  // Reset states if not connected
+  useEffect(() => {
+    if (!isConnected) {
+      setNftCreated(false);
+      setRegistrationComplete(false);
+    }
+  }, [isConnected]);
 
   // Replace ENS configuration interface with a simpler mock object
   interface EnsConfig {
@@ -663,11 +678,15 @@ const NFTMinter = ({ domain, onComplete }: NFTMinterProps) => {
 
     try {
       // Call the mint function
-      await mintNFT(domainName);
+      const success = await mintNFT(domainName);
       
-      // If there's no transaction hash after successful call,
-      // we'll still consider it successful after a short delay
-      if (!hash) {
+      // If we have a hash and successful mint
+      if (success && hash) {
+        setTransactionHash(hash);
+        setShowSuccess(true);
+      } 
+      // If successful but no hash available yet
+      else if (success) {
         setTimeout(() => {
           if (!showSuccess) {
             console.log("No transaction hash received, but considering mint successful");
@@ -822,6 +841,7 @@ const TokenMinter = ({ domain }: { domain: string }) => {
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [transactionHash, setTransactionHash] = useState("");
+  const [refreshAttempts, setRefreshAttempts] = useState(0);
 
   const { 
     createTokenFromNFT, 
@@ -831,36 +851,46 @@ const TokenMinter = ({ domain }: { domain: string }) => {
     writeError
   } = useTokenMinterContract();
 
-  // Fetch NFTs when address changes
+  // Fetch NFTs when address changes or when refreshing manually
   useEffect(() => {
     if (address) {
+      fetchNFTs(address);
+    }
+  }, [address, refreshAttempts]);
+
+  // Updated fetchNFTs function using Alchemy SDK
+  const fetchNFTs = async (owner: string) => {
+    try {
       setLoading(true);
-      fetchNFTs(address, CONTRACT_ADDRESS, (fetchedNfts) => {
-        setNfts(fetchedNfts);
-        setLoading(false);
-      }, 0);
-    }
-  }, [address]);
+      console.log("Fetching NFTs for address:", owner);
+      
+      // Get NFTs for owner from the specific contract
+      const response = await alchemy.nft.getNftsForOwner(owner, {
+        contractAddresses: [CONTRACT_ADDRESS]
+      });
 
-  const fetchNFTs = async (owner: string, contractAddress: string, setNFTsCallback: (nfts: NFT[]) => void, retryAttempt: number) => {
-    if (retryAttempt === 5) {
-      return;
-    }
-    if (owner) {
-      let data;
-      try {
-        if (contractAddress) {
-          data = await fetch(`${endpoint}/getNFTs?owner=${owner}&contractAddresses%5B%5D=${contractAddress}`).then(data => data.json())
-        } else {
-          data = await fetch(`${endpoint}/getNFTs?owner=${owner}`).then(data => data.json())
+      console.log("NFTs found:", response.totalCount);
+      
+      // Transform the data to match our expected format
+      const formattedNfts = response.ownedNfts.map((nft: any) => ({
+        id: {
+          tokenId: nft.tokenId
+        },
+        title: nft.title || nft.rawMetadata?.name || `Domain NFT #${nft.tokenId}`,
+        description: nft.description || nft.rawMetadata?.description || "",
+        media: [{
+          gateway: nft.media?.[0]?.gateway || ""
+        }],
+        contract: {
+          address: nft.contract.address
         }
-      } catch (e) {
-        fetchNFTs(owner, contractAddress, setNFTsCallback, retryAttempt+1);
-        return;
-      }
-
-      setNFTsCallback(data.ownedNfts);
-      return data;
+      }));
+      
+      setNfts(formattedNfts);
+    } catch (error) {
+      console.error("Error fetching NFTs:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -871,11 +901,24 @@ const TokenMinter = ({ domain }: { domain: string }) => {
     const nftIdNumber = parseInt(selectedNft, 10);
     if (isNaN(nftIdNumber)) return;
 
-    const success = await createTokenFromNFT(nftIdNumber);
-
-    if (success && hash) {
-      setTransactionHash(hash);
-      setShowSuccess(true);
+    try {
+      const success = await createTokenFromNFT(nftIdNumber);
+      
+      if (success && hash) {
+        setTransactionHash(hash);
+        setShowSuccess(true);
+      } else if (success) {
+        // If successful but no hash, still show success after a delay
+        setTimeout(() => {
+          if (!showSuccess) {
+            console.log("No transaction hash received, but token creation successful");
+            setShowSuccess(true);
+            setTransactionHash("Transaction completed successfully");
+          }
+        }, 3000);
+      }
+    } catch (error) {
+      console.error("Error creating token:", error);
     }
   };
 
@@ -883,6 +926,21 @@ const TokenMinter = ({ domain }: { domain: string }) => {
     setSelectedNft("");
     setShowSuccess(false);
     setTransactionHash("");
+    // Refresh NFTs list when resetting the form
+    setRefreshAttempts(prev => prev + 1);
+  };
+
+  // Monitor transaction confirmation
+  useEffect(() => {
+    if (hash && isConfirmed) {
+      setTransactionHash(hash);
+      setShowSuccess(true);
+    }
+  }, [hash, isConfirmed]);
+
+  // Function to refresh NFTs
+  const refreshNFTs = () => {
+    setRefreshAttempts(prev => prev + 1);
   };
 
   if (!isConnected) {
@@ -902,17 +960,23 @@ const TokenMinter = ({ domain }: { domain: string }) => {
           <div className="mb-4 text-green-400 text-5xl">🎉</div>
           <h3 className="text-xl font-bold mb-2">Token Created Successfully!</h3>
           <p className="mb-4 text-gray-300">Your token for NFT ID <span className="font-bold">#{selectedNft}</span> has been created.</p>
-          <div className="mb-4">
-            <p className="text-sm text-gray-400 mb-2">Transaction Hash:</p>
-            <a 
-              href={`https://sepolia.etherscan.io/tx/${transactionHash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-400 text-sm break-all hover:underline"
-            >
-              {transactionHash}
-            </a>
-          </div>
+          {transactionHash && (
+            <div className="mb-4">
+              <p className="text-sm text-gray-400 mb-2">Transaction Hash:</p>
+              {transactionHash.startsWith("0x") ? (
+                <a 
+                  href={`https://sepolia.etherscan.io/tx/${transactionHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 text-sm break-all hover:underline"
+                >
+                  {transactionHash}
+                </a>
+              ) : (
+                <p className="text-blue-400 text-sm break-all">{transactionHash}</p>
+              )}
+            </div>
+          )}
           <button
             onClick={resetForm}
             className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 rounded-md transition-colors"
@@ -925,13 +989,36 @@ const TokenMinter = ({ domain }: { domain: string }) => {
           <h2 className="text-xl font-semibold mb-6">Create Token from Domain NFT</h2>
           
           <div className="mb-6">
-            <label htmlFor="nftSelector" className="block text-sm font-medium mb-2">
-              Select Your Domain NFT
-            </label>
+            <div className="flex justify-between items-center mb-2">
+              <label htmlFor="nftSelector" className="block text-sm font-medium">
+                Select Your Domain NFT
+              </label>
+              <button 
+                type="button"
+                onClick={refreshNFTs}
+                disabled={loading}
+                className="text-xs text-blue-400 hover:text-blue-300 flex items-center"
+              >
+                {loading ? (
+                  <span className="flex items-center">
+                    <div className="animate-spin h-3 w-3 border-t-2 border-blue-500 rounded-full mr-1"></div>
+                    Loading...
+                  </span>
+                ) : (
+                  <span className="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                    </svg>
+                    Refresh NFTs
+                  </span>
+                )}
+              </button>
+            </div>
             
             {loading ? (
-              <div className="flex justify-center py-4">
-                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-purple-500"></div>
+              <div className="flex flex-col items-center justify-center py-8 bg-gray-700/30 rounded-md border border-gray-600">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-purple-500 mb-2"></div>
+                <p className="text-sm text-gray-300">Loading your NFTs...</p>
               </div>
             ) : nfts.length === 0 ? (
               <div className="p-4 bg-gray-700/50 rounded-md border border-gray-600 text-center">
@@ -941,15 +1028,7 @@ const TokenMinter = ({ domain }: { domain: string }) => {
                 </p>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (address) {
-                      setLoading(true);
-                      fetchNFTs(address, CONTRACT_ADDRESS, (fetchedNfts) => {
-                        setNfts(fetchedNfts);
-                        setLoading(false);
-                      }, 0);
-                    }
-                  }}
+                  onClick={refreshNFTs}
                   className="mt-3 text-sm text-blue-400 underline"
                 >
                   Refresh NFTs
@@ -967,7 +1046,7 @@ const TokenMinter = ({ domain }: { domain: string }) => {
                         : "bg-gray-700/50 hover:bg-gray-700/70 border border-gray-600"
                     }`}
                   >
-                    {nft.media && nft.media[0] ? (
+                    {nft.media && nft.media[0] && nft.media[0].gateway ? (
                       <img 
                         src={nft.media[0].gateway} 
                         alt={nft.title || `NFT #${nft.id.tokenId}`}
@@ -1019,6 +1098,17 @@ const TokenMinter = ({ domain }: { domain: string }) => {
             <p className="mt-4 text-red-400 text-sm">
               Error: {writeError.message || "Failed to create token"}
             </p>
+          )}
+          
+          {isProcessing && (
+            <div className="mt-4 p-3 bg-indigo-900/30 border border-indigo-700/50 rounded-md text-center">
+              <div className="flex justify-center mb-2">
+                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-purple-500"></div>
+              </div>
+              <p className="text-gray-300 text-sm">
+                Transaction in progress... Please wait and do not close this page.
+              </p>
+            </div>
           )}
           
           <p className="mt-4 text-xs text-gray-400">
