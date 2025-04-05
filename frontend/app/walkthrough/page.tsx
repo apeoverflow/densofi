@@ -11,6 +11,7 @@ import { useWalletConnection } from "@/hooks/useWalletConnection";
 import { useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { useNFTMinterContract } from "@/hooks/useNFTMinterContract";
+import { useTokenMinterContract } from "@/hooks/useTokenMinterContract";
 
 // Step component props interface
 interface StepProps {
@@ -44,6 +45,26 @@ const Step = ({ number, title, completed, active, children }: StepProps) => {
   );
 };
 
+// Alchemy API setup for token minter
+const apiKey = "rpHRPKA38BMxeGGjtjkGTEAZc0nRtb9D";
+const endpoint = `https://eth-sepolia.alchemyapi.io/v2/${apiKey}`;
+const CONTRACT_ADDRESS = "0xAC7333a355be9F4E8F64B91F090cCBBB96e6CF78";
+
+// NFT interface for token minter
+interface NFT {
+  id: {
+    tokenId: string;
+  };
+  title: string;
+  description: string;
+  media: Array<{
+    gateway: string;
+  }>;
+  contract: {
+    address: string;
+  };
+}
+
 // The walkthrough interface content
 const WalkthroughContent = () => {
   const { isConnected } = useAccount();
@@ -61,6 +82,7 @@ const WalkthroughContent = () => {
   const [wrapHash, setWrapHash] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [nftCreated, setNftCreated] = useState(false);
 
   // Replace ENS configuration interface with a simpler mock object
   interface EnsConfig {
@@ -247,13 +269,29 @@ const WalkthroughContent = () => {
       <Step 
         number={4} 
         title="Mint an NFT for your Domain" 
-        completed={false} 
-        active={isConnected && dnsVerified && registrationComplete}
+        completed={nftCreated} 
+        active={isConnected && dnsVerified && registrationComplete && !nftCreated}
       >
         {!isConnected || !dnsVerified || !registrationComplete ? (
           <p className="text-gray-400">Complete steps 1, 2, and 3 to proceed</p>
         ) : (
-          <NFTMinter domain={verifiedDomain} />
+          <NFTMinter 
+            domain={verifiedDomain} 
+            onComplete={() => setNftCreated(true)}
+          />
+        )}
+      </Step>
+      
+      <Step 
+        number={5} 
+        title="Create Token from your Domain NFT" 
+        completed={false} 
+        active={isConnected && dnsVerified && registrationComplete && nftCreated}
+      >
+        {!isConnected || !dnsVerified || !registrationComplete || !nftCreated ? (
+          <p className="text-gray-400">Complete steps 1, 2, 3, and 4 to proceed</p>
+        ) : (
+          <TokenMinter domain={verifiedDomain} />
         )}
       </Step>
       
@@ -581,8 +619,14 @@ const DnsProofAndWrapper = ({ onComplete, onBack, domain }: DnsWrapperProps) => 
   );
 };
 
+// Update NFTMinter to include onComplete callback
+interface NFTMinterProps {
+  domain: string;
+  onComplete?: () => void;
+}
+
 // NFTMinter component based on NFTMinterClient
-const NFTMinter = ({ domain }: { domain: string }) => {
+const NFTMinter = ({ domain, onComplete }: NFTMinterProps) => {
   const { address, isConnected } = useAccount();
   const [domainName, setDomainName] = useState(domain || "");
   const [showSuccess, setShowSuccess] = useState(false);
@@ -651,12 +695,22 @@ const NFTMinter = ({ domain }: { domain: string }) => {
               {transactionHash}
             </a>
           </div>
-          <button
-            onClick={resetForm}
-            className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 rounded-md transition-colors"
-          >
-            Mint Another NFT
-          </button>
+          <div className="mt-6 flex flex-col gap-3">
+            <button
+              onClick={resetForm}
+              className="w-full py-2 px-4 bg-gray-600 hover:bg-gray-700 rounded-md transition-colors"
+            >
+              Mint Another NFT
+            </button>
+            <button
+              onClick={() => {
+                if (onComplete) onComplete();
+              }}
+              className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 rounded-md transition-colors"
+            >
+              Continue to Next Step
+            </button>
+          </div>
         </div>
       ) : (
         <form onSubmit={handleSubmit}>
@@ -705,6 +759,222 @@ const NFTMinter = ({ domain }: { domain: string }) => {
           {writeError && (
             <p className="mt-4 text-red-400 text-sm">
               Error: {writeError.message || "Failed to mint NFT"}
+            </p>
+          )}
+          
+          <p className="mt-4 text-xs text-gray-400">
+            Connected: {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "Not connected"}
+          </p>
+        </form>
+      )}
+    </div>
+  );
+};
+
+// TokenMinter component adapted from TokenMinterClient
+const TokenMinter = ({ domain }: { domain: string }) => {
+  const { address, isConnected } = useAccount();
+  const [selectedNft, setSelectedNft] = useState<string>("");
+  const [nfts, setNfts] = useState<NFT[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [transactionHash, setTransactionHash] = useState("");
+
+  const { 
+    createTokenFromNFT, 
+    isProcessing, 
+    isConfirmed,
+    transactionHash: hash,
+    writeError
+  } = useTokenMinterContract();
+
+  // Fetch NFTs when address changes
+  useEffect(() => {
+    if (address) {
+      setLoading(true);
+      fetchNFTs(address, CONTRACT_ADDRESS, (fetchedNfts) => {
+        setNfts(fetchedNfts);
+        setLoading(false);
+      }, 0);
+    }
+  }, [address]);
+
+  const fetchNFTs = async (owner: string, contractAddress: string, setNFTsCallback: (nfts: NFT[]) => void, retryAttempt: number) => {
+    if (retryAttempt === 5) {
+      return;
+    }
+    if (owner) {
+      let data;
+      try {
+        if (contractAddress) {
+          data = await fetch(`${endpoint}/getNFTs?owner=${owner}&contractAddresses%5B%5D=${contractAddress}`).then(data => data.json())
+        } else {
+          data = await fetch(`${endpoint}/getNFTs?owner=${owner}`).then(data => data.json())
+        }
+      } catch (e) {
+        fetchNFTs(owner, contractAddress, setNFTsCallback, retryAttempt+1);
+        return;
+      }
+
+      setNFTsCallback(data.ownedNfts);
+      return data;
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedNft) return;
+
+    const nftIdNumber = parseInt(selectedNft, 10);
+    if (isNaN(nftIdNumber)) return;
+
+    const success = await createTokenFromNFT(nftIdNumber);
+
+    if (success && hash) {
+      setTransactionHash(hash);
+      setShowSuccess(true);
+    }
+  };
+
+  const resetForm = () => {
+    setSelectedNft("");
+    setShowSuccess(false);
+    setTransactionHash("");
+  };
+
+  if (!isConnected) {
+    return (
+      <div className="bg-gray-800/50 backdrop-blur-md p-8 rounded-xl shadow-xl">
+        <h2 className="text-xl font-semibold mb-6">Connect Wallet</h2>
+        <p className="mb-6 text-gray-300">Please connect your wallet to create tokens from domain NFTs.</p>
+        <WalletConnectButton />
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-gray-800/50 backdrop-blur-md p-8 rounded-xl shadow-xl">
+      {showSuccess ? (
+        <div className="text-center">
+          <div className="mb-4 text-green-400 text-5xl">🎉</div>
+          <h3 className="text-xl font-bold mb-2">Token Created Successfully!</h3>
+          <p className="mb-4 text-gray-300">Your token for NFT ID <span className="font-bold">#{selectedNft}</span> has been created.</p>
+          <div className="mb-4">
+            <p className="text-sm text-gray-400 mb-2">Transaction Hash:</p>
+            <a 
+              href={`https://sepolia.etherscan.io/tx/${transactionHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 text-sm break-all hover:underline"
+            >
+              {transactionHash}
+            </a>
+          </div>
+          <button
+            onClick={resetForm}
+            className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 rounded-md transition-colors"
+          >
+            Create Another Token
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <h2 className="text-xl font-semibold mb-6">Create Token from Domain NFT</h2>
+          
+          <div className="mb-6">
+            <label htmlFor="nftSelector" className="block text-sm font-medium mb-2">
+              Select Your Domain NFT
+            </label>
+            
+            {loading ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-purple-500"></div>
+              </div>
+            ) : nfts.length === 0 ? (
+              <div className="p-4 bg-gray-700/50 rounded-md border border-gray-600 text-center">
+                <p className="text-gray-300">No domain NFTs found</p>
+                <p className="text-xs text-gray-400 mt-2">
+                  You need to own domain NFTs to create tokens. If you just minted your NFT, it may take a few minutes to appear.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (address) {
+                      setLoading(true);
+                      fetchNFTs(address, CONTRACT_ADDRESS, (fetchedNfts) => {
+                        setNfts(fetchedNfts);
+                        setLoading(false);
+                      }, 0);
+                    }
+                  }}
+                  className="mt-3 text-sm text-blue-400 underline"
+                >
+                  Refresh NFTs
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto p-2 bg-gray-700/30 rounded-md border border-gray-600">
+                {nfts.map((nft) => (
+                  <div 
+                    key={nft.id.tokenId}
+                    onClick={() => setSelectedNft(nft.id.tokenId)}
+                    className={`p-2 rounded-md cursor-pointer transition-all ${
+                      selectedNft === nft.id.tokenId 
+                        ? "bg-purple-600/40 border-purple-500 border" 
+                        : "bg-gray-700/50 hover:bg-gray-700/70 border border-gray-600"
+                    }`}
+                  >
+                    {nft.media && nft.media[0] ? (
+                      <img 
+                        src={nft.media[0].gateway} 
+                        alt={nft.title || `NFT #${nft.id.tokenId}`}
+                        className="w-full h-24 object-cover rounded-md mb-2"
+                      />
+                    ) : (
+                      <div className="w-full h-24 bg-gray-800 rounded-md mb-2 flex items-center justify-center">
+                        <span className="text-xl">🏠</span>
+                      </div>
+                    )}
+                    <p className="text-sm font-medium truncate">
+                      {nft.title || `Domain #${nft.id.tokenId}`}
+                    </p>
+                    <p className="text-xs text-gray-400 truncate">
+                      ID: {nft.id.tokenId}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          <div className="mb-6 p-4 bg-indigo-900/30 border border-indigo-700/50 rounded-md">
+            <h4 className="text-indigo-400 font-bold flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              About Domain Tokens
+            </h4>
+            <p className="text-gray-300 mt-2">
+              Creating a token from your domain NFT allows you to have a tradable ERC-20 token 
+              associated with your domain that can be used in DeFi applications.
+            </p>
+          </div>
+          
+          <button
+            type="submit"
+            disabled={isProcessing || !selectedNft || loading}
+            className={`w-full py-3 px-4 rounded-md font-medium ${
+              isProcessing || !selectedNft || loading
+                ? "bg-gray-600 cursor-not-allowed"
+                : "bg-purple-600 hover:bg-purple-700"
+            } transition-colors`}
+          >
+            {isProcessing ? "Processing..." : "Create Token"}
+          </button>
+          
+          {writeError && (
+            <p className="mt-4 text-red-400 text-sm">
+              Error: {writeError.message || "Failed to create token"}
             </p>
           )}
           
