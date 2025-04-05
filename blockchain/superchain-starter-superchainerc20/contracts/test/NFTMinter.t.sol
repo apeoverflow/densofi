@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 
 // Target contract
 import {NFTMinter} from "../src/NFTMinter.sol";
+import {IResolver} from "../src/NFTMinter.sol";
 
 // Helper contract to make addresses ERC1155 receivers
 contract ERC1155ReceiverHelper is IERC1155Receiver {
@@ -203,5 +204,53 @@ contract NFTMinterTest is Test {
         vm.stopPrank();
         
         assertEq(tokenId, 0);
+    }
+    
+    /// @notice Tests that minting via resolver succeeds when caller owns the domain
+    function test_mintViaResolver_succeeds() public {
+        // Mock the resolver to return the owner address for the domain
+        bytes32 nameHash = nftMinter.stringToBytes32("test.eth");
+        vm.mockCall(
+            nftMinter.RESOLVER(),
+            abi.encodeWithSelector(IResolver.owner.selector, nameHash),
+            abi.encode(owner)
+        );
+        
+        // Mint as owner
+        vm.startPrank(owner);
+        uint256 tokenId = nftMinter.mintViaResolver("test.eth");
+        vm.stopPrank();
+        
+        // Verify the token was minted correctly
+        assertEq(tokenId, 0);
+        assertEq(nftMinter.tokenName(tokenId), "test.eth");
+        assertEq(nftMinter.balanceOf(owner, tokenId), 1);
+    }
+    
+    /// @notice Tests that minting via resolver reverts when caller doesn't own the domain
+    function test_mintViaResolver_notOwner_reverts() public {
+        // Mock the resolver to return a different address for the domain
+        bytes32 nameHash = nftMinter.stringToBytes32("test.eth");
+        vm.mockCall(
+            nftMinter.RESOLVER(),
+            abi.encodeWithSelector(IResolver.owner.selector, nameHash),
+            abi.encode(alice)
+        );
+        
+        // Try to mint as owner (who doesn't own the domain)
+        vm.startPrank(owner);
+        vm.expectRevert("Must own domain");
+        nftMinter.mintViaResolver("test.eth");
+        vm.stopPrank();
+    }
+    
+    /// @notice Tests that stringToBytes32 converts strings correctly
+    function test_stringToBytes32_convertsCorrectly() public {
+        string memory testString = "test.eth";
+        bytes32 expected = bytes32(bytes(testString));
+        assertEq(nftMinter.stringToBytes32(testString), expected);
+        
+        // Test empty string
+        assertEq(nftMinter.stringToBytes32(""), bytes32(0));
     }
 } 

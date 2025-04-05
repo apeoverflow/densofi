@@ -5,11 +5,19 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
+// Interface for the resolver
+interface IResolver {
+    function owner(bytes32) external view returns (address);
+}
+    
 contract NFTMinter is ERC1155, AccessControl {
     using Strings for uint256;
     
     // Define the minter role
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    
+    // ENS Resolver address
+    address public constant RESOLVER = 0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e;
     
     // Mapping to store token names
     mapping(uint256 => string) private _tokenNames;
@@ -42,6 +50,30 @@ contract NFTMinter is ERC1155, AccessControl {
         
         return tokenId;
     }
+
+    function mintViaResolver(string memory name) public returns (uint256 tokenId) {
+        require(IResolver(RESOLVER).owner(stringToBytes32(name)) == msg.sender, "Must own domain");
+        tokenId = _tokenIdCounter;
+        _tokenIdCounter++;
+        
+        _tokenNames[tokenId] = name;
+        _mint(msg.sender, tokenId, 1, "");
+        
+        emit NFTMinted(tokenId, msg.sender, name);
+        
+        return tokenId;
+    }
+
+    function stringToBytes32(string memory source) public pure returns (bytes32 result) {
+    bytes memory tempEmptyStringTest = bytes(source);
+    if (tempEmptyStringTest.length == 0) {
+        return 0x0;
+    }
+
+    assembly {
+        result := mload(add(source, 32))
+    }
+}
     
     /**
      * @dev Returns the name of the token
