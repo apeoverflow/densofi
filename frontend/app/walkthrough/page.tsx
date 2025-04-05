@@ -6,10 +6,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import '@rainbow-me/rainbowkit/styles.css';
 import { WalletConnectButton } from "@/components/WalletConnectButton";
 import { useAccount, useWalletClient } from 'wagmi';
-import { ReactNode, useState as useStateReact } from 'react';
+import { ReactNode } from 'react';
 import { useWalletConnection } from "@/hooks/useWalletConnection";
 import { useCallback } from 'react';
 import { Button } from "@/components/ui/button";
+import { useNFTMinterContract } from "@/hooks/useNFTMinterContract";
 
 // Step component props interface
 interface StepProps {
@@ -48,17 +49,18 @@ const WalkthroughContent = () => {
   const { isConnected } = useAccount();
   const { address } = useWalletConnection();
   const { data: walletClient } = useWalletClient();
-  const [dnsVerified, setDnsVerified] = useStateReact(false);
-  const [verifiedDomain, setVerifiedDomain] = useStateReact('');
+  const [dnsVerified, setDnsVerified] = useState(false);
+  const [verifiedDomain, setVerifiedDomain] = useState('');
   
   // Setup the state
-  const [isSubmittingProof, setIsSubmittingProof] = useStateReact(false);
-  const [isWrappingName, setIsWrappingName] = useStateReact(false);
-  const [proofStatus, setProofStatus] = useStateReact<'idle' | 'submitting' | 'success' | 'error'>('idle');
-  const [wrapStatus, setWrapStatus] = useStateReact<'idle' | 'submitting' | 'success' | 'error'>('idle');
-  const [proofHash, setProofHash] = useStateReact('');
-  const [wrapHash, setWrapHash] = useStateReact('');
-  const [errorMessage, setErrorMessage] = useStateReact('');
+  const [isSubmittingProof, setIsSubmittingProof] = useState(false);
+  const [isWrappingName, setIsWrappingName] = useState(false);
+  const [proofStatus, setProofStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [wrapStatus, setWrapStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [proofHash, setProofHash] = useState('');
+  const [wrapHash, setWrapHash] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [registrationComplete, setRegistrationComplete] = useState(false);
 
   // Replace ENS configuration interface with a simpler mock object
   interface EnsConfig {
@@ -66,7 +68,7 @@ const WalkthroughContent = () => {
     address: string | undefined;
   }
 
-  const [ensConfig, setEnsConfig] = useStateReact<EnsConfig | null>(null);
+  const [ensConfig, setEnsConfig] = useState<EnsConfig | null>(null);
 
   // Simplified effect to set up the mock ENS configuration
   useEffect(() => {
@@ -229,13 +231,29 @@ const WalkthroughContent = () => {
       <Step 
         number={3} 
         title="Register via ENS Resolver" 
-        completed={false} 
-        active={isConnected && dnsVerified}
+        completed={registrationComplete} 
+        active={isConnected && dnsVerified && !registrationComplete}
       >
         {!isConnected || !dnsVerified ? (
           <p className="text-gray-400">Complete steps 1 and 2 to proceed</p>
         ) : (
-          <DnsProofAndWrapper domain={verifiedDomain} />
+          <DnsProofAndWrapper 
+            domain={verifiedDomain}
+            onComplete={() => setRegistrationComplete(true)}
+          />
+        )}
+      </Step>
+      
+      <Step 
+        number={4} 
+        title="Mint an NFT for your Domain" 
+        completed={false} 
+        active={isConnected && dnsVerified && registrationComplete}
+      >
+        {!isConnected || !dnsVerified || !registrationComplete ? (
+          <p className="text-gray-400">Complete steps 1, 2, and 3 to proceed</p>
+        ) : (
+          <NFTMinter domain={verifiedDomain} />
         )}
       </Step>
       
@@ -274,9 +292,9 @@ interface DnsVerifierProps {
 // Update the component with the interface
 const DnsVerifier = ({ onVerificationSuccess }: DnsVerifierProps) => {
   const { address } = useWalletConnection();
-  const [domain, setDomain] = useStateReact('');
-  const [isChecking, setIsChecking] = useStateReact(false);
-  const [result, setResult] = useStateReact<DnsVerificationResult | null>(null);
+  const [domain, setDomain] = useState('');
+  const [isChecking, setIsChecking] = useState(false);
+  const [result, setResult] = useState<DnsVerificationResult | null>(null);
   
   const checkDnsRecord = useCallback(async () => {
     if (!domain) return;
@@ -407,16 +425,16 @@ interface DnsWrapperProps {
 
 const DnsProofAndWrapper = ({ onComplete, onBack, domain }: DnsWrapperProps) => {
   const { address } = useWalletConnection();
-  const [isSubmittingProof, setIsSubmittingProof] = useStateReact(false);
-  const [isWrappingName, setIsWrappingName] = useStateReact(false);
-  const [proofStatus, setProofStatus] = useStateReact<'idle' | 'submitting' | 'success' | 'error'>('idle');
-  const [wrapStatus, setWrapStatus] = useStateReact<'idle' | 'submitting' | 'success' | 'error'>('idle');
-  const [proofHash, setProofHash] = useStateReact('');
-  const [wrapHash, setWrapHash] = useStateReact('');
-  const [errorMessage, setErrorMessage] = useStateReact('');
+  const [isSubmittingProof, setIsSubmittingProof] = useState(false);
+  const [isWrappingName, setIsWrappingName] = useState(false);
+  const [proofStatus, setProofStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [wrapStatus, setWrapStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [proofHash, setProofHash] = useState('');
+  const [wrapHash, setWrapHash] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   
   // Simplified ENS configuration
-  const [ensReady, setEnsReady] = useStateReact(false);
+  const [ensReady, setEnsReady] = useState(false);
   
   // Effect to initialize ENS
   useEffect(() => {
@@ -556,9 +574,181 @@ const DnsProofAndWrapper = ({ onComplete, onBack, domain }: DnsWrapperProps) => 
           Back
         </Button>
         <Button onClick={onComplete} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
-          Finish
+          Continue to NFT Minting
         </Button>
       </div>
+    </div>
+  );
+};
+
+// NFTMinter component based on NFTMinterClient
+const NFTMinter = ({ domain }: { domain: string }) => {
+  const { address, isConnected } = useAccount();
+  const [domainName, setDomainName] = useState(domain || "");
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [transactionHash, setTransactionHash] = useState("");
+  const [mintMethod, setMintMethod] = useState<"standard" | "resolver">("resolver");
+
+  const { 
+    mintNFT, 
+    mintNFTViaResolver, 
+    isProcessing, 
+    isConfirmed,
+    transactionHash: hash,
+    writeError
+  } = useNFTMinterContract();
+
+  // Set domain from props when it changes
+  useEffect(() => {
+    if (domain) {
+      setDomainName(domain);
+    }
+  }, [domain]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!domainName) return;
+
+    let success = false;
+    if (mintMethod === "standard") {
+      success = await mintNFT(domainName);
+    } else {
+      success = await mintNFTViaResolver(domainName);
+    }
+
+    if (success && hash) {
+      setTransactionHash(hash);
+      setShowSuccess(true);
+    }
+  };
+
+  const resetForm = () => {
+    setDomainName(domain || "");
+    setShowSuccess(false);
+    setTransactionHash("");
+  };
+
+  if (!isConnected) {
+    return (
+      <div className="bg-gray-800/50 backdrop-blur-md p-8 rounded-xl shadow-xl">
+        <h2 className="text-xl font-semibold mb-6">Connect Wallet</h2>
+        <p className="mb-6 text-gray-300">Please connect your wallet to mint domain NFTs.</p>
+        <WalletConnectButton />
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-gray-800/50 backdrop-blur-md p-8 rounded-xl shadow-xl">
+      {showSuccess ? (
+        <div className="text-center">
+          <div className="mb-4 text-green-400 text-5xl">🎉</div>
+          <h3 className="text-xl font-bold mb-2">NFT Minted Successfully!</h3>
+          <p className="mb-4 text-gray-300">Your domain NFT for <span className="font-bold">{domainName}</span> has been minted.</p>
+          <div className="mb-4">
+            <p className="text-sm text-gray-400 mb-2">Transaction Hash:</p>
+            <a 
+              href={`https://sepolia.etherscan.io/tx/${transactionHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 text-sm break-all hover:underline"
+            >
+              {transactionHash}
+            </a>
+          </div>
+          <button
+            onClick={resetForm}
+            className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 rounded-md transition-colors"
+          >
+            Mint Another NFT
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <h2 className="text-xl font-semibold mb-6">Mint Domain NFT</h2>
+          
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">Mint Method</label>
+            <div className="flex gap-4">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="mintMethod"
+                  checked={mintMethod === "standard"}
+                  onChange={() => setMintMethod("standard")}
+                  className="mr-2"
+                />
+                <span>Standard (Admin)</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="mintMethod"
+                  checked={mintMethod === "resolver"}
+                  onChange={() => setMintMethod("resolver")}
+                  className="mr-2"
+                />
+                <span>Via Resolver</span>
+              </label>
+            </div>
+            {mintMethod === "resolver" && (
+              <p className="text-xs text-gray-400 mt-2">
+                Note: You must own the ENS domain to mint via resolver
+              </p>
+            )}
+          </div>
+          
+          <div className="mb-6">
+            <label htmlFor="domainName" className="block text-sm font-medium mb-2">
+              Domain Name
+            </label>
+            <input
+              id="domainName"
+              type="text"
+              value={domainName}
+              onChange={(e) => setDomainName(e.target.value)}
+              className="w-full p-3 bg-gray-700/50 rounded-md border border-gray-600 focus:border-purple-500 focus:outline-none"
+              placeholder="example.eth"
+              required
+            />
+          </div>
+          
+          <div className="mb-6 p-4 bg-indigo-900/30 border border-indigo-700/50 rounded-md">
+            <h4 className="text-indigo-400 font-bold flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              About Domain NFTs
+            </h4>
+            <p className="text-gray-300 mt-2">
+              This NFT will be linked to your ENS domain, providing additional functionality
+              and allowing you to showcase your domain as a digital collectible.
+            </p>
+          </div>
+          
+          <button
+            type="submit"
+            disabled={isProcessing || !domainName}
+            className={`w-full py-3 px-4 rounded-md font-medium ${
+              isProcessing || !domainName
+                ? "bg-gray-600 cursor-not-allowed"
+                : "bg-purple-600 hover:bg-purple-700"
+            } transition-colors`}
+          >
+            {isProcessing ? "Processing..." : "Mint NFT"}
+          </button>
+          
+          {writeError && (
+            <p className="mt-4 text-red-400 text-sm">
+              Error: {writeError.message || "Failed to mint NFT"}
+            </p>
+          )}
+          
+          <p className="mt-4 text-xs text-gray-400">
+            Connected: {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "Not connected"}
+          </p>
+        </form>
+      )}
     </div>
   );
 };
