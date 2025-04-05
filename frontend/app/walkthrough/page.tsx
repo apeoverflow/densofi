@@ -256,7 +256,7 @@ const WalletAddressDisplay = () => {
   return (
     <div className="bg-slate-700 p-3 mt-2 rounded-md font-mono text-sm overflow-auto">
         {isConnected 
-        ? `TXT @ _ens a=${address}`
+        ? `TXT _ens a=${address}`
         : "Connect your wallet to see your address here"}
     </div>
   );
