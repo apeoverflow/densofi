@@ -59,13 +59,14 @@ contract TokenMinterTest is Test {
         // Approve the TokenMinter contract to transfer the NFT
         nftMinter.setApprovalForAll(address(tokenMinter), true);
         
-        // Create a token from the NFT
-        tokenMinter.createTokenFromNFT(0);
+        // Create a token from the NFT and verify the returned address
+        address returnedTokenAddress = tokenMinter.createTokenFromNFT(0);
         vm.stopPrank();
         
-        // Verify the token was created
-        address tokenAddress = tokenMinter.getTokenAddress(0);
-        assertTrue(tokenAddress != address(0));
+        // Verify the returned address matches the stored address
+        address storedTokenAddress = tokenMinter.getTokenAddress(0);
+        assertEq(returnedTokenAddress, storedTokenAddress);
+        assertTrue(returnedTokenAddress != address(0));
         
         // Verify the NFT is now owned by the TokenMinter contract
         assertEq(nftMinter.balanceOf(address(tokenMinter), 0), 1);
@@ -74,7 +75,7 @@ contract TokenMinterTest is Test {
         assertEq(tokenMinter.getNFTName(0), "Test NFT");
         
         // Verify the token contract was created with the correct parameters
-        InitialSupplySuperchainERC20 token = InitialSupplySuperchainERC20(tokenAddress);
+        InitialSupplySuperchainERC20 token = InitialSupplySuperchainERC20(returnedTokenAddress);
         assertEq(token.name(), "Test NFT Token");
         assertEq(token.symbol(), "Test NFTT");
         assertEq(token.decimals(), 18);
@@ -99,13 +100,7 @@ contract TokenMinterTest is Test {
         
         // Try to create a token from the NFT as alice
         vm.startPrank(alice);
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "AccessControlUnauthorizedAccount(address,bytes32)",
-                alice,
-                MINTER_ROLE
-            )
-        );
+        vm.expectRevert("ERC1155: caller is not token owner");
         tokenMinter.createTokenFromNFT(0);
         vm.stopPrank();
     }
@@ -120,7 +115,8 @@ contract TokenMinterTest is Test {
         nftMinter.setApprovalForAll(address(tokenMinter), true);
         
         // Create a token from the NFT
-        tokenMinter.createTokenFromNFT(0);
+        address tokenAddress = tokenMinter.createTokenFromNFT(0);
+        assertTrue(tokenAddress != address(0));
         
         // Try to create another token from the same NFT
         vm.expectRevert("NFT already used to create a token");
@@ -128,24 +124,28 @@ contract TokenMinterTest is Test {
         vm.stopPrank();
     }
     
-    /// @notice Tests that non-minter cannot create tokens from NFTs.
-    function test_createTokenFromNFT_nonMinter_reverts() public {
+    /// @notice Tests that non-owner can create tokens from NFTs they own.
+    function test_createTokenFromNFT_nonMinter_succeeds() public {
         // Mint an NFT as owner
         vm.startPrank(owner);
         nftMinter.mint("Test NFT");
         vm.stopPrank();
         
-        // Try to create a token from the NFT as alice (non-minter)
-        vm.startPrank(alice);
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "AccessControlUnauthorizedAccount(address,bytes32)",
-                alice,
-                MINTER_ROLE
-            )
-        );
-        tokenMinter.createTokenFromNFT(0);
+        // Transfer NFT to alice
+        vm.startPrank(owner);
+        nftMinter.safeTransferFrom(owner, alice, 0, 1, "");
         vm.stopPrank();
+        
+        // Create a token from the NFT as alice (non-minter)
+        vm.startPrank(alice);
+        nftMinter.setApprovalForAll(address(tokenMinter), true);
+        address tokenAddress = tokenMinter.createTokenFromNFT(0);
+        vm.stopPrank();
+        
+        // Verify the token was created successfully
+        assertTrue(tokenAddress != address(0));
+        assertEq(nftMinter.balanceOf(address(tokenMinter), 0), 1);
+        assertEq(tokenMinter.getNFTName(0), "Test NFT");
     }
     
     /// @notice Tests that the minter role can be granted.

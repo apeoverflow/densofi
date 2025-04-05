@@ -46,13 +46,13 @@ contract TokenMinter is AccessControl, IERC1155Receiver {
     /**
      * @dev Creates a new Superchain ERC20 token based on an NFT
      * @param nftId The ID of the NFT to use as reference
+     * @return tokenAddress The address of the created token contract
      * 
      * Requirements:
-     * - Caller must have the MINTER_ROLE
      * - NFT must not have been used to create a token before
      * - Caller must own the NFT
      */
-    function createTokenFromNFT(uint256 nftId) public onlyRole(MINTER_ROLE) {
+    function createTokenFromNFT(uint256 nftId) public returns (address tokenAddress) {
         require(!usedNFTs[nftId], "NFT already used to create a token");
         
         // Check if the caller owns the NFT
@@ -79,13 +79,17 @@ contract TokenMinter is AccessControl, IERC1155Receiver {
             block.chainid // initial supply chain ID (current chain)
         );
         
+        tokenAddress = address(newToken);
+        
         // Mark NFT as used
         usedNFTs[nftId] = true;
         
         // Store the token contract address
-        nftToToken[nftId] = address(newToken);
+        nftToToken[nftId] = tokenAddress;
         
-        emit TokenCreated(nftId, address(newToken), tokenName);
+        emit TokenCreated(nftId, tokenAddress, tokenName);
+        
+        return tokenAddress;
     }
     
     /**
