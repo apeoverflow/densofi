@@ -12,7 +12,15 @@ import {TokenMinter} from "../src/TokenMinter.sol";
 contract DeployNFTTokenMinter is Script {
     /// @notice Array of RPC URLs to deploy to, deploy to Polygon by default.
     // string[] private rpcUrls = ["https://polygon-rpc.com"];
-    string[] private rpcUrls = ["http://localhost:9545", "http://localhost:9546", "https://testnet.evm.nodes.onflow.org/", "worldchain-sepolia.g.alchemy.com/public", "https://alfajores-forno.celo-testnet.org/"];
+    string[] private rpcUrls = [
+    //     "http://localhost:9545", 
+    // "http://localhost:9546"
+    // "https://testnet.evm.nodes.onflow.org/" 
+    "https://ethereum-sepolia-rpc.publicnode.com"
+    // https://mainnet.evm.nodes.onflow.org
+    // "https://worldchain-sepolia.g.alchemy.com/public"
+    // "https://alfajores-forno.celo-testnet.org/"
+    ];
 
     /// @notice Modifier that wraps a function in broadcasting.
     modifier broadcast() {
