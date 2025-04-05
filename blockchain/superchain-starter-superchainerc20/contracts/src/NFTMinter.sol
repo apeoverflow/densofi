@@ -2,7 +2,6 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
@@ -18,7 +17,10 @@ contract NFTMinter is ERC1155, AccessControl {
     // Counter for token IDs
     uint256 private _tokenIdCounter;
     
-    constructor() ERC1155("") {
+    // Event emitted when a new NFT is minted
+    event NFTMinted(uint256 indexed tokenId, address indexed to, string name);
+    
+    constructor() ERC1155("ipfs://") {
         // Grant the contract deployer both the default admin role and minter role
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
@@ -27,14 +29,18 @@ contract NFTMinter is ERC1155, AccessControl {
     /**
      * @dev Mints a new NFT with the given name
      * @param name The name of the NFT
-     * @param amount The amount of tokens to mint
+     * @return tokenId The ID of the newly minted token
      */
-    function mint(string memory name, uint256 amount) public onlyRole(MINTER_ROLE) {
-        uint256 tokenId = _tokenIdCounter;
+    function mint(string memory name) public onlyRole(MINTER_ROLE) returns (uint256 tokenId) {
+        tokenId = _tokenIdCounter;
         _tokenIdCounter++;
         
         _tokenNames[tokenId] = name;
-        _mint(msg.sender, tokenId, amount, "");
+        _mint(msg.sender, tokenId, 1, "");
+        
+        emit NFTMinted(tokenId, msg.sender, name);
+        
+        return tokenId;
     }
     
     /**

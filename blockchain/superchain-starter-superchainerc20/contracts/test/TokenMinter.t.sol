@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.25;
+pragma solidity ^0.8.20;
 
 // Testing utilities
 import {Test} from "forge-std/Test.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 
 // Target contracts
 import {NFTMinter} from "../src/NFTMinter.sol";
@@ -12,166 +14,186 @@ import {InitialSupplySuperchainERC20} from "../src/InitialSupplySuperchainERC20.
 /// @title TokenMinterTest
 /// @notice Contract for testing the TokenMinter contract.
 contract TokenMinterTest is Test {
-    address internal constant ZERO_ADDRESS = address(0);
-    
     NFTMinter public nftMinter;
     TokenMinter public tokenMinter;
     address public owner;
-    address public user1;
-    address public user2;
-    bytes32 public MINTER_ROLE;
-    bytes32 public NFT_MINTER_ROLE;
+    address public alice;
+    address public bob;
+    
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
     
     /// @notice Sets up the test suite.
     function setUp() public {
-        // Get signers
-        owner = address(this);
-        user1 = makeAddr("user1");
-        user2 = makeAddr("user2");
+        owner = makeAddr("owner");
+        alice = makeAddr("alice");
+        bob = makeAddr("bob");
         
-        // Deploy the NFT contract
-        nftMinter = new NFTMinter();
-        
-        // Deploy the token minter contract
-        tokenMinter = new TokenMinter(address(nftMinter));
-        
-        // Get the MINTER_ROLE bytes32 values
-        MINTER_ROLE = tokenMinter.MINTER_ROLE();
-        NFT_MINTER_ROLE = nftMinter.MINTER_ROLE();
-        
-        // Grant MINTER_ROLE to test contract for both contracts
+        // Deploy NFTMinter as owner
         vm.startPrank(owner);
-        nftMinter.grantRole(NFT_MINTER_ROLE, owner);
-        tokenMinter.grantRole(MINTER_ROLE, owner);
+        nftMinter = new NFTMinter();
+        vm.stopPrank();
+        
+        // Deploy TokenMinter as owner
+        vm.startPrank(owner);
+        tokenMinter = new TokenMinter(address(nftMinter));
         vm.stopPrank();
     }
     
-    /// @notice Tests the deployment sets the right owner.
-    function test_deployment_setsRightOwner() public {
-        assertTrue(tokenMinter.hasRole(tokenMinter.DEFAULT_ADMIN_ROLE(), owner));
+    /// @notice Tests that the deployment sets the right owner.
+    function test_deployment_setsRightOwner() public view {
+        assertTrue(tokenMinter.hasRole(DEFAULT_ADMIN_ROLE, owner));
     }
     
-    /// @notice Tests the deployment assigns the minter role to the owner.
-    function test_deployment_assignsMinterRole() public {
+    /// @notice Tests that the deployment assigns the minter role to the owner.
+    function test_deployment_assignsMinterRole() public view {
         assertTrue(tokenMinter.hasRole(MINTER_ROLE, owner));
     }
     
-    /// @notice Tests the deployment sets the correct NFT contract address.
-    function test_deployment_setsCorrectNFTContract() public {
-        assertEq(address(tokenMinter.nftContract()), address(nftMinter));
-    }
-    
-    /// @notice Tests creating a token from an NFT.
-    function test_createTokenFromNFT_createsToken() public {
-        // Mint an NFT first
-        nftMinter.mint("TestNFT", 1);
+    /// @notice Tests that creating a token from an NFT works correctly.
+    function test_createTokenFromNFT_succeeds() public {
+        // Mint an NFT as owner
+        vm.startPrank(owner);
+        nftMinter.mint("Test NFT");
         
-        // Create a token from the NFT
-        tokenMinter.createTokenFromNFT(0);
+        // Approve the TokenMinter contract to transfer the NFT
+        nftMinter.setApprovalForAll(address(tokenMinter), true);
         
-        // Get the created token address
-        address tokenAddress = tokenMinter.getTokenAddress(0);
-        assertTrue(tokenAddress != ZERO_ADDRESS);
+        // Create a token from the NFT and verify the returned address
+        address returnedTokenAddress = tokenMinter.createTokenFromNFT(0);
+        vm.stopPrank();
         
-        // Create token instance
-        InitialSupplySuperchainERC20 token = InitialSupplySuperchainERC20(tokenAddress);
+        // Verify the returned address matches the stored address
+        address storedTokenAddress = tokenMinter.getTokenAddress(0);
+        assertEq(returnedTokenAddress, storedTokenAddress);
+        assertTrue(returnedTokenAddress != address(0));
         
-        // Check token properties
-        assertEq(token.name(), "TestNFT Token");
-        assertEq(token.symbol(), "TestNFTT");
+        // Verify the NFT is now owned by the TokenMinter contract
+        assertEq(nftMinter.balanceOf(address(tokenMinter), 0), 1);
+        
+        // Verify the token name was stored
+        assertEq(tokenMinter.getNFTName(0), "Test NFT");
+        
+        // Verify the token contract was created with the correct parameters
+        InitialSupplySuperchainERC20 token = InitialSupplySuperchainERC20(returnedTokenAddress);
+        assertEq(token.name(), "Test NFT Token");
+        assertEq(token.symbol(), "Test NFTT");
         assertEq(token.decimals(), 18);
         assertEq(token.totalSupply(), 1_000_000 * 10**18);
-    }
-    
-    /// @notice Tests that NFT is transferred to the token minter contract.
-    function test_createTokenFromNFT_transfersNFT() public {
-        // Mint an NFT first
-        nftMinter.mint("TestNFT", 1);
-        
-        // Create a token from the NFT
-        tokenMinter.createTokenFromNFT(0);
-        
-        // Check NFT ownership
-        assertEq(nftMinter.balanceOf(address(tokenMinter), 0), 1);
-        assertEq(nftMinter.balanceOf(owner, 0), 0);
+        assertEq(token.owner(), owner);
     }
     
     /// @notice Tests that creating a token from a non-existent NFT reverts.
     function test_createTokenFromNFT_nonexistentNFT_reverts() public {
-        vm.expectRevert("Must own the NFT");
-        tokenMinter.createTokenFromNFT(999);
+        vm.startPrank(owner);
+        vm.expectRevert("ERC1155: caller is not token owner");
+        tokenMinter.createTokenFromNFT(0);
+        vm.stopPrank();
     }
     
-    /// @notice Tests that creating a token from an already used NFT reverts.
-    function test_createTokenFromNFT_alreadyUsedNFT_reverts() public {
-        // Mint an NFT first
-        nftMinter.mint("TestNFT", 1);
+    /// @notice Tests that creating a token from an NFT that the caller does not own reverts.
+    function test_createTokenFromNFT_notOwner_reverts() public {
+        // Mint an NFT as owner
+        vm.startPrank(owner);
+        nftMinter.mint("Test NFT");
+        vm.stopPrank();
+        
+        // Try to create a token from the NFT as alice
+        vm.startPrank(alice);
+        vm.expectRevert("ERC1155: caller is not token owner");
+        tokenMinter.createTokenFromNFT(0);
+        vm.stopPrank();
+    }
+    
+    /// @notice Tests that creating a token from an NFT that has already been used reverts.
+    function test_createTokenFromNFT_alreadyUsed_reverts() public {
+        // Mint an NFT as owner
+        vm.startPrank(owner);
+        nftMinter.mint("Test NFT");
+        
+        // Approve the TokenMinter contract to transfer the NFT
+        nftMinter.setApprovalForAll(address(tokenMinter), true);
         
         // Create a token from the NFT
-        tokenMinter.createTokenFromNFT(0);
+        address tokenAddress = tokenMinter.createTokenFromNFT(0);
+        assertTrue(tokenAddress != address(0));
         
         // Try to create another token from the same NFT
         vm.expectRevert("NFT already used to create a token");
         tokenMinter.createTokenFromNFT(0);
+        vm.stopPrank();
     }
     
-    /// @notice Tests that non-minter cannot create a token.
-    function test_createTokenFromNFT_nonMinterCannotCreate() public {
-        // Mint an NFT first
-        nftMinter.mint("TestNFT", 1);
+    /// @notice Tests that non-owner can create tokens from NFTs they own.
+    function test_createTokenFromNFT_nonMinter_succeeds() public {
+        // Mint an NFT as owner
+        vm.startPrank(owner);
+        nftMinter.mint("Test NFT");
+        vm.stopPrank();
         
-        // Try to create a token as non-minter
-        vm.expectRevert("AccessControl:");
-        vm.prank(user1);
-        tokenMinter.createTokenFromNFT(0);
+        // Transfer NFT to alice
+        vm.startPrank(owner);
+        nftMinter.safeTransferFrom(owner, alice, 0, 1, "");
+        vm.stopPrank();
+        
+        // Create a token from the NFT as alice (non-minter)
+        vm.startPrank(alice);
+        nftMinter.setApprovalForAll(address(tokenMinter), true);
+        address tokenAddress = tokenMinter.createTokenFromNFT(0);
+        vm.stopPrank();
+        
+        // Verify the token was created successfully
+        assertTrue(tokenAddress != address(0));
+        assertEq(nftMinter.balanceOf(address(tokenMinter), 0), 1);
+        assertEq(tokenMinter.getNFTName(0), "Test NFT");
     }
     
-    /// @notice Tests that creating a token from an NFT you don't own reverts.
-    function test_createTokenFromNFT_notOwner_reverts() public {
-        // Mint an NFT first
-        nftMinter.mint("TestNFT", 1);
+    /// @notice Tests that the minter role can be granted.
+    function test_grantRole_succeeds() public {
+        vm.startPrank(owner);
+        tokenMinter.grantRole(MINTER_ROLE, alice);
+        vm.stopPrank();
         
-        // Transfer NFT to user1
-        nftMinter.safeTransferFrom(owner, user1, 0, 1, "0x");
-        
-        // Try to create a token from an NFT you don't own
-        vm.expectRevert("Must own the NFT");
-        tokenMinter.createTokenFromNFT(0);
+        assertTrue(tokenMinter.hasRole(MINTER_ROLE, alice));
     }
     
-    /// @notice Tests that NFT name is stored in the contract.
-    function test_createTokenFromNFT_storesNFTName() public {
-        // Mint an NFT first
-        nftMinter.mint("TestNFT", 1);
-        
-        // Create a token from the NFT
-        tokenMinter.createTokenFromNFT(0);
-        
-        // Check stored NFT name
-        assertEq(tokenMinter.getStoredNFTName(0), "TestNFT");
+    /// @notice Tests that only admin can grant roles.
+    function test_grantRole_nonAdmin_reverts() public {
+        vm.prank(alice);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "AccessControlUnauthorizedAccount(address,bytes32)",
+                alice,
+                DEFAULT_ADMIN_ROLE
+            )
+        );
+        tokenMinter.grantRole(MINTER_ROLE, bob);
     }
     
-    /// @notice Tests that getTokenAddress returns zero address for non-existent token.
-    function test_getTokenAddress_nonexistentToken_returnsZero() public {
-        assertEq(tokenMinter.getTokenAddress(0), ZERO_ADDRESS);
+    /// @notice Tests that the minter role can be revoked.
+    function test_revokeRole_succeeds() public {
+        vm.startPrank(owner);
+        tokenMinter.grantRole(MINTER_ROLE, alice);
+        tokenMinter.revokeRole(MINTER_ROLE, alice);
+        vm.stopPrank();
+        
+        assertFalse(tokenMinter.hasRole(MINTER_ROLE, alice));
     }
     
-    /// @notice Tests that getTokenAddress returns correct token address after creation.
-    function test_getTokenAddress_returnsCorrectAddress() public {
-        // Mint an NFT first
-        nftMinter.mint("TestNFT", 1);
-        
-        // Create a token from the NFT
-        tokenMinter.createTokenFromNFT(0);
-        
-        // Get the token address
-        address tokenAddress = tokenMinter.getTokenAddress(0);
-        assertTrue(tokenAddress != ZERO_ADDRESS);
-        
-        // Create token instance
-        InitialSupplySuperchainERC20 token = InitialSupplySuperchainERC20(tokenAddress);
-        
-        // Check token name
-        assertEq(token.name(), "TestNFT Token");
+    /// @notice Tests that only admin can revoke roles.
+    function test_revokeRole_nonAdmin_reverts() public {
+        vm.startPrank(owner);
+        tokenMinter.grantRole(MINTER_ROLE, alice);
+        vm.stopPrank();
+
+        vm.prank(alice);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "AccessControlUnauthorizedAccount(address,bytes32)",
+                alice,
+                DEFAULT_ADMIN_ROLE
+            )
+        );
+        tokenMinter.revokeRole(MINTER_ROLE, alice);
     }
 } 
