@@ -2,7 +2,25 @@
 
 Contact: chimera_defi@protonmail.com
 
-## Flow:
+## Deployments 
+deployer: 0xA120FAd0498ECbF755a675E3833158484123bF30
+
+sepolia
+tokenminter 0x50e2744ec42865918f9f3657a39d4421639d0177
+nftminter 0x338e3e152689E5Ab9cc66538D7A2F3785C30ee25
+
+world-sepolia  
+0x338e3e152689E5Ab9cc66538D7A2F3785C30ee25
+0xe752a5328bccb439d77672feb8c19b117a4f193a
+
+flow testnet evm
+0x50E2744ec42865918F9f3657a39D4421639D0177
+  NFTMinter deployed to:  0x338e3e152689E5Ab9cc66538D7A2F3785C30ee25
+  TokenMinter deployed to:  0x50E2744ec42865918F9f3657a39D4421639D0177
+
+
+
+## Flow: (nnot the chain)
 ```
 // 1. Deploy contracts
 NFTMinter nftMinter = new NFTMinter();
