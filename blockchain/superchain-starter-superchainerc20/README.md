@@ -25,6 +25,17 @@ IERC20 token = IERC20(tokenAddress);
 // You now have 1 million tokens
 ```
 
+deploy
+```
+forge script script/DeployNFTTokenMinter.s.sol:DeployNFTTokenMinter --rpc-url http://localhost:8545 --broadcast -vvvv
+    export FOUNDRY_PRIVATE_KEY=<pk>
+    forge script script/DeployNFTTokenMinter.s.sol:DeployNFTTokenMinter \
+      --rpc-url http://localhost:8545 \
+      --broadcast \
+      --sender 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 \
+      -vvvv
+  
+```
 
 # Superchain Starter Kit: InitialSupplySuperchainERC20
 
