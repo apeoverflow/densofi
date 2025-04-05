@@ -17,6 +17,7 @@ import { useWalletConnection } from "@/hooks/useWalletConnection";
 import { useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import type { Address, Chain, Client, PublicClient, Transport, WalletClient } from 'viem';
+import { namehash, normalize } from 'viem/ens'
 
 // Step component props interface
 interface StepProps {
@@ -518,7 +519,7 @@ const DnsProofAndWrapper = ({ onComplete, onBack, domain }: DnsWrapperProps) => 
   return (
     <div className="h-full overflow-auto">
       {/* Educational section */}
-      <div className="mb-8 bg-blue-50 border border-blue-200 p-6 rounded-lg">
+      <div className="mb-8 bg-blue-50 border border-blue-200 p-6 rounded-lg opacity-90">
         <h2 className="text-xl font-semibold mb-4 text-blue-800">About Name Wrapping</h2>
         <p className="text-gray-700 mb-2">
           Wrapping your domain provides several benefits:
