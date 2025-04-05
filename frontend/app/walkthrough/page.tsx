@@ -1,23 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { WagmiProvider } from "wagmi";
-import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
-import { wagmiConfig } from "@/lib/wagmi";
 import '@rainbow-me/rainbowkit/styles.css';
-import { sepolia } from 'wagmi/chains';
 import { WalletConnectButton } from "@/components/WalletConnectButton";
-import Link from "next/link";
 import { useAccount, useWalletClient } from 'wagmi';
 import { ReactNode, useState as useStateReact } from 'react';
 import { useWalletConnection } from "@/hooks/useWalletConnection";
 import { useCallback } from 'react';
 import { Button } from "@/components/ui/button";
-import type { Address, Chain, Client, PublicClient, Transport, WalletClient } from 'viem';
-import { namehash, normalize } from 'viem/ens'
 
 // Step component props interface
 interface StepProps {
