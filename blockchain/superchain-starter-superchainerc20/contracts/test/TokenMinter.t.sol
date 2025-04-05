@@ -3,8 +3,8 @@ pragma solidity ^0.8.20;
 
 // Testing utilities
 import {Test} from "forge-std/Test.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 
 // Target contracts
 import {NFTMinter} from "../src/NFTMinter.sol";
@@ -57,7 +57,7 @@ contract TokenMinterTest is Test {
         nftMinter.mint("Test NFT");
         
         // Approve the TokenMinter contract to transfer the NFT
-        nftMinter.approve(address(tokenMinter), 0);
+        nftMinter.setApprovalForAll(address(tokenMinter), true);
         
         // Create a token from the NFT
         tokenMinter.createTokenFromNFT(0);
@@ -68,10 +68,10 @@ contract TokenMinterTest is Test {
         assertTrue(tokenAddress != address(0));
         
         // Verify the NFT is now owned by the TokenMinter contract
-        assertEq(nftMinter.ownerOf(0), address(tokenMinter));
+        assertEq(nftMinter.balanceOf(address(tokenMinter), 0), 1);
         
         // Verify the token name was stored
-        assertEq(tokenMinter.getStoredNFTName(0), "Test NFT");
+        assertEq(tokenMinter.getNFTName(0), "Test NFT");
         
         // Verify the token contract was created with the correct parameters
         InitialSupplySuperchainERC20 token = InitialSupplySuperchainERC20(tokenAddress);
@@ -85,12 +85,7 @@ contract TokenMinterTest is Test {
     /// @notice Tests that creating a token from a non-existent NFT reverts.
     function test_createTokenFromNFT_nonexistentNFT_reverts() public {
         vm.startPrank(owner);
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "ERC721NonexistentToken(uint256)",
-                0
-            )
-        );
+        vm.expectRevert("ERC1155: caller is not token owner");
         tokenMinter.createTokenFromNFT(0);
         vm.stopPrank();
     }
@@ -122,7 +117,7 @@ contract TokenMinterTest is Test {
         nftMinter.mint("Test NFT");
         
         // Approve the TokenMinter contract to transfer the NFT
-        nftMinter.approve(address(tokenMinter), 0);
+        nftMinter.setApprovalForAll(address(tokenMinter), true);
         
         // Create a token from the NFT
         tokenMinter.createTokenFromNFT(0);
@@ -199,6 +194,6 @@ contract TokenMinterTest is Test {
                 DEFAULT_ADMIN_ROLE
             )
         );
-        tokenMinter.revokeRole(MINTER_ROLE, bob);
+        tokenMinter.revokeRole(MINTER_ROLE, alice);
     }
 } 

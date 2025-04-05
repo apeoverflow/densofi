@@ -3,21 +3,36 @@ pragma solidity ^0.8.20;
 
 // Testing utilities
 import {Test} from "forge-std/Test.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 
 // Target contract
 import {NFTMinter} from "../src/NFTMinter.sol";
 
-// Helper contract to make addresses ERC721 receivers
-contract ERC721ReceiverHelper is IERC721Receiver {
-    function onERC721Received(
+// Helper contract to make addresses ERC1155 receivers
+contract ERC1155ReceiverHelper is IERC1155Receiver {
+    function onERC1155Received(
         address operator,
         address from,
-        uint256 tokenId,
+        uint256 id,
+        uint256 value,
         bytes calldata data
     ) external pure returns (bytes4) {
-        return IERC721Receiver.onERC721Received.selector;
+        return IERC1155Receiver.onERC1155Received.selector;
+    }
+    
+    function onERC1155BatchReceived(
+        address operator,
+        address from,
+        uint256[] calldata ids,
+        uint256[] calldata values,
+        bytes calldata data
+    ) external pure returns (bytes4) {
+        return IERC1155Receiver.onERC1155BatchReceived.selector;
+    }
+    
+    function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
+        return interfaceId == type(IERC1155Receiver).interfaceId;
     }
 }
 
@@ -28,8 +43,8 @@ contract NFTMinterTest is Test {
     address public owner;
     address public alice;
     address public bob;
-    ERC721ReceiverHelper public aliceHelper;
-    ERC721ReceiverHelper public bobHelper;
+    ERC1155ReceiverHelper public aliceHelper;
+    ERC1155ReceiverHelper public bobHelper;
 
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
@@ -39,8 +54,8 @@ contract NFTMinterTest is Test {
         owner = makeAddr("owner");
         alice = makeAddr("alice");
         bob = makeAddr("bob");
-        aliceHelper = new ERC721ReceiverHelper();
-        bobHelper = new ERC721ReceiverHelper();
+        aliceHelper = new ERC1155ReceiverHelper();
+        bobHelper = new ERC1155ReceiverHelper();
         
         vm.startPrank(owner);
         nftMinter = new NFTMinter();
@@ -97,17 +112,17 @@ contract NFTMinterTest is Test {
         uint256 tokenId = nftMinter.mint("Test NFT");
         vm.stopPrank();
         
-        assertEq(nftMinter.tokenURI(tokenId), "ipfs://0");
+        assertEq(nftMinter.uri(tokenId), "ipfs://0");
     }
     
     /// @notice Tests that tokens can be transferred.
     function test_transfer_succeeds() public {
         vm.startPrank(owner);
         uint256 tokenId = nftMinter.mint("Test NFT");
-        nftMinter.transferFrom(owner, alice, tokenId);
+        nftMinter.safeTransferFrom(owner, alice, tokenId, 1, "");
         vm.stopPrank();
         
-        assertEq(nftMinter.ownerOf(tokenId), alice);
+        assertEq(nftMinter.balanceOf(alice, tokenId), 1);
     }
     
     /// @notice Tests that transferring without approval reverts.
@@ -119,12 +134,12 @@ contract NFTMinterTest is Test {
         vm.startPrank(alice);
         vm.expectRevert(
             abi.encodeWithSignature(
-                "ERC721InsufficientApproval(address,uint256)",
+                "ERC1155MissingApprovalForAll(address,address)",
                 alice,
-                tokenId
+                owner
             )
         );
-        nftMinter.transferFrom(owner, bob, tokenId);
+        nftMinter.safeTransferFrom(owner, bob, tokenId, 1, "");
         vm.stopPrank();
     }
     

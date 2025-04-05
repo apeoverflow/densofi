@@ -2,7 +2,8 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
+import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "./NFTMinter.sol";
 import {InitialSupplySuperchainERC20} from "./InitialSupplySuperchainERC20.sol";
 
@@ -14,7 +15,7 @@ import {InitialSupplySuperchainERC20} from "./InitialSupplySuperchainERC20.sol";
  * based on NFTs they own. The NFT is transferred to this contract and
  * becomes the backing for the new ERC20 token.
  */
-contract TokenMinter is AccessControl, IERC721Receiver {
+contract TokenMinter is AccessControl, IERC1155Receiver {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     
     // Reference to the NFT contract
@@ -54,9 +55,8 @@ contract TokenMinter is AccessControl, IERC721Receiver {
     function createTokenFromNFT(uint256 nftId) public onlyRole(MINTER_ROLE) {
         require(!usedNFTs[nftId], "NFT already used to create a token");
         
-        // This will revert with "ERC721: invalid token ID" if the token doesn't exist
-        address owner = nftContract.ownerOf(nftId);
-        require(owner == msg.sender, "ERC721: caller is not token owner");
+        // Check if the caller owns the NFT
+        require(nftContract.balanceOf(msg.sender, nftId) > 0, "ERC1155: caller is not token owner");
         
         string memory nftName = nftContract.tokenName(nftId);
         string memory tokenName = string(abi.encodePacked(nftName, " Token"));
@@ -66,7 +66,7 @@ contract TokenMinter is AccessControl, IERC721Receiver {
         _nftNames[nftId] = nftName;
         
         // Transfer the NFT to this contract and emit event
-        nftContract.transferFrom(msg.sender, address(this), nftId);
+        nftContract.safeTransferFrom(msg.sender, address(this), nftId, 1, "");
         emit NFTReceived(nftId, msg.sender);
         
         // Create new Superchain ERC20 token with 1 million initial supply
@@ -98,38 +98,50 @@ contract TokenMinter is AccessControl, IERC721Receiver {
     }
     
     /**
-     * @dev Returns the name of the NFT stored in the contract
+     * @dev Returns the name of the NFT used to create a token
      * @param nftId The ID of the NFT
      * @return The name of the NFT
      */
-    function getStoredNFTName(uint256 nftId) public view returns (string memory) {
+    function getNFTName(uint256 nftId) public view returns (string memory) {
         return _nftNames[nftId];
     }
     
     /**
-     * @dev Required by IERC721Receiver
-     * This function is called when an NFT is transferred to this contract
-     * @param operator The address which called `safeTransferFrom` function
-     * @param from The address which previously owned the token
-     * @param tokenId The NFT identifier which is being transferred
-     * @param data Additional data with no specified format
-     * @return `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))` unless throwing
+     * @dev Required by IERC1155Receiver
      */
-    function onERC721Received(
+    function onERC1155Received(
         address operator,
         address from,
-        uint256 tokenId,
+        uint256 id,
+        uint256 value,
         bytes calldata data
     ) external pure returns (bytes4) {
-        // We accept any NFT transfer
-        return IERC721Receiver.onERC721Received.selector;
+        return IERC1155Receiver.onERC1155Received.selector;
     }
     
     /**
-     * @dev Required by IERC165
-     * This function is used to check which interfaces this contract supports
+     * @dev Required by IERC1155Receiver
      */
-    function supportsInterface(bytes4 interfaceId) public view override(AccessControl) returns (bool) {
-        return super.supportsInterface(interfaceId);
+    function onERC1155BatchReceived(
+        address operator,
+        address from,
+        uint256[] calldata ids,
+        uint256[] calldata values,
+        bytes calldata data
+    ) external pure returns (bytes4) {
+        return IERC1155Receiver.onERC1155BatchReceived.selector;
+    }
+    
+    /**
+     * @dev Required by AccessControl and IERC1155Receiver
+     */
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(AccessControl, IERC165)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId) || 
+               interfaceId == type(IERC1155Receiver).interfaceId;
     }
 } 

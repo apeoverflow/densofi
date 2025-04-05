@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
-contract NFTMinter is ERC721, AccessControl {
+contract NFTMinter is ERC1155, AccessControl {
     using Strings for uint256;
     
     // Define the minter role
@@ -20,7 +20,7 @@ contract NFTMinter is ERC721, AccessControl {
     // Event emitted when a new NFT is minted
     event NFTMinted(uint256 indexed tokenId, address indexed to, string name);
     
-    constructor() ERC721("NFTMinter", "NFTM") {
+    constructor() ERC1155("ipfs://") {
         // Grant the contract deployer both the default admin role and minter role
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
@@ -36,7 +36,7 @@ contract NFTMinter is ERC721, AccessControl {
         _tokenIdCounter++;
         
         _tokenNames[tokenId] = name;
-        _safeMint(msg.sender, tokenId);
+        _mint(msg.sender, tokenId, 1, "");
         
         emit NFTMinted(tokenId, msg.sender, name);
         
@@ -55,16 +55,15 @@ contract NFTMinter is ERC721, AccessControl {
      * @dev Returns the URI for a given token ID
      * @param tokenId The ID of the token
      */
-    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-        _requireOwned(tokenId);
+    function uri(uint256 tokenId) public view virtual override returns (string memory) {
         return string(abi.encodePacked("ipfs://", tokenId.toString()));
     }
     
-    // The following function is needed to properly override both ERC721 and AccessControl
+    // The following function is needed to properly override both ERC1155 and AccessControl
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721, AccessControl)
+        override(ERC1155, AccessControl)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
