@@ -8,6 +8,13 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { MiniKit } from '@worldcoin/minikit-js'
 
 
+const sendHapticFeedbackCommand = () =>
+	MiniKit.commands.sendHapticFeedback({
+		hapticsType: 'impact',
+		style: 'light',
+	})
+
+
 export default function ClientPage() {
   // Client-side only flag
   const [isClient, setIsClient] = useState(false);
@@ -21,6 +28,9 @@ export default function ClientPage() {
   
   useEffect(() => {
     console.log(MiniKit.isInstalled)
+    if (MiniKit.isInstalled) {
+      sendHapticFeedbackCommand();
+    }
     setIsClient(true);
   }, []);
   
