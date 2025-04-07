@@ -1,4 +1,4 @@
-# Densofi - ETHGlobal Taipei 2025
+# Densofi 
 
 https://densofi.vercel.app/
 
