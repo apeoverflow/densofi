@@ -5,19 +5,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { MiniKit } from '@worldcoin/minikit-js'
-
-
-const sendHapticFeedbackCommand = () =>
-	MiniKit.commands.sendHapticFeedback({
-		hapticsType: 'impact',
-		style: 'light',
-	})
-
+import { ComingSoonModal } from '@/components/ui/ComingSoonModal';
 
 export default function ClientPage() {
   // Client-side only flag
   const [isClient, setIsClient] = useState(false);
+  // Modal state
+  const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
   
   // Mock token data
   const mockTokens = [
@@ -27,10 +21,6 @@ export default function ClientPage() {
   ];
   
   useEffect(() => {
-    console.log(MiniKit.isInstalled)
-    if (MiniKit.isInstalled) {
-      sendHapticFeedbackCommand();
-    }
     setIsClient(true);
   }, []);
   
@@ -66,15 +56,18 @@ export default function ClientPage() {
                           Get Started
                         </Button>
                       </Link>
-                      <Link href="/tokens">
-                        <Button size="lg" variant="outline" className="border-white/20 hover:bg-white/10">
-                          View Launched Tokens
-                        </Button>
-                      </Link>
+                      <Button 
+                        size="lg" 
+                        variant="outline" 
+                        className="border-white/20 hover:bg-white/10"
+                        onClick={() => setIsTokenModalOpen(true)}
+                      >
+                        View Launched Tokens
+                      </Button>
                     </div>
                   </div>
                   <div className="flex justify-center">
-                    <div className="relative w-[400px] h-[500px] md:w-[400px] md:h-[500px] animate-float">
+                    <div className="relative w-[400px] h-[500px] md:w-[400px] md:h-[500px]">
                       <Image 
                         src="/dino.png" 
                         alt="Dino mascot" 
@@ -108,7 +101,7 @@ export default function ClientPage() {
                     <GlassCard className="p-8 hover:translate-y-[-5px] transition-all duration-300">
                       <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 mb-6 flex items-center justify-center">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
                         </svg>
                       </div>
                       <h3 className="text-xl font-semibold mb-4">Fractional Ownership</h3>
@@ -117,7 +110,7 @@ export default function ClientPage() {
                     <GlassCard className="p-8 hover:translate-y-[-5px] transition-all duration-300">
                       <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 mb-6 flex items-center justify-center">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                       </div>
                       <h3 className="text-xl font-semibold mb-4">Liquidity Pools</h3>
@@ -126,7 +119,7 @@ export default function ClientPage() {
                     <GlassCard className="p-8 hover:translate-y-[-5px] transition-all duration-300">
                       <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 mb-6 flex items-center justify-center">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                       </div>
                       <h3 className="text-xl font-semibold mb-4">Subdomain Utility</h3>
@@ -141,11 +134,13 @@ export default function ClientPage() {
                 <div className="container mx-auto px-4">
                   <div className="flex justify-between items-center mb-12">
                     <h2 className="text-3xl md:text-4xl font-bold text-white">Featured Tokens</h2>
-                    <Link href="/tokens">
-                      <Button variant="outline" className="border-white/20">
-                        View All Tokens
-                      </Button>
-                    </Link>
+                    <Button 
+                      variant="outline" 
+                      className="border-white/20"
+                      onClick={() => setIsTokenModalOpen(true)}
+                    >
+                      View All Tokens
+                    </Button>
                   </div>
                   <div className="grid md:grid-cols-3 gap-6">
                     {mockTokens.map((token) => (
@@ -173,6 +168,14 @@ export default function ClientPage() {
                     ))}
                   </div>
                 </div>
+                
+                {/* Coming Soon Modal */}
+                <ComingSoonModal 
+                  isOpen={isTokenModalOpen} 
+                  onClose={() => setIsTokenModalOpen(false)}
+                  title="Token Feature Coming Soon"
+                  description="We're working hard to bring you the token functionality. It will be available soon!"
+                />
               </section>
             </main>
           </div>

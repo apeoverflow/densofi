@@ -3,10 +3,13 @@
 import { useEffect, useState } from 'react';
 import Link from "next/link";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { ComingSoonModal } from "@/components/ui/ComingSoonModal";
 
 export function TokensClient() {
   // Client-side only flag
   const [isClient, setIsClient] = useState(false);
+  // Modal state
+  const [isComingSoonModalOpen, setIsComingSoonModalOpen] = useState(true);
   
   useEffect(() => {
     setIsClient(true);
@@ -65,6 +68,14 @@ export function TokensClient() {
                 </div>
               </div>
             </main>
+            
+            {/* Coming Soon Modal */}
+            <ComingSoonModal 
+              isOpen={isComingSoonModalOpen} 
+              onClose={() => setIsComingSoonModalOpen(false)}
+              title="Tokens Feature Coming Soon"
+              description="We're working hard to bring you the token marketplace functionality. Please check back soon!"
+            />
           </div>
   );
 }

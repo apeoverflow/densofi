@@ -5,11 +5,14 @@ import Link from 'next/link';
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
 import { IconArrowLeft } from '@tabler/icons-react';
+import { ComingSoonModal } from "@/components/ui/ComingSoonModal";
 
 export function TokenSubdomainsClient({ id }: { id: string }) {
   const [isClient, setIsClient] = useState(false);
   const [subdomainName, setSubdomainName] = useState('');
   const [stakingAmount, setStakingAmount] = useState('');
+  // Modal state
+  const [isComingSoonModalOpen, setIsComingSoonModalOpen] = useState(true);
   
   // Mock user token balance
   const userTokenBalance = 250;
@@ -186,6 +189,14 @@ export function TokenSubdomainsClient({ id }: { id: string }) {
           </GlassCard>
         </div>
       </main>
+      
+      {/* Coming Soon Modal */}
+      <ComingSoonModal 
+        isOpen={isComingSoonModalOpen} 
+        onClose={() => setIsComingSoonModalOpen(false)}
+        title="Subdomain Registration Coming Soon"
+        description="We're working hard to bring you subdomain registration functionality. Please check back soon!"
+      />
     </div>
   );
 }

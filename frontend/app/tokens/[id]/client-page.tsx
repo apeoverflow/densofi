@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
 import { IconArrowDown, IconArrowUp, IconTrendingUp } from '@tabler/icons-react';
+import { ComingSoonModal } from "@/components/ui/ComingSoonModal";
 
 // Dynamically import ApexCharts to avoid SSR issues
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
@@ -16,6 +17,8 @@ export function TokenPageClient({ id }: { id: string }) {
   const [activeTab, setActiveTab] = useState<'buy' | 'sell'>('buy');
   const [amount, setAmount] = useState('');
   const [timeframe, setTimeframe] = useState<'24h' | '7d' | '30d' | 'all'>('7d');
+  // Modal state
+  const [isComingSoonModalOpen, setIsComingSoonModalOpen] = useState(true);
   
   // Mock token data
   const tokenData = {
@@ -378,6 +381,14 @@ export function TokenPageClient({ id }: { id: string }) {
           </div>
         </div>
       </main>
+      
+      {/* Coming Soon Modal */}
+      <ComingSoonModal 
+        isOpen={isComingSoonModalOpen} 
+        onClose={() => setIsComingSoonModalOpen(false)}
+        title="Token Detail Feature Coming Soon"
+        description="We're working hard to bring you detailed token information and trading. Please check back soon!"
+      />
     </div>
   );
 }
