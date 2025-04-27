@@ -55,7 +55,7 @@ const alchemySettings = {
 };
 // Initialize Alchemy client
 const alchemy = new Alchemy(alchemySettings);
-const CONTRACT_ADDRESS = "0xAC7333a355be9F4E8F64B91F090cCBBB96e6CF78";
+import {NFT_MINTER_SEPOLIA_ADDRESS as CONTRACT_ADDRESS} from "../../constants/contract";
 
 // NFT interface for token minter
 interface NFT {
@@ -842,14 +842,35 @@ const TokenMinter = ({ domain }: { domain: string }) => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [transactionHash, setTransactionHash] = useState("");
   const [refreshAttempts, setRefreshAttempts] = useState(0);
+  const [approvalStep, setApprovalStep] = useState<'needed' | 'processing' | 'approved'>('needed');
+  const [approvalError, setApprovalError] = useState("");
 
   const { 
     createTokenFromNFT, 
     isProcessing, 
     isConfirmed,
-    transactionHash: hash,
+    transactionHash: tokenHash,
     writeError
   } = useTokenMinterContract();
+
+  const {
+    isApprovedForAll,
+    setApprovalForAll,
+    isProcessing: isApprovalProcessing,
+    isConfirmed: isApprovalConfirmed,
+    transactionHash: approvalHash,
+    writeError: approvalWriteError,
+  } = useNFTMinterContract();
+
+  // Check if TokenMinter contract is approved for all NFTs
+  const { data: isApproved, refetch: refetchApproval } = isApprovedForAll(address || '');
+
+  // Set approval state when data is loaded or changes
+  useEffect(() => {
+    if (isApproved !== undefined) {
+      setApprovalStep(isApproved ? 'approved' : 'needed');
+    }
+  }, [isApproved]);
 
   // Fetch NFTs when address changes or when refreshing manually
   useEffect(() => {
@@ -894,9 +915,42 @@ const TokenMinter = ({ domain }: { domain: string }) => {
     }
   };
 
+  // Handle the approval process
+  const handleApproval = async () => {
+    setApprovalStep('processing');
+    setApprovalError("");
+    
+    try {
+      const success = await setApprovalForAll();
+      if (!success) {
+        setApprovalStep('needed');
+        setApprovalError("Failed to approve token minter contract");
+      }
+    } catch (error) {
+      console.error("Error approving token minter:", error);
+      setApprovalStep('needed');
+      setApprovalError(error instanceof Error ? error.message : "Unknown error occurred");
+    }
+  };
+
+  // Monitor approval transaction confirmation
+  useEffect(() => {
+    if (approvalHash && isApprovalConfirmed) {
+      setApprovalStep('approved');
+      // Refetch approval status to confirm
+      refetchApproval();
+    }
+  }, [approvalHash, isApprovalConfirmed, refetchApproval]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedNft) return;
+
+    // Check if approval is needed first
+    if (approvalStep !== 'approved') {
+      setApprovalError("Please approve the token minter contract first");
+      return;
+    }
 
     const nftIdNumber = parseInt(selectedNft, 10);
     if (isNaN(nftIdNumber)) return;
@@ -904,8 +958,8 @@ const TokenMinter = ({ domain }: { domain: string }) => {
     try {
       const success = await createTokenFromNFT(nftIdNumber);
       
-      if (success && hash) {
-        setTransactionHash(hash);
+      if (success && tokenHash) {
+        setTransactionHash(tokenHash);
         setShowSuccess(true);
       } else if (success) {
         // If successful but no hash, still show success after a delay
@@ -930,17 +984,18 @@ const TokenMinter = ({ domain }: { domain: string }) => {
     setRefreshAttempts(prev => prev + 1);
   };
 
-  // Monitor transaction confirmation
+  // Monitor token creation transaction confirmation
   useEffect(() => {
-    if (hash && isConfirmed) {
-      setTransactionHash(hash);
+    if (tokenHash && isConfirmed) {
+      setTransactionHash(tokenHash);
       setShowSuccess(true);
     }
-  }, [hash, isConfirmed]);
+  }, [tokenHash, isConfirmed]);
 
   // Function to refresh NFTs
   const refreshNFTs = () => {
     setRefreshAttempts(prev => prev + 1);
+    refetchApproval();
   };
 
   if (!isConnected) {
@@ -987,6 +1042,60 @@ const TokenMinter = ({ domain }: { domain: string }) => {
       ) : (
         <form onSubmit={handleSubmit}>
           <h2 className="text-xl font-semibold mb-6">Create Token from Domain NFT</h2>
+
+          {/* NFT Contract Approval Step */}
+          <div className="mb-6 p-4 bg-blue-900/30 border border-blue-700/50 rounded-md">
+            <h4 className="text-blue-400 font-bold flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              NFT Contract Approval {approvalStep === 'approved' && '✅'}
+            </h4>
+            <p className="text-gray-300 mt-2">
+              Before creating a token, you must approve the token minter contract to transfer your NFT.
+              This is a one-time approval that lets the contract transfer any of your NFTs when creating tokens.
+            </p>
+            
+            {approvalStep === 'needed' && (
+              <button
+                type="button"
+                onClick={handleApproval}
+                disabled={isApprovalProcessing}
+                className={`mt-4 w-full py-2 px-4 rounded-md font-medium ${
+                  isApprovalProcessing 
+                    ? "bg-gray-600 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
+                } transition-colors`}
+              >
+                {isApprovalProcessing ? "Approving..." : "Approve Token Minter Contract"}
+              </button>
+            )}
+            
+            {approvalStep === 'processing' && (
+              <div className="mt-4 p-3 bg-blue-900/30 border border-blue-700/50 rounded-md text-center">
+                <div className="flex justify-center mb-2">
+                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-blue-500"></div>
+                </div>
+                <p className="text-gray-300 text-sm">
+                  Approval transaction in progress... Please wait and do not close this page.
+                </p>
+              </div>
+            )}
+            
+            {approvalStep === 'approved' && (
+              <div className="mt-4 p-3 bg-green-900/30 border border-green-700/50 rounded-md text-center">
+                <p className="text-green-400">
+                  Token Minter Contract approved successfully!
+                </p>
+              </div>
+            )}
+            
+            {approvalError && (
+              <p className="mt-4 text-red-400 text-sm">
+                Error: {approvalError}
+              </p>
+            )}
+          </div>
           
           <div className="mb-6">
             <div className="flex justify-between items-center mb-2">
@@ -1084,9 +1193,9 @@ const TokenMinter = ({ domain }: { domain: string }) => {
           
           <button
             type="submit"
-            disabled={isProcessing || !selectedNft || loading}
+            disabled={isProcessing || !selectedNft || loading || approvalStep !== 'approved'}
             className={`w-full py-3 px-4 rounded-md font-medium ${
-              isProcessing || !selectedNft || loading
+              isProcessing || !selectedNft || loading || approvalStep !== 'approved'
                 ? "bg-gray-600 cursor-not-allowed"
                 : "bg-purple-600 hover:bg-purple-700"
             } transition-colors`}

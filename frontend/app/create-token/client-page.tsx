@@ -8,7 +8,7 @@ import { useAccount } from "wagmi";
 // Alchemy API setup
 const apiKey = "rpHRPKA38BMxeGGjtjkGTEAZc0nRtb9D";
 const endpoint = `https://eth-sepolia.alchemyapi.io/v2/${apiKey}`;
-const CONTRACT_ADDRESS = "0xAC7333a355be9F4E8F64B91F090cCBBB96e6CF78";
+import {NFT_MINTER_SEPOLIA_ADDRESS as CONTRACT_ADDRESS} from "../../constants/contract";
 
 interface NFT {
   id: {

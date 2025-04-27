@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "./NFTMinter.sol";
@@ -15,8 +14,7 @@ import {InitialSupplySuperchainERC20} from "./InitialSupplySuperchainERC20.sol";
  * based on NFTs they own. The NFT is transferred to this contract and
  * becomes the backing for the new ERC20 token.
  */
-contract TokenMinter is AccessControl, IERC1155Receiver {
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+contract TokenMinter is IERC1155Receiver {
     
     // Reference to the NFT contract
     NFTMinter public nftContract;
@@ -39,8 +37,6 @@ contract TokenMinter is AccessControl, IERC1155Receiver {
      */
     constructor(address _nftContract) {
         nftContract = NFTMinter(_nftContract);
-        _grantRole(DEFAULT_ADMIN_ROLE, tx.origin);
-        _grantRole(MINTER_ROLE, tx.origin);
     }
     
     /**
@@ -114,11 +110,11 @@ contract TokenMinter is AccessControl, IERC1155Receiver {
      * @dev Required by IERC1155Receiver
      */
     function onERC1155Received(
-        address operator,
-        address from,
-        uint256 id,
-        uint256 value,
-        bytes calldata data
+        address,
+        address,
+        uint256,
+        uint256,
+        bytes calldata
     ) external pure returns (bytes4) {
         return IERC1155Receiver.onERC1155Received.selector;
     }
@@ -127,25 +123,26 @@ contract TokenMinter is AccessControl, IERC1155Receiver {
      * @dev Required by IERC1155Receiver
      */
     function onERC1155BatchReceived(
-        address operator,
-        address from,
-        uint256[] calldata ids,
-        uint256[] calldata values,
-        bytes calldata data
+        address,
+        address,
+        uint256[] calldata,
+        uint256[] calldata,
+        bytes calldata
     ) external pure returns (bytes4) {
         return IERC1155Receiver.onERC1155BatchReceived.selector;
     }
     
     /**
-     * @dev Required by AccessControl and IERC1155Receiver
+     * @dev Required by IERC1155Receiver
      */
     function supportsInterface(bytes4 interfaceId)
         public
-        view
-        override(AccessControl, IERC165)
+        pure
+        override
         returns (bool)
     {
-        return super.supportsInterface(interfaceId) || 
-               interfaceId == type(IERC1155Receiver).interfaceId;
+        return interfaceId == type(IERC1155Receiver).interfaceId ||
+               interfaceId == type(IERC165).interfaceId;
     }
 } 
+
