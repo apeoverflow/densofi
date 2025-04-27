@@ -869,7 +869,7 @@ const TokenMinter = ({ domain }: { domain: string }) => {
         contractAddresses: [CONTRACT_ADDRESS]
       });
 
-      console.log("NFTs found:", response.totalCount);
+      console.log("NFTs found:", response);
       
       // Transform the data to match our expected format
       const formattedNfts = response.ownedNfts.map((nft: any) => ({
