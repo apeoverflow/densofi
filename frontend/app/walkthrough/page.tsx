@@ -647,6 +647,9 @@ const NFTMinter = ({ domain, onComplete }: NFTMinterProps) => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [transactionHash, setTransactionHash] = useState("");
   const [mintMethod] = useState<"standard" | "resolver">("standard");
+  const [waitingForConfirmation, setWaitingForConfirmation] = useState(false);
+  const [transactionConfirmed, setTransactionConfirmed] = useState(false);
+  const [transactionError, setTransactionError] = useState("");
 
   const { 
     mintNFT, 
@@ -666,29 +669,36 @@ const NFTMinter = ({ domain, onComplete }: NFTMinterProps) => {
 
   // Monitor transaction hash and confirmation state
   useEffect(() => {
-    if (hash && isConfirmed) {
+    if (hash) {
       setTransactionHash(hash);
-      setShowSuccess(true);
+      if (!waitingForConfirmation) {
+        setWaitingForConfirmation(true);
+      }
+      
+      if (isConfirmed) {
+        setWaitingForConfirmation(false);
+        setTransactionConfirmed(true);
+        setShowSuccess(true);
+      }
     }
-  }, [hash, isConfirmed]);
+  }, [hash, isConfirmed, waitingForConfirmation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!domainName) return;
 
+    setTransactionError("");
+    setWaitingForConfirmation(false);
+    setTransactionConfirmed(false);
+
     try {
       // Call the mint function
       const success = await mintNFT(domainName);
       
-      // If we have a hash and successful mint
-      if (success && hash) {
-        setTransactionHash(hash);
-        setShowSuccess(true);
-      } 
-      // If successful but no hash available yet
-      else if (success) {
+      // If successful but no hash available yet (rare edge case)
+      if (success && !hash) {
         setTimeout(() => {
-          if (!showSuccess) {
+          if (!showSuccess && !waitingForConfirmation) {
             console.log("No transaction hash received, but considering mint successful");
             setShowSuccess(true);
             // Generate a placeholder transaction hash if needed
@@ -696,10 +706,11 @@ const NFTMinter = ({ domain, onComplete }: NFTMinterProps) => {
               setTransactionHash("Transaction submitted successfully");
             }
           }
-        }, 3000);
+        }, 5000);
       }
     } catch (error) {
       console.error("Error minting NFT:", error);
+      setTransactionError(error instanceof Error ? error.message : "Unknown error occurred");
     }
   };
 
@@ -707,11 +718,18 @@ const NFTMinter = ({ domain, onComplete }: NFTMinterProps) => {
     setDomainName(domain || "");
     setShowSuccess(false);
     setTransactionHash("");
+    setWaitingForConfirmation(false);
+    setTransactionConfirmed(false);
+    setTransactionError("");
   };
 
-  // Handle manual completion for cases where transaction doesn't return a hash
+  // Handle completion only after transaction is confirmed
   const handleManualComplete = () => {
-    if (onComplete) onComplete();
+    if (onComplete && transactionConfirmed) {
+      onComplete();
+    } else if (!transactionConfirmed) {
+      setTransactionError("Please wait for the transaction to be confirmed before continuing");
+    }
   };
 
   if (!isConnected) {
@@ -748,6 +766,41 @@ const NFTMinter = ({ domain, onComplete }: NFTMinterProps) => {
               )}
             </div>
           )}
+          
+          {/* Transaction confirmation status */}
+          {waitingForConfirmation && (
+            <div className="mt-4 mb-4 p-3 bg-yellow-900/30 border border-yellow-700/50 rounded-md text-center">
+              <div className="flex justify-center items-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-yellow-500 mr-2"></div>
+                <p className="text-yellow-400 text-sm">
+                  Waiting for blockchain confirmation...
+                </p>
+              </div>
+              <p className="text-xs text-gray-400 mt-2">
+                Please wait for your transaction to be confirmed before proceeding to the next step.
+              </p>
+            </div>
+          )}
+          
+          {transactionConfirmed && (
+            <div className="mt-4 mb-4 p-3 bg-green-900/30 border border-green-700/50 rounded-md text-center">
+              <p className="text-green-400 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                Transaction confirmed! You can proceed to the next step.
+              </p>
+            </div>
+          )}
+          
+          {transactionError && (
+            <div className="mt-4 mb-4 p-3 bg-red-900/30 border border-red-700/50 rounded-md text-center">
+              <p className="text-red-400 text-sm">
+                Error: {transactionError}
+              </p>
+            </div>
+          )}
+          
           <div className="mt-6 flex flex-col gap-3">
             <button
               onClick={resetForm}
@@ -757,7 +810,12 @@ const NFTMinter = ({ domain, onComplete }: NFTMinterProps) => {
             </button>
             <button
               onClick={handleManualComplete}
-              className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 rounded-md transition-colors"
+              disabled={!transactionConfirmed || waitingForConfirmation}
+              className={`w-full py-2 px-4 rounded-md ${
+                !transactionConfirmed || waitingForConfirmation
+                  ? "bg-gray-600 cursor-not-allowed"
+                  : "bg-purple-600 hover:bg-purple-700"
+              } transition-colors`}
             >
               Continue to Next Step
             </button>
@@ -810,6 +868,12 @@ const NFTMinter = ({ domain, onComplete }: NFTMinterProps) => {
           {writeError && (
             <p className="mt-4 text-red-400 text-sm">
               Error: {writeError.message || "Failed to mint NFT"}
+            </p>
+          )}
+          
+          {transactionError && (
+            <p className="mt-4 text-red-400 text-sm">
+              Error: {transactionError}
             </p>
           )}
           
