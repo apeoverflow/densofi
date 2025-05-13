@@ -23,6 +23,11 @@ Allow more people to participate in the upside.
 - 6. Additional utility is unlocked by allowing users that purchase 5% of tokens, a lock mechanism that enables them to register valuable subdomains against SEO friendly or high potential domains. (e.g. stables.newswap.org)
 7. At the end of the lease term, the token is released back to the user and TLD/ICANN if not renewed. 
 
+# Planning documents 
+<img width="1182" alt="Screenshot 2025-05-13 at 9 13 41 PM" src="https://github.com/user-attachments/assets/836ab266-23e0-4dd5-be3f-1a4d2143ccd7" />
+<img width="1182" alt="Screenshot 2025-05-13 at 9 13 57 PM" src="https://github.com/user-attachments/assets/9aa125d6-a0a7-448f-b5d5-bc16737a88ea" />
+
+
 # Deployments:
 
 - Flow mainnet and testnet
@@ -31,6 +36,8 @@ Allow more people to participate in the upside.
 
 
 # Contact: chimera_defi@protonmail.com
+
+# Dev
 
 ## Deployments 
 deployer: 0xA120FAd0498ECbF755a675E3833158484123bF30
@@ -54,7 +61,7 @@ flow mainnet
   Deployed TokenMinter at address: 0x50E2744ec42865918F9f3657a39D4421639D0177 on chain id: 747
 ```
 
-## Flow: (nnot the chain)
+## Flow: (not the chain)
 ```
 // 1. Deploy contracts
 NFTMinter nftMinter = new NFTMinter();
