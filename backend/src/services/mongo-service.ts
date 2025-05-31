@@ -1,5 +1,6 @@
 import { MongoClient, Collection, Db, Document } from 'mongodb';
 import { ENV } from '../config/env.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Service for managing MongoDB connections and operations
@@ -42,9 +43,9 @@ export class MongoService {
       this.client = new MongoClient(uri);
       await this.client.connect();
       this.db = this.client.db(dbName);
-      console.log(`Connected to MongoDB database: ${dbName}`);
+      logger.info(`Connected to MongoDB database: ${dbName}`);
     } catch (error) {
-      console.error('Error connecting to MongoDB:', error);
+      logger.error('Error connecting to MongoDB:', error);
       throw error;
     }
   }
@@ -78,7 +79,7 @@ export class MongoService {
       await this.client.close();
       this.client = null;
       this.db = null;
-      console.log('Disconnected from MongoDB');
+      logger.info('Disconnected from MongoDB');
     }
   }
 }

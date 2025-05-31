@@ -26,14 +26,14 @@ export function validateConfiguration(): void {
   }
 
   // Check RPC URL
-  if (!ENV.SEPOLIA_RPC_URL) {
-    errors.push('SEPOLIA_RPC_URL is required');
-    logger.error('❌ Missing SEPOLIA_RPC_URL environment variable');
-    logger.error('   Example: SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/YOUR_KEY');
+  if (!ENV.RPC_URL) {
+    errors.push('RPC_URL is required');
+    logger.error('❌ Missing RPC_URL environment variable');
+    logger.error('   Example: RPC_URL=https://sepolia.infura.io/v3/YOUR_KEY');
   }
 
   // Warnings for optional but recommended settings
-  if (ENV.SEPOLIA_RPC_URL === 'https://rpc2.sepolia.org') {
+  if (ENV.RPC_URL === 'https://rpc2.sepolia.org') {
     warnings.push('Using default public RPC endpoint - consider using Infura/Alchemy for better reliability');
   }
 
@@ -58,7 +58,7 @@ export function validateConfiguration(): void {
 export function logConfiguration(): void {
   logger.info('📋 Configuration Summary:');
   logger.info(`   Database: ${ENV.MONGO_DB}`);
-  logger.info(`   RPC URL: ${ENV.SEPOLIA_RPC_URL}`);
+  logger.info(`   RPC URL: ${ENV.RPC_URL}`);
   logger.info(`   Contract: ${ENV.DOMAIN_REGISTRATION_CONTRACT}`);
   logger.info(`   Polling Interval: ${ENV.POLLING_INTERVAL}ms`);
   logger.info(`   Port: ${ENV.PORT}`);

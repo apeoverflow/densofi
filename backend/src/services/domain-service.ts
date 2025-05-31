@@ -7,6 +7,8 @@ import type {
   PendingRegistration, 
   PendingOwnershipUpdate 
 } from '../models/domain.js';
+import { DnsVerificationService } from './dns-verification-service.js';
+import { ENV } from '../config/env.js';
 
 export class DomainService {
   private static domainsCollection: Collection<DomainDocument> | null = null;
@@ -152,13 +154,20 @@ export class DomainService {
           const isRegistered = await this.isDomainRegistered(registration.domainName);
           
           if (!isRegistered) {
+            // Verify domain ownership
+            const isVerified = await this.verifyDomainViaDns(registration.domainName, registration.requester);
+            if (!isVerified) {
+              logger.warn(`Domain ${registration.domainName} is not verified, skipping`);
+              continue;
+            }
+
             // Register the domain
             const domain: DomainDocument = {
               Domain_Name: registration.domainName,
-              Associated_ERC20_Addr: '', // This would be set based on your business logic
+              Associated_ERC20_Addr: '', 
               Verified_Owner_Addr: registration.requester,
-              Chain_Id: BigInt(11155111), // Sepolia chain ID
-              NFT_Token_Id: BigInt(0), // This would be generated or retrieved from contract
+              Chain_Id: BigInt(ENV.CHAIN_ID || '11155111'), // Get Chain ID from environment variable, default to Sepolia
+              NFT_Token_Id: BigInt(0),
               Expiration_Timestamp: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
               createdAt: new Date(),
               updatedAt: new Date()
@@ -266,6 +275,19 @@ export class DomainService {
     } catch (error) {
       logger.error(`Error fetching domain ${domainName}:`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Verify domain ownership via DNS TXT record.
+   */
+  static async verifyDomainViaDns(domainName: string, walletAddress: string): Promise<boolean> {
+    logger.info(`Verifying domain ${domainName} for wallet ${walletAddress} via DNS.`);
+    try {
+      return await DnsVerificationService.verifyDomainOwnership(domainName, walletAddress);
+    } catch (error) {
+      logger.error(`Error verifying domain ${domainName} via DNS:`, error);
+      return false;
     }
   }
 } 

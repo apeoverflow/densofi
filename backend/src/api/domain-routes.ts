@@ -117,4 +117,28 @@ router.post('/process-pending', async (req, res) => {
   }
 });
 
+/**
+ * Verify domain ownership via DNS
+ */ 
+router.get('/domains/:name/:walletAddress/verify', async (req, res) => {
+  try {
+    const { name, walletAddress } = req.params;
+    const isVerified = await DomainService.verifyDomainViaDns(name, walletAddress);
+    res.json({
+      success: true,
+      data: {
+        domainName: name,
+        walletAddress,
+        isVerified
+      }
+    });
+  } catch (error) {
+    logger.error('Error verifying domain:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to verify domain'
+    });
+  }
+});
+
 export { router as domainRoutes }; 

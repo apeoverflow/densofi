@@ -16,20 +16,21 @@ export const ENV = {
   MONGOPASSWORD: process.env.MONGOPASSWORD,
   
   // Blockchain Configuration
-  SEPOLIA_RPC_URL: process.env.SEPOLIA_RPC_URL || 'https://rpc2.sepolia.org',
+  RPC_URL: process.env.RPC_URL || 'https://rpc2.sepolia.org',
+  CHAIN_ID: process.env.CHAIN_ID || '11155111',
   
   // Contract Addresses
   DOMAIN_REGISTRATION_CONTRACT: process.env.DOMAIN_REGISTRATION_CONTRACT || '0x640b66a1cd9D2e3c4F118B9Bb58479c0Ca439f42',
   
   // Event Listening Configuration
-  POLLING_INTERVAL: parseInt(process.env.POLLING_INTERVAL || '5000', 10),
-  EVENT_BATCH_SIZE: parseInt(process.env.EVENT_BATCH_SIZE || '100', 10),
+  POLLING_INTERVAL: parseInt(process.env.POLLING_INTERVAL || '60000', 10),
+  EVENT_BATCH_SIZE: parseInt(process.env.EVENT_BATCH_SIZE || '200', 10),
   
 } as const;
 
 // Validation
-if (!ENV.SEPOLIA_RPC_URL) {
-  throw new Error('SEPOLIA_RPC_URL environment variable is required');
+if (!ENV.RPC_URL) {
+  throw new Error('RPC_URL environment variable is required');
 }
 
 // MongoDB validation
@@ -39,5 +40,7 @@ if (!ENV.MONGO_URL && !(ENV.MONGOHOST && ENV.MONGOPORT && ENV.MONGOUSER && ENV.M
   console.warn('   Option 2: Individual variables (MONGOHOST, MONGOPORT, MONGOUSER, MONGOPASSWORD)');
   console.warn('   Also set: MONGO_DB (database name)');
 }
+
+
 
 export default ENV; 

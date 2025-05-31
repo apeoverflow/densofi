@@ -5,8 +5,8 @@ import { logger } from '../utils/logger.js';
 
 // Create public client for Sepolia network
 export const publicClient = createPublicClient({
-  chain: sepolia,
-  transport: http(ENV.SEPOLIA_RPC_URL, {
+  chain: ENV.CHAIN_ID === '11155111' ? sepolia : undefined,
+  transport: http(ENV.RPC_URL, {
     retryCount: 3,
     retryDelay: 1000,
   }),
