@@ -30,6 +30,9 @@ async function main() {
     logger.info('  GET  /api/domains/:name - Get specific domain');
     logger.info('  GET  /api/domains/:name/status - Check domain registration status');
     logger.info('  POST /api/process-pending - Manually process pending events');
+    logger.info('  GET  /api/domains/:name/:walletAddress/verify - Verify domain ownership via DNS');
+    logger.info('  GET  /api/domains/:name/verify - Verify domain ownership via DNS');
+    
     
     // Keep the process running
     process.stdin.resume();
