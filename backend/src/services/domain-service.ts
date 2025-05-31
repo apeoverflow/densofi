@@ -158,6 +158,11 @@ export class DomainService {
             const isVerified = await this.verifyDomainViaDns(registration.domainName, registration.requester);
             if (!isVerified) {
               logger.warn(`Domain ${registration.domainName} is not verified, skipping`);
+              // Mark as processed
+              await this.pendingRegistrationsCollection.updateOne(
+                { _id: registration._id },
+                { $set: { processed: true } }
+              );
               continue;
             }
 
@@ -212,6 +217,24 @@ export class DomainService {
 
       for (const update of pendingUpdates) {
         try {
+
+          const isRegistered = await this.isDomainRegistered(update.domainName);
+          if (!isRegistered) {
+            logger.warn(`Domain ${update.domainName} is not registered, skipping`);
+            // Mark as processed
+            await this.pendingOwnershipUpdatesCollection.updateOne(
+              { _id: update._id },
+              { $set: { processed: true } }
+            );
+            continue;
+          }
+
+          const isVerified = await this.verifyDomainViaDns(update.domainName, update.requester);
+          if (!isVerified) {
+            logger.warn(`Domain ${update.domainName} is not verified, skipping`);
+            continue;
+          }
+
           // Update domain ownership
           const result = await this.domainsCollection.updateOne(
             { Domain_Name: update.domainName },
