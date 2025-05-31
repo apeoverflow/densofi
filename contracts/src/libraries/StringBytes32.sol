@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.30;
 
 /// @title StringBytes32
 /// @notice Library for converting between string and bytes32
@@ -9,7 +9,7 @@ library StringBytes32 {
     /// @dev Only works for strings up to 32 bytes in length
     /// @param str The string to convert
     /// @return result The bytes32 representation of the string
-    function stringToBytes32(string memory str) public pure returns (bytes32 result) {
+    function stringToBytes32(string memory str) internal pure returns (bytes32 result) {
         // We need to check if the string is too long
         bytes memory strBytes = bytes(str);
         require(strBytes.length <= 32, "String too long for bytes32");
@@ -25,7 +25,7 @@ library StringBytes32 {
     /// @dev Pair this with stringToBytes32 for reversible conversion
     /// @param data The bytes32 value to convert
     /// @return The original string
-    function bytes32ToString(bytes32 data) public pure returns (string memory) {
+    function bytes32ToString(bytes32 data) internal pure returns (string memory) {
         // First convert to bytes
         bytes memory bytesData = new bytes(32);
         
