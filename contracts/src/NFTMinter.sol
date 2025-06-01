@@ -109,6 +109,7 @@ contract NFTMinter is ERC1155, Ownable {
         s_domainNameToTokenId[domainNameHash] = tokenId;
         s_tokenIdToDomainName[tokenId] = domainNameHash;
         s_isDomainNFTMinted[domainNameHash] = true;
+        s_isDomainMintable[domainNameHash] = false;
 
         // Mint the token
         _mint(msg.sender, tokenId, 1, "");
