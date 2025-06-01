@@ -1,7 +1,7 @@
 import { logger } from '../utils/logger.js';
 import { MongoService } from './mongo-service.js';
 import { DomainService } from './domain-service.js';
-import { domainEventListener } from './event-listener.js';
+import { domainEventListener } from './domain-event-listener.js';
 
 export interface RetryConfig {
   maxRetries: number;
