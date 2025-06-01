@@ -26,6 +26,8 @@ export const ENV = {
   POLLING_INTERVAL: parseInt(process.env.POLLING_INTERVAL || '60000', 10),
   EVENT_BATCH_SIZE: parseInt(process.env.EVENT_BATCH_SIZE || '200', 10),
   
+  PRIVATE_KEY: process.env.PRIVATE_KEY,
+  
 } as const;
 
 // Validation
