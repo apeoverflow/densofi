@@ -149,7 +149,7 @@ export class DomainService {
 
       const pendingRegistrations = await this.pendingRegistrationsCollection
         .find({ processed: false })
-        .limit(30) // Process in batches to avoid overwhelming the system
+        .limit(10) // Process in batches to avoid overwhelming the system
         .toArray();
 
       if (pendingRegistrations.length === 0) {
@@ -162,6 +162,25 @@ export class DomainService {
       for (const registration of pendingRegistrations) {
         try {
           logger.info(`\n🚀 Processing registration: ${registration.domainName}`);
+
+          if (await this.isDomainRegistered(registration.domainName)) {
+            logger.info(`✅ Domain already registered: ${registration.domainName}`);
+            await this.pendingRegistrationsCollection.updateOne(
+              { _id: registration._id },
+              { $set: { processed: true, processedAt: new Date() } }
+            );
+            continue;
+          }
+
+          if (!await this.verifyDomainViaDns(registration.domainName, registration.requester as Address)) {
+            logger.info(`❌ Domain not verified: ${registration.domainName}`);
+            await this.pendingRegistrationsCollection.updateOne(
+              { _id: registration._id },
+              { $set: { processed: true, processedAt: new Date() } }
+            );
+            continue;
+          }
+
           
           // Store the domain in our database using the correct interface
           const domainData: DomainDocument = {
