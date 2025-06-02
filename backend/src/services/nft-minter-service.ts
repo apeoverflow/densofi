@@ -15,9 +15,7 @@ export class NFTMinterService {
   static async initialize(): Promise<void> {
     try {
       // Make sure WalletService is initialized
-      if (!WalletService.getWalletClient) {
-        await WalletService.initialize();
-      }
+      await WalletService.initialize();
 
       if (!SEPOLIA_ADDRESSES.NFTMinter) {
         throw new Error('domain  environment variable is required');

@@ -14,6 +14,11 @@ export class WalletService {
    */
   static async initialize(): Promise<void> {
     try {
+      if (this.walletClient && this.publicClient && this.account) {
+        logger.info('✅ Wallet service already initialized');
+        return;
+      }
+
       if (!ENV.PRIVATE_KEY) {
         throw new Error('PRIVATE_KEY environment variable is required');
       }
