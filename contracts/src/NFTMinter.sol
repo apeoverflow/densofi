@@ -53,8 +53,18 @@ contract NFTMinter is ERC1155, Ownable {
     /**
      * @dev Constructor sets the IPFS base URI and initializes ownership
      */
-    constructor(address owner) ERC1155("ipfs://") Ownable(owner) {
+    constructor(address owner) ERC1155("") Ownable(owner) {
         s_tokenCounter = 0;
+    }
+
+    /**
+     * @dev Sets the base URI for all token types (admin only)
+     * client will substitute the {id} with the tokenId
+     * example: https://metadata.example.com/{id}.json
+     * @param newURI The new base URI to set
+     */
+    function setBaseURI(string memory newURI) public onlyOwner {
+        _setURI(newURI);
     }
 
     /**
@@ -156,9 +166,8 @@ contract NFTMinter is ERC1155, Ownable {
     function uri(
         uint256 tokenId
     ) public view virtual override returns (string memory) {
-        // Concatenate the base URI with the token ID
-        // In a production environment, this should point to a proper IPFS metadata file
-        return string(abi.encodePacked(super.uri(tokenId), tokenId.toString()));
+        // In a production environment, this should point to a proper metadata file
+        return super.uri(tokenId);
     }
 
     /**
