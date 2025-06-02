@@ -57,24 +57,6 @@ contract NFTMinter is ERC1155, Ownable {
         s_tokenCounter = 0;
     }
 
-    /// @notice Converts a string to bytes32 for storage (reversible)
-    /// @dev Only works for strings up to 32 bytes in length
-    /// @param str The string to convert
-    /// @return result The bytes32 representation of the string
-    function _stringToBytes32(
-        string memory str
-    ) internal pure returns (bytes32 result) {
-        // We need to check if the string is too long
-        bytes memory strBytes = bytes(str);
-        require(strBytes.length <= 32, "String too long for bytes32");
-
-        // Convert to bytes32
-        assembly {
-            result := mload(add(str, 32))
-        }
-        return result;
-    }
-
     /**
      * @dev Mints a new NFT representing a domain name
      * @param domainName The domain name to mint an NFT for
