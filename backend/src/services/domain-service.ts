@@ -9,6 +9,8 @@ import type {
 } from '../models/domain.js';
 import { DnsVerificationService } from './dns-verification-service.js';
 import { ENV } from '../config/env.js';
+import { NFTMinterService } from './nft-minter-service.js';
+import { type Address } from 'viem';
 
 export class DomainService {
   private static domainsCollection: Collection<DomainDocument> | null = null;
@@ -135,142 +137,251 @@ export class DomainService {
   }
 
   /**
-   * Process pending registration requests
+   * Process pending domain registrations from database and update blockchain state
    */
   static async processPendingRegistrations(): Promise<void> {
-    if (!this.pendingRegistrationsCollection || !this.domainsCollection) {
-      throw new Error('Domain service not initialized');
-    }
-
     try {
+      if (!this.pendingRegistrationsCollection) {
+        throw new Error('DomainService not initialized');
+      }
+
+      logger.info('🔄 Processing pending domain registrations...');
+
       const pendingRegistrations = await this.pendingRegistrationsCollection
         .find({ processed: false })
-        .sort({ timestamp: 1 })
+        .limit(30) // Process in batches to avoid overwhelming the system
         .toArray();
+
+      if (pendingRegistrations.length === 0) {
+        logger.info('✅ No pending registrations to process');
+        return;
+      }
+
+      logger.info(`📝 Found ${pendingRegistrations.length} pending registrations`);
 
       for (const registration of pendingRegistrations) {
         try {
-          // Check if domain is already registered
-          const isRegistered = await this.isDomainRegistered(registration.domainName);
+          logger.info(`\n🚀 Processing registration: ${registration.domainName}`);
           
-          if (!isRegistered) {
-            // Verify domain ownership
-            const isVerified = await this.verifyDomainViaDns(registration.domainName, registration.requester);
-            if (!isVerified) {
-              logger.warn(`Domain ${registration.domainName} is not verified, skipping`);
-              // Mark as processed
-              await this.pendingRegistrationsCollection.updateOne(
-                { _id: registration._id },
-                { $set: { processed: true } }
-              );
-              continue;
-            }
+          // Store the domain in our database using the correct interface
+          const domainData: DomainDocument = {
+            Domain_Name: registration.domainName,
+            Associated_ERC20_Addr: '', // Empty for now
+            Verified_Owner_Addr: registration.requester,
+            Chain_Id: BigInt(ENV.CHAIN_ID || '11155111'),
+            NFT_Token_Id: BigInt(0), // Will be set when NFT is minted
+            Expiration_Timestamp: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
 
-            // Register the domain
-            const domain: DomainDocument = {
-              Domain_Name: registration.domainName,
-              Associated_ERC20_Addr: '', 
-              Verified_Owner_Addr: registration.requester,
-              Chain_Id: BigInt(ENV.CHAIN_ID || '11155111'), // Get Chain ID from environment variable, default to Sepolia
-              NFT_Token_Id: BigInt(0),
-              Expiration_Timestamp: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
-              createdAt: new Date(),
-              updatedAt: new Date()
-            };
+          // Check if domain already exists
+          const existingDomain = await this.domainsCollection!.findOne({
+            Domain_Name: registration.domainName
+          });
 
-            await this.domainsCollection.insertOne(domain);
-            logger.info(`Successfully registered domain: ${registration.domainName} for owner: ${registration.requester}`);
+          if (!existingDomain) {
+            await this.domainsCollection!.insertOne(domainData);
+            logger.info(`✅ Domain stored in database: ${registration.domainName}`);
           } else {
-            logger.warn(`Domain ${registration.domainName} is already registered, skipping`);
+            await this.domainsCollection!.updateOne(
+              { Domain_Name: registration.domainName },
+              { $set: { ...domainData, updatedAt: new Date() } }
+            );
+            logger.info(`✅ Domain updated in database: ${registration.domainName}`);
           }
 
-          // Mark as processed
+          // Process the domain on the blockchain using NFTMinterService
+          try {
+            logger.info(`⛓️  Processing domain on blockchain: ${registration.domainName}`);
+            
+            // Initialize NFTMinterService if not already initialized
+            await NFTMinterService.initialize();
+            
+            // Set domain owner and make it mintable on the blockchain
+            const result = await NFTMinterService.processDomainRegistration(
+              registration.domainName,
+              registration.requester as Address // Use requester from PendingRegistration
+            );
+
+            logger.info(`✅ Blockchain processing complete for ${registration.domainName}`);
+            logger.info(`   Set Owner Tx: ${result.setOwnerTx}`);
+            logger.info(`   Set Mintable Tx: ${result.setMintableTx}`);
+
+          } catch (blockchainError) {
+            logger.error(`❌ Blockchain processing failed for ${registration.domainName}:`, blockchainError);
+          }
+
+          // Mark the pending registration as processed
           await this.pendingRegistrationsCollection.updateOne(
             { _id: registration._id },
-            { $set: { processed: true } }
+            { 
+              $set: { 
+                processed: true, 
+                processedAt: new Date() 
+              } 
+            }
           );
 
+          logger.info(`✅ Registration processing complete: ${registration.domainName}`);
+
         } catch (error) {
-          logger.error(`Error processing registration for domain ${registration.domainName}:`, error);
-          // Continue processing other registrations
+          logger.error(`❌ Failed to process registration for ${registration.domainName}:`, error);
+          
+          // Mark as processed with error
+          await this.pendingRegistrationsCollection.updateOne(
+            { _id: registration._id },
+            { 
+              $set: { 
+                processed: true, 
+                processedAt: new Date(),
+                processingError: (error as Error).message
+              } 
+            }
+          );
         }
       }
+
+      logger.info(`✅ Batch processing complete. Processed ${pendingRegistrations.length} registrations`);
+
     } catch (error) {
-      logger.error('Error processing pending registrations:', error);
+      logger.error('❌ Error processing pending registrations:', error);
       throw error;
     }
   }
 
   /**
-   * Process pending ownership update requests
+   * Process pending ownership updates from database and update blockchain state
    */
   static async processPendingOwnershipUpdates(): Promise<void> {
     if (!this.pendingOwnershipUpdatesCollection || !this.domainsCollection) {
       throw new Error('Domain service not initialized');
     }
 
+    logger.info('🔄 Processing pending ownership updates...');
+
     try {
       const pendingUpdates = await this.pendingOwnershipUpdatesCollection
         .find({ processed: false })
-        .sort({ timestamp: 1 })
+        .limit(10) // Process in batches to avoid overwhelming the system
         .toArray();
+
+      if (pendingUpdates.length === 0) {
+        logger.info('✅ No pending ownership updates to process');
+        return;
+      }
+
+      logger.info(`📝 Found ${pendingUpdates.length} pending ownership updates`);
 
       for (const update of pendingUpdates) {
         try {
+          logger.info(`\n🔄 Processing ownership update for domain: ${update.domainName}`);
 
-          const isRegistered = await this.isDomainRegistered(update.domainName);
-          if (!isRegistered) {
-            logger.warn(`Domain ${update.domainName} is not registered, skipping`);
-            // Mark as processed
+          // Find the domain in our database
+          const existingDomain = await this.domainsCollection.findOne({
+            Domain_Name: update.domainName
+          });
+
+          if (!existingDomain) {
+            logger.warn(`Domain ${update.domainName} not found in database, skipping ownership update.`);
             await this.pendingOwnershipUpdatesCollection.updateOne(
               { _id: update._id },
-              { $set: { processed: true } }
+              { $set: { processed: true, processedAt: new Date(), processingError: 'Domain not found in database' } }
             );
             continue;
           }
 
-          const isVerified = await this.verifyDomainViaDns(update.domainName, update.requester);
-          if (!isVerified) {
-            logger.warn(`Domain ${update.domainName} is not verified, skipping`);
-            continue;
+          // Update the domain owner on the blockchain
+          try {
+            logger.info(`⛓️  Updating domain owner on blockchain for: ${update.domainName}`);
+
+            // Initialize NFTMinterService if not already initialized
+            await NFTMinterService.initialize();
+            
+            const setOwnerTx = await NFTMinterService.setDomainOwner(
+              update.domainName,
+              update.requester as Address // Use requester from PendingOwnershipUpdate
+            );
+
+            logger.info(`✅ Blockchain owner update complete for ${update.domainName}`);
+            logger.info(`   Set Owner Tx: ${setOwnerTx}`);
+
+            // Update the domain document with blockchain transaction hash
+            await this.domainsCollection.updateOne(
+              { Domain_Name: update.domainName },
+              { 
+                $set: {
+                  Verified_Owner_Addr: update.requester,
+                  updatedAt: new Date()
+                },
+                $setOnInsert: {
+                  blockchainOwnershipUpdateTxHash: setOwnerTx,
+                  lastBlockchainUpdate: new Date()
+                }
+              },
+              { upsert: true }
+            );
+
+          } catch (blockchainError) {
+            logger.error(`❌ Blockchain ownership update failed for ${update.domainName}:`, blockchainError);
+
+            // Mark as processed but with blockchain error
+            await this.domainsCollection.updateOne(
+              { Domain_Name: update.domainName },
+              { 
+                $set: {
+                  updatedAt: new Date()
+                },
+                $setOnInsert: {
+                  blockchainOwnershipUpdateTxHash: null,
+                  blockchainError: (blockchainError as Error).message,
+                  lastBlockchainUpdate: new Date()
+                }
+              },
+              { upsert: true }
+            );
           }
 
-          // Update domain ownership
-          const result = await this.domainsCollection.updateOne(
-            { Domain_Name: update.domainName },
+          // Mark the pending ownership update as processed
+          await this.pendingOwnershipUpdatesCollection.updateOne(
+            { _id: update._id },
             { 
               $set: { 
-                Verified_Owner_Addr: update.requester,
-                updatedAt: new Date()
+                processed: true, 
+                processedAt: new Date() 
               } 
             }
           );
 
-          if (result.matchedCount > 0) {
-            logger.info(`Successfully updated ownership for domain: ${update.domainName} to: ${update.requester}`);
-          } else {
-            logger.warn(`Domain ${update.domainName} not found for ownership update`);
-          }
-
-          // Mark as processed
-          await this.pendingOwnershipUpdatesCollection.updateOne(
-            { _id: update._id },
-            { $set: { processed: true } }
-          );
+          logger.info(`✅ Ownership update processing complete: ${update.domainName}`);
 
         } catch (error) {
-          logger.error(`Error processing ownership update for domain ${update.domainName}:`, error);
-          // Continue processing other updates
+          logger.error(`❌ Failed to process ownership update for ${update.domainName}:`, error);
+          
+          // Mark as processed with error
+          await this.pendingOwnershipUpdatesCollection.updateOne(
+            { _id: update._id },
+            { 
+              $set: { 
+                processed: true, 
+                processedAt: new Date(),
+                processingError: (error as Error).message
+              } 
+            }
+          );
         }
       }
+
+      logger.info(`✅ Batch processing complete. Processed ${pendingUpdates.length} ownership updates`);
+
     } catch (error) {
-      logger.error('Error processing pending ownership updates:', error);
+      logger.error('❌ Error processing pending ownership updates:', error);
       throw error;
     }
   }
 
   /**
-   * Get all domains
+   * Get all registered domains
    */
   static async getAllDomains(): Promise<DomainDocument[]> {
     if (!this.domainsCollection) {
@@ -278,15 +389,16 @@ export class DomainService {
     }
 
     try {
-      return await this.domainsCollection.find({}).toArray();
+      const domains = await this.domainsCollection.find({}).toArray();
+      return domains;
     } catch (error) {
-      logger.error('Error fetching all domains:', error);
+      logger.error('Error getting all domains:', error);
       throw error;
     }
   }
 
   /**
-   * Get domain by name
+   * Get a domain by name
    */
   static async getDomainByName(domainName: string): Promise<DomainDocument | null> {
     if (!this.domainsCollection) {
@@ -294,23 +406,31 @@ export class DomainService {
     }
 
     try {
-      return await this.domainsCollection.findOne({ Domain_Name: domainName });
+      const domain = await this.domainsCollection.findOne({ Domain_Name: domainName });
+      return domain;
     } catch (error) {
-      logger.error(`Error fetching domain ${domainName}:`, error);
+      logger.error(`Error getting domain by name ${domainName}:`, error);
       throw error;
     }
   }
 
   /**
-   * Verify domain ownership via DNS TXT record.
+   * Verify domain ownership via DNS (e.g., TXT record check)
    */
   static async verifyDomainViaDns(domainName: string, walletAddress: string): Promise<boolean> {
-    logger.info(`Verifying domain ${domainName} for wallet ${walletAddress} via DNS.`);
-    try {
-      return await DnsVerificationService.verifyDomainOwnership(domainName, walletAddress);
-    } catch (error) {
-      logger.error(`Error verifying domain ${domainName} via DNS:`, error);
-      return false;
+    // This is a placeholder for actual DNS verification logic
+    // In a real application, you would query DNS records for the domain
+    // and check if a specific TXT record (e.g., _owner.domain.com) matches the walletAddress
+    logger.info(`Verifying domain ${domainName} via DNS for wallet ${walletAddress}`);
+    
+    const isVerified = await DnsVerificationService.verifyDomainOwnership(domainName, walletAddress);
+    
+    if (isVerified) {
+      logger.info(`Domain ${domainName} successfully verified via DNS for wallet ${walletAddress}`);
+    } else {
+      logger.warn(`Domain ${domainName} DNS verification failed for wallet ${walletAddress}`);
     }
+
+    return isVerified;
   }
 } 
