@@ -66,101 +66,101 @@ async function walletServiceExample() {
       }
     }
 
-//     // 6. Set domain owner (admin function)
-//     logger.info('\n📌 Step 5: Set Domain Owner');
-//     try {
-//       const setOwnerTx = await NFTMinterService.setDomainOwner(testDomain, testOwner);
-//       logger.info(`✅ Set domain owner transaction: ${setOwnerTx}`);
+    // 6. Set domain owner (admin function)
+    logger.info('\n📌 Step 5: Set Domain Owner');
+    try {
+      const setOwnerTx = await NFTMinterService.setDomainOwner(testDomain, testOwner);
+      logger.info(`✅ Set domain owner transaction: ${setOwnerTx}`);
       
-//       // Wait for confirmation
-//       await WalletService.waitForTransactionReceipt(setOwnerTx);
-//     } catch (error) {
-//       logger.error(`❌ Failed to set domain owner: ${error}`);
-//     }
+      // Wait for confirmation
+      await WalletService.waitForTransactionReceipt(setOwnerTx);
+    } catch (error) {
+      logger.error(`❌ Failed to set domain owner: ${error}`);
+    }
 
-//     // 7. Set domain as mintable (admin function)
-//     logger.info('\n📌 Step 6: Set Domain as Mintable');
-//     try {
-//       const setMintableTx = await NFTMinterService.setDomainMintable(testDomain, true);
-//       logger.info(`✅ Set domain mintable transaction: ${setMintableTx}`);
+    // 7. Set domain as mintable (admin function)
+    logger.info('\n📌 Step 6: Set Domain as Mintable');
+    try {
+      const setMintableTx = await NFTMinterService.setDomainMintable(testDomain, true);
+      logger.info(`✅ Set domain mintable transaction: ${setMintableTx}`);
       
-//       // Wait for confirmation
-//       await WalletService.waitForTransactionReceipt(setMintableTx);
-//     } catch (error) {
-//       logger.error(`❌ Failed to set domain mintable: ${error}`);
-//     }
+      // Wait for confirmation
+      await WalletService.waitForTransactionReceipt(setMintableTx);
+    } catch (error) {
+      logger.error(`❌ Failed to set domain mintable: ${error}`);
+    }
 
-//     // 8. Verify the changes
-//     logger.info('\n📌 Step 7: Verify Changes');
-//     try {
-//       const domainOwner = await NFTMinterService.getDomainOwner(testDomain);
-//       const isMintable = await NFTMinterService.isDomainMintable(testDomain);
+    // 8. Verify the changes
+    logger.info('\n📌 Step 7: Verify Changes');
+    try {
+      const domainOwner = await NFTMinterService.getDomainOwner(testDomain);
+      const isMintable = await NFTMinterService.isDomainMintable(testDomain);
       
-//       logger.info(`👤 Domain owner: ${domainOwner}`);
-//       logger.info(`🎯 Domain is mintable: ${isMintable}`);
-//     } catch (error) {
-//       logger.error(`❌ Failed to verify changes: ${error}`);
-//     }
+      logger.info(`👤 Domain owner: ${domainOwner}`);
+      logger.info(`🎯 Domain is mintable: ${isMintable}`);
+    } catch (error) {
+      logger.error(`❌ Failed to verify changes: ${error}`);
+    }
 
-//     // 9. Process a complete domain registration (both owner and mintable in sequence)
-//     logger.info('\n📌 Step 8: Process Complete Domain Registration');
-//     const newDomain = 'another-example.com';
-//     try {
-//       const result = await NFTMinterService.processDomainRegistration(newDomain, testOwner);
-//       logger.info(`✅ Complete domain registration processed:`);
-//       logger.info(`   Set Owner Tx: ${result.setOwnerTx}`);
-//       logger.info(`   Set Mintable Tx: ${result.setMintableTx}`);
-//     } catch (error) {
-//       logger.error(`❌ Failed to process domain registration: ${error}`);
-//     }
+    // 9. Process a complete domain registration (both owner and mintable in sequence)
+    logger.info('\n📌 Step 8: Process Complete Domain Registration');
+    const newDomain = 'another-example.com';
+    try {
+      const result = await NFTMinterService.processDomainRegistration(newDomain, testOwner);
+      logger.info(`✅ Complete domain registration processed:`);
+      logger.info(`   Set Owner Tx: ${result.setOwnerTx}`);
+      logger.info(`   Set Mintable Tx: ${result.setMintableTx}`);
+    } catch (error) {
+      logger.error(`❌ Failed to process domain registration: ${error}`);
+    }
 
-//     logger.info('\n🎉 Wallet Service Example completed successfully!');
+    logger.info('\n🎉 Wallet Service Example completed successfully!');
 
-//   } catch (error) {
-//     logger.error('❌ Wallet Service Example failed:', error);
-//     process.exit(1);
-//   }
-// }
+  } catch (error) {
+    logger.error('❌ Wallet Service Example failed:', error);
+    process.exit(1);
+  }
+}
 
-// /**
-//  * Example showing advanced wallet operations
-//  */
-// async function advancedWalletExample() {
-//   try {
-//     logger.info('\n🔥 Advanced Wallet Operations Example\n');
+/**
+ * Example showing advanced wallet operations
+ */
+async function advancedWalletExample() {
+  try {
+    logger.info('\n🔥 Advanced Wallet Operations Example\n');
 
-//     // Initialize services
-//     await WalletService.initialize();
-//     await NFTMinterService.initialize();
+    // Initialize services
+    await WalletService.initialize();
+    await NFTMinterService.initialize();
 
-//     // Get account info
-//     const account = WalletService.getAccount();
-//     const balance = await WalletService.getBalance();
-//     const nonce = await WalletService.getTransactionCount();
+    // Get account info
+    const account = WalletService.getAccount();
+    const balance = await WalletService.getBalance();
+    const nonce = await WalletService.getTransactionCount();
 
-//     logger.info('📊 Account Information:');
-//     logger.info(`   Address: ${account.address}`);
-//     logger.info(`   Balance: ${formatEther(balance)} ETH`);
-//     logger.info(`   Nonce: ${nonce}`);
+    logger.info('📊 Account Information:');
+    logger.info(`   Address: ${account.address}`);
+    logger.info(`   Balance: ${formatEther(balance)} ETH`);
+    logger.info(`   Nonce: ${nonce}`);
 
-//     // Example of reading contract data
-//     logger.info('\n📖 Reading Contract Data:');
-//     const contractAddress = NFTMinterService.getContractAddress();
-//     logger.info(`   Contract Address: ${contractAddress}`);
+    // Example of reading contract data
+    logger.info('\n📖 Reading Contract Data:');
+    const contractAddress = NFTMinterService.getContractAddress();
+    logger.info(`   Contract Address: ${contractAddress}`);
 
-//     // Example of simulating a contract call before executing
-//     logger.info('\n🧪 Simulating Contract Call:');
-//     try {
-//       const simulation = await WalletService.simulateContract(
-//         contractAddress,
-//         NFTMinterService.getContractABI(),
-//         'isDomainMintable',
-//         ['test-domain.com']
-//       );
-//       logger.info(`   Simulation result: ${simulation.result}`);
-//     } catch (error) {
-//       logger.warn(`   Simulation failed (expected for non-existent domain): ${error}`);
-//     }
+    // Example of simulating a contract call before executing
+    logger.info('\n🧪 Simulating Contract Call:');
+    try {
+      const simulation = await WalletService.simulateContract(
+        contractAddress,
+        NFTMinterService.getContractABI(),
+        'isDomainMintable',
+        ['test-domain.com']
+      );
+      logger.info(`   Simulation result: ${simulation.result}`);
+    } catch (error) {
+      logger.warn(`   Simulation failed (expected for non-existent domain): ${error}`);
+    }
 
   } catch (error) {
     logger.error('❌ Advanced example failed:', error);
