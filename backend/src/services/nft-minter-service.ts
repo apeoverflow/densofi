@@ -19,21 +19,11 @@ export class NFTMinterService {
         await WalletService.initialize();
       }
 
-      if (!SEPOLIA_ADDRESSES.DomainRegistration) {
+      if (!SEPOLIA_ADDRESSES.NFTMinter) {
         throw new Error('domain  environment variable is required');
       }
 
-      this.contractAddress = SEPOLIA_ADDRESSES.DomainRegistration as Address;
-
-      // Get and log bytecode at the address for diagnostics
-      const publicClient = WalletService.getPublicClient();
-      const bytecode = await publicClient.getBytecode({
-        address: this.contractAddress,
-      });
-      logger.info(`🔷 Bytecode at ${this.contractAddress}: ${bytecode ? bytecode.substring(0, 20) + '...' + bytecode.substring(bytecode.length - 20) : '0x (No bytecode found)'}`);
-      if (!bytecode || bytecode === '0x') {
-        logger.warn(`🚨 No bytecode found at address ${this.contractAddress} according to the RPC node. This likely means the contract is not deployed there or the RPC node is not synced correctly.`);
-      }
+      this.contractAddress = SEPOLIA_ADDRESSES.NFTMinter as Address;
 
       logger.info('✅ NFTMinter service initialized successfully');
       logger.info(`   Contract: ${this.contractAddress}`);
