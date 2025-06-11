@@ -35,7 +35,7 @@ export default function ClientPage() {
   }
   
   return (
-      <div className="relative flex flex-col min-h-screen bg-gradient-to-b from-slate-900 via-slate-900/20 to-black overflow-visible">
+      <div className="relative flex flex-col min-h-screen bg-gradient-to-b from-slate-900 via-slate-900/20 to-black overflow-visible" style={{overflowX: 'hidden'}}>
         {/* Interactive 3D Background */}
         <InteractiveBackground />
         
