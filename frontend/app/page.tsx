@@ -1,3 +1,5 @@
+'use client';
+
 import ClientPage from './client-page';
 
 // Server component - simple static wrapper

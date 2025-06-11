@@ -32,7 +32,6 @@ async function main() {
     logger.info('  POST /api/process-pending - Manually process pending events');
     logger.info('  GET  /api/domains/:name/:walletAddress/verify - Verify domain ownership via DNS');
     logger.info('  GET  /api/event-listeners/status - Get event listener status');
-    logger.info('  POST /api/event-listeners/nft-minter/sync - Sync recent NFT minter events');
     
     
     // Keep the process running
