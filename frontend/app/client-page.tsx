@@ -35,7 +35,7 @@ export default function ClientPage() {
   }
   
   return (
-      <div className="relative flex flex-col min-h-screen bg-gradient-to-b from-slate-900 via-slate-900/20 to-black overflow-visible" style={{overflowX: 'hidden'}}>
+      <div className="relative flex flex-col min-h-screen bg-gradient-to-b from-slate-900 via-slate-900/20 to-black overflow-visible" style={{overflowX: 'hidden', overflowY: 'hidden'}}>
         {/* Interactive 3D Background */}
         <InteractiveBackground />
         
@@ -140,7 +140,7 @@ export default function ClientPage() {
                   <div className="flex justify-center hidden md:flex">
                     <div className="relative w-full max-w-sm md:w-[400px] md:h-[500px] group">
                       <Image 
-                        src="/dino.png" 
+                        src="/dino-beefed-up.png" 
                         alt="Dino mascot" 
                         width={400} 
                         height={400}
