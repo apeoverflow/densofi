@@ -1,6 +1,8 @@
 import express from 'express';
 import { DomainService } from '../services/domain-service.js';
 import { ConnectionManager } from '../services/connection-manager.js';
+import { domainEventListener } from '../services/domain-event-listener.js';
+import { nftMinterEventListener } from '../services/nft-minter-event-listener.js';
 import { logger } from '../utils/logger.js';
 
 const router = express.Router();
@@ -124,7 +126,7 @@ router.get('/domains/:name/:walletAddress/verify', async (req, res) => {
   try {
     const { name, walletAddress } = req.params;
     const isVerified = await DomainService.verifyDomainViaDns(name, walletAddress);
-    res.json({
+    res.status(200).json({
       success: true,
       data: {
         domainName: name,
@@ -140,5 +142,35 @@ router.get('/domains/:name/:walletAddress/verify', async (req, res) => {
     });
   }
 });
+
+/**
+ * Get detailed event listener status
+ */
+router.get('/event-listeners/status', async (req, res) => {
+  try {
+    const status = {
+      domainEventListener: {
+        isListening: domainEventListener.getStatus(),
+        lastActivity: 'unknown' // Could be enhanced to track last event time
+      },
+      nftMinterEventListener: {
+        isListening: nftMinterEventListener.getStatus(),
+        lastActivity: 'unknown' // Could be enhanced to track last event time
+      }
+    };
+    
+    res.json({
+      success: true,
+      data: status
+    });
+  } catch (error) {
+    logger.error('Error getting event listener status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get event listener status'
+    });
+  }
+});
+
 
 export { router as domainRoutes }; 

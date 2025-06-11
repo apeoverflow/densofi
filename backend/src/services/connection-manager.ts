@@ -2,6 +2,7 @@ import { logger } from '../utils/logger.js';
 import { MongoService } from './mongo-service.js';
 import { DomainService } from './domain-service.js';
 import { domainEventListener } from './domain-event-listener.js';
+import { nftMinterEventListener } from './nft-minter-event-listener.js';
 
 export interface RetryConfig {
   maxRetries: number;
@@ -52,10 +53,14 @@ export class ConnectionManager {
       await DomainService.initialize();
       logger.info('✅ Domain service initialized successfully');
       
-      // Start event listener
-      logger.info('🎧 Starting event listener...');
+      // Start event listeners
+      logger.info('🎧 Starting domain event listener...');
       await domainEventListener.startListening();
-      logger.info('✅ Event listener started successfully');
+      logger.info('✅ Domain event listener started successfully');
+      
+      logger.info('🎧 Starting NFT minter event listener...');
+      await nftMinterEventListener.startListening();
+      logger.info('✅ NFT minter event listener started successfully');
       
       // Start processing pending events
       logger.info('⚙️ Starting processing loop...');
@@ -166,8 +171,9 @@ export class ConnectionManager {
    */
   static async disconnect(): Promise<void> {
     try {
-      // Stop event listener
+      // Stop event listeners
       domainEventListener.stopListening();
+      nftMinterEventListener.stopListening();
       
       // Disconnect from MongoDB
       await MongoService.disconnect();
@@ -207,11 +213,12 @@ export class ConnectionManager {
   /**
    * Get connection status
    */
-  static getStatus(): { initialized: boolean; mongodb: boolean; eventListener: boolean } {
+  static getStatus(): { initialized: boolean; mongodb: boolean; domainEventListener: boolean; nftMinterEventListener: boolean } {
     return {
       initialized: this.isInitialized,
       mongodb: MongoService.getDb() !== null,
-      eventListener: domainEventListener.getStatus()
+      domainEventListener: domainEventListener.getStatus(),
+      nftMinterEventListener: nftMinterEventListener.getStatus()
     };
   }
 

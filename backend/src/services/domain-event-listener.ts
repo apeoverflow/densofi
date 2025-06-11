@@ -158,58 +158,6 @@ class DomainEventListener {
   }
 
   /**
-   * Get recent events from the last N blocks and store them
-   */
-  async getRecentEvents(blockCount: number = 100): Promise<void> {
-    try {
-      const currentBlock = await publicClient.getBlockNumber();
-      const fromBlock = currentBlock - BigInt(blockCount);
-
-      logger.info(`📚 Fetching recent events from block ${fromBlock} to ${currentBlock}`);
-
-      // Get RegistrationRequested events
-      const registrationLogs = await publicClient.getLogs({
-        address: SEPOLIA_ADDRESSES.DomainRegistration,
-        event: parseAbiItem('event RegistrationRequested(string domainName, address requester, uint256 fee)'),
-        fromBlock,
-        toBlock: currentBlock,
-      });
-
-      // Get OwnershipUpdateRequested events
-      const ownershipLogs = await publicClient.getLogs({
-        address: SEPOLIA_ADDRESSES.DomainRegistration,
-        event: parseAbiItem('event OwnershipUpdateRequested(string domainName, address requester, uint256 fee)'),
-        fromBlock,
-        toBlock: currentBlock,
-      });
-
-      logger.info(`Found ${registrationLogs.length} registration events and ${ownershipLogs.length} ownership update events in the last ${blockCount} blocks`);
-
-      // Process recent registration events
-      for (const log of registrationLogs) {
-        if (log.args) {
-          await this.onRegistrationRequested(log.args as RegistrationRequestedEvent, log);
-        }
-      }
-
-      // Process recent ownership update events
-      for (const log of ownershipLogs) {
-        if (log.args) {
-          await this.onOwnershipUpdateRequested(log.args as OwnershipUpdateRequestedEvent, log);
-        }
-      }
-
-      // Process the stored events
-      await DomainService.processPendingRegistrations();
-      await DomainService.processPendingOwnershipUpdates();
-
-    } catch (error) {
-      logger.error('Error fetching recent events:', error);
-      await ConnectionManager.handleConnectionError(error, 'recent events fetcher');
-    }
-  }
-
-  /**
    * Restart the event listener (useful for reconnection scenarios)
    */
   async restart(): Promise<void> {

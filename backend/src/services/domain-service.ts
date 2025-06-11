@@ -203,11 +203,7 @@ export class DomainService {
             await this.domainsCollection!.insertOne(domainData);
             logger.info(`✅ Domain stored in database: ${registration.domainName}`);
           } else {
-            await this.domainsCollection!.updateOne(
-              { Domain_Name: registration.domainName },
-              { $set: { ...domainData, updatedAt: new Date() } }
-            );
-            logger.info(`✅ Domain updated in database: ${registration.domainName}`);
+            logger.info(`✅ Domain already exists in database: ${registration.domainName}`);
           }
 
           // Process the domain on the blockchain using NFTMinterService
@@ -451,5 +447,12 @@ export class DomainService {
     }
 
     return isVerified;
+  }
+
+  /**
+   * Get the domains collection (for use by other services)
+   */
+  static getDomainsCollection() {
+    return this.domainsCollection;
   }
 } 
