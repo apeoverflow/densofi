@@ -336,7 +336,7 @@ export default function ClientPage() {
                       color="#8B5CF6" 
                       intensity={0.25} 
                       speed={0.9} 
-                      distortionAmount={0.8}
+                      distortionAmount={0.7}
                       size={0.6}
                       randomSeed={0.8}
                     />
