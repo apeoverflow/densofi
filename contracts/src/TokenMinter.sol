@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "./NFTMinter.sol";
 import "src/libraries/StringBytes32.sol";
 import {InitialSupplySuperchainERC20} from "./InitialSupplySuperchainERC20.sol";
-import {Ownable} from "@solady/auth/Ownable.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title TokenMinter
