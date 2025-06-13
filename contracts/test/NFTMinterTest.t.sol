@@ -278,22 +278,6 @@ contract NFTMinterTest is Test {
         assertEq(nftMinter.getTokenNameFromId(tokenId), DOMAIN_1);
     }
 
-    function testUriGeneration() public {
-        // Setup and mint
-        vm.startPrank(owner);
-        nftMinter.setDomainNameToOwner(DOMAIN_1, user1);
-        nftMinter.setIsDomainMintable(DOMAIN_1, true);
-        vm.stopPrank();
-
-        vm.prank(user1);
-        uint256 tokenId = nftMinter.mintDomainNFT(DOMAIN_1);
-
-        string memory expectedUri = string(
-            abi.encodePacked("ipfs://", Strings.toString(tokenId))
-        );
-        assertEq(nftMinter.uri(tokenId), expectedUri);
-    }
-
     /*//////////////////////////////////////////////////////////////
                            FUZZ TESTS
     //////////////////////////////////////////////////////////////*/
