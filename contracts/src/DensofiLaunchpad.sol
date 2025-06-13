@@ -27,7 +27,7 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
     uint16 public txFee = 10; // 1%
     uint16 public launchFee = 30; // 3%
     uint32 public fakePoolMCapThreshold = 75_000; // USD
-    uint32 public maxPriceStaleness = 3600; // 1 hour in seconds
+    uint32 public maxPriceStaleness = 172800; // 48 hours in seconds
 
     // Addresses
     address public uniV3Router;
@@ -691,27 +691,8 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         }
     }
 
-    // Get the staleness of current price data
-    function getPriceStaleness() external view returns (uint256) {
-        PythStructs.Price memory price = pythOracle.getPrice(ethUsdPriceId);
-        return block.timestamp - price.publishTime;
-    }
-
-    // Check if price needs updating (more than 5 minutes old)
-    function needsPriceUpdate() external view returns (bool) {
-        try pythOracle.getPriceNoOlderThan(ethUsdPriceId, 300) returns (
-            PythStructs.Price memory
-        ) {
-            return false;
-        } catch {
-            return true;
-        }
-    }
-
     // Admin function to set max price staleness
     function setMaxPriceStaleness(uint32 _maxStaleness) external onlyOwner {
-        require(_maxStaleness >= 60, "Staleness too low"); // Minimum 1 minute
-        require(_maxStaleness <= 86400, "Staleness too high"); // Maximum 1 day
         maxPriceStaleness = _maxStaleness;
     }
 

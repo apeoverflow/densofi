@@ -119,24 +119,7 @@ contract DensoFiLaunchpadTest is Test {
         console.log("Launchpad deployed at:", address(launchpad));
     }
 
-    function testOraclePriceAccess() public {
-        // Log price staleness for debugging
-        if (block.number > 1) {
-            // In fork environment, check staleness
-            // uint256 staleness = launchpad.getPriceStaleness();
-            // console.log("Price staleness (seconds):");
-            // console.log(staleness);
-            // console.log("Max allowed staleness: 86400");
-            // // If price is still too stale, increase threshold further
-            // if (staleness > 86400) {
-            //     console.log(
-            //         "Price is still too stale, increasing threshold to 7 days"
-            //     );
-            //     vm.prank(deployer);
-            //     launchpad.setMaxPriceStaleness(604800); // 7 days
-            // }
-        }
-
+    function testOraclePriceAccess() public view {
         uint256 ethPrice = launchpad.getOraclePrice();
         console.log("Current ETH/USD price:", ethPrice / 1e8);
 
