@@ -205,7 +205,22 @@ contract NFTMinterTest is Test {
         vm.prank(user1);
         nftMinter.mintDomainNFT(DOMAIN_1);
 
-        // Try to mint again
+        // Try to mint again - this will fail because domain is no longer mintable after first mint
+        vm.prank(user1);
+        vm.expectRevert("Domain not available for minting");
+        nftMinter.mintDomainNFT(DOMAIN_1);
+    }
+
+    function testMintDomainNFTRevertsWhenAlreadyMintedDirectly() public {
+        // Setup domain for minting
+        vm.startPrank(owner);
+        nftMinter.setDomainNameToOwner(DOMAIN_1, user1);
+        nftMinter.setIsDomainMintable(DOMAIN_1, true);
+        // Manually set domain as already minted (simulating cross-chain sync scenario)
+        nftMinter.setIsDomainNFTMinted(DOMAIN_1, true);
+        vm.stopPrank();
+
+        // Try to mint - this should fail with the "Domain NFT already minted" error
         vm.prank(user1);
         vm.expectRevert("Domain NFT already minted");
         nftMinter.mintDomainNFT(DOMAIN_1);
