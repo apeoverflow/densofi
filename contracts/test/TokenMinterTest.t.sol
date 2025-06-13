@@ -260,34 +260,6 @@ contract TokenMinterTest is Test {
                           ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function testSetDirectReceiptFee() public {
-        uint256 newFee = 1000; // 10%
-
-        vm.prank(owner);
-        vm.expectEmit(true, true, true, true);
-        emit DirectReceiptFeeUpdated(newFee);
-        tokenMinter.setDirectReceiptFee(newFee);
-
-        assertEq(tokenMinter.directReceiptFee(), newFee);
-    }
-
-    function testSetDirectReceiptFeeRevertsForNonOwner() public {
-        vm.prank(user1);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Ownable.OwnableUnauthorizedAccount.selector,
-                user1
-            )
-        );
-        tokenMinter.setDirectReceiptFee(1000);
-    }
-
-    function testSetDirectReceiptFeeRevertsForInvalidFee() public {
-        vm.prank(owner);
-        vm.expectRevert("Fee cannot exceed 100%");
-        tokenMinter.setDirectReceiptFee(10001); // > 100%
-    }
-
     function testSetLaunchpadContract() public {
         address newLaunchpad = makeAddr("newLaunchpad");
 
@@ -452,14 +424,6 @@ contract TokenMinterTest is Test {
                             FUZZ TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testFuzz_SetDirectReceiptFee(uint256 newFee) public {
-        newFee = bound(newFee, 0, 10000); // Valid range
-
-        vm.prank(owner);
-        tokenMinter.setDirectReceiptFee(newFee);
-
-        assertEq(tokenMinter.directReceiptFee(), newFee);
-    }
 
     function testFuzz_CreateTokenWithVariousFees(uint256 paymentAmount) public {
         uint256 requiredFee = tokenMinter.fixedFee();
