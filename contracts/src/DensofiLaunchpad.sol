@@ -9,7 +9,8 @@ import {Token} from "src/Token.sol";
 import {DensoFiUniV3Vault} from "src/DensoFiUniV3Vault.sol";
 import {INonfungiblePositionManager} from "src/interfaces/INonfungiblePositionManager.sol";
 import {IUniV3Router} from "src/interfaces/IUniV3Router.sol";
-import {IAggregatorV3} from "src/interfaces/IAggregatorV3.sol";
+import {IPyth} from "src/interfaces/IPyth.sol";
+import {PythStructs} from "src/interfaces/PythStructs.sol";
 import {IwETH} from "src/interfaces/IwETH.sol";
 import {IUniswapV3Factory} from "src/interfaces/IUniswapV3Factory.sol";
 import {IUniswapV3Pool} from "src/interfaces/IUniswapV3Pool.sol";
@@ -32,7 +33,8 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
     address public uniV3Factory;
     address public nonfungiblePositionManager;
     address public weth;
-    IAggregatorV3 public ethUsdOracle;
+    IPyth public pythOracle;
+    bytes32 public ethUsdPriceId;
 
     // State
     uint256 public proceeds;
@@ -96,13 +98,15 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         address _uniV3Factory,
         address _nonfungiblePositionManager,
         address _weth,
-        address _ethUsdOracle
+        address _pythOracle,
+        bytes32 _ethUsdPriceId
     ) Ownable(msg.sender) {
         uniV3Router = _uniV3Router;
         uniV3Factory = _uniV3Factory;
         nonfungiblePositionManager = _nonfungiblePositionManager;
         weth = _weth;
-        ethUsdOracle = IAggregatorV3(_ethUsdOracle);
+        pythOracle = IPyth(_pythOracle);
+        ethUsdPriceId = _ethUsdPriceId;
     }
 
     // Token Creation
@@ -191,6 +195,122 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         }
     }
 
+    // Token Creation with Price Update
+    function createTokenWithUpdate(
+        string calldata name,
+        string calldata symbol,
+        string calldata imageCid,
+        string calldata description,
+        uint16 sellPenalty,
+        uint256 initialBuy,
+        bytes[] calldata pythPriceUpdate
+    ) external payable nonReentrant {
+        // Update Pyth price feeds first
+        uint256 updateFee = pythOracle.getUpdateFee(pythPriceUpdate);
+        pythOracle.updatePriceFeeds{value: updateFee}(pythPriceUpdate);
+
+        // Reduce msg.value by update fee for token creation
+        uint256 adjustedValue = msg.value - updateFee;
+
+        // Use internal function to avoid double payment handling
+        _createTokenInternal(
+            name,
+            symbol,
+            imageCid,
+            description,
+            sellPenalty,
+            initialBuy,
+            adjustedValue
+        );
+    }
+
+    // Internal token creation function
+    function _createTokenInternal(
+        string calldata name,
+        string calldata symbol,
+        string calldata imageCid,
+        string calldata description,
+        uint16 sellPenalty,
+        uint256 initialBuy,
+        uint256 availableValue
+    ) internal {
+        require(
+            bytes(name).length <= 18 &&
+                bytes(symbol).length <= 18 &&
+                bytes(description).length <= 512,
+            "Invalid params"
+        );
+        require(sellPenalty <= 100, "Sell penalty too high");
+
+        // Calculate creation fee
+        uint256 usdEthPrice = getOraclePrice();
+        uint256 creationEth = usdToEth(usdEthPrice, creationPrice);
+        require(availableValue >= creationEth, "Insufficient payment");
+
+        uint256 remainingEth = availableValue - creationEth;
+        proceeds += creationEth;
+
+        // Create token
+        Token token = new Token(name, symbol, TOKEN_SUPPLY, address(this));
+        address tokenAddress = address(token);
+
+        // Create fake pool
+        FakePool storage pool = fakePools[tokenAddress];
+        pool.token = tokenAddress;
+        pool.creator = msg.sender;
+        pool.fakeEth = FAKE_POOL_BASE_ETHER;
+        pool.ethReserve = FAKE_POOL_BASE_ETHER;
+        pool.tokenReserve = TOKEN_SUPPLY;
+        pool.sellPenalty = sellPenalty;
+
+        tokenCreators[tokenAddress] = msg.sender;
+
+        uint256 initialPrice = getTokenPrice(pool, 1 ether);
+
+        emit TokenCreated(
+            msg.sender,
+            tokenAddress,
+            TOKEN_SUPPLY,
+            name,
+            symbol,
+            imageCid,
+            description,
+            initialPrice
+        );
+
+        emit FakePoolCreated(
+            tokenAddress,
+            sellPenalty,
+            pool.ethReserve,
+            pool.tokenReserve
+        );
+
+        // Handle initial buy
+        if (initialBuy > 0) {
+            require(
+                remainingEth >= initialBuy,
+                "Insufficient ETH for initial buy"
+            );
+            remainingEth -= initialBuy;
+
+            uint256 tokensOut = _buyTokens(tokenAddress, initialBuy);
+            token.transfer(msg.sender, tokensOut);
+
+            emit Bought(
+                msg.sender,
+                tokenAddress,
+                initialBuy,
+                tokensOut,
+                getTokenPrice(pool, 1 ether)
+            );
+        }
+
+        // Refund remaining ETH
+        if (remainingEth > 0) {
+            payable(msg.sender).transfer(remainingEth);
+        }
+    }
+
     // Buy tokens
     function buyTokens(
         address tokenAddress,
@@ -211,6 +331,37 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
             msg.sender,
             tokenAddress,
             msg.value,
+            tokensOut,
+            getTokenPrice(pool, 1 ether)
+        );
+    }
+
+    // Buy tokens with price update
+    function buyTokensWithUpdate(
+        address tokenAddress,
+        uint256 minTokensOut,
+        bytes[] calldata pythPriceUpdate
+    ) external payable nonReentrant {
+        // Update Pyth price feeds first
+        uint256 updateFee = pythOracle.getUpdateFee(pythPriceUpdate);
+        pythOracle.updatePriceFeeds{value: updateFee}(pythPriceUpdate);
+
+        uint256 adjustedValue = msg.value - updateFee;
+        require(adjustedValue > 0, "No ETH for purchase after update fee");
+
+        FakePool storage pool = fakePools[tokenAddress];
+        require(pool.token != address(0), "Token not found");
+        require(!pool.locked, "Pool is locked");
+
+        uint256 tokensOut = _buyTokens(tokenAddress, adjustedValue);
+        require(tokensOut >= minTokensOut, "Insufficient tokens out");
+
+        Token(tokenAddress).transfer(msg.sender, tokensOut);
+
+        emit Bought(
+            msg.sender,
+            tokenAddress,
+            adjustedValue,
             tokensOut,
             getTokenPrice(pool, 1 ether)
         );
@@ -433,9 +584,7 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
                 deadline: block.timestamp + 15 minutes
             });
 
-        (uint256 tokenId, , , ) = INonfungiblePositionManager(
-            nonfungiblePositionManager
-        ).mint(params);
+        INonfungiblePositionManager(nonfungiblePositionManager).mint(params);
 
         return address(vault);
     }
@@ -501,11 +650,27 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
 
     // Oracle functions
     function getOraclePrice() public view returns (uint256) {
-        (, int256 price, , uint256 updatedAt, ) = ethUsdOracle
-            .latestRoundData();
-        require(price > 0, "Invalid price");
-        require(block.timestamp - updatedAt <= 3600, "Stale price");
-        return uint256(price);
+        PythStructs.Price memory price = pythOracle.getPriceNoOlderThan(
+            ethUsdPriceId,
+            3600 // 1 hour staleness tolerance
+        );
+        require(price.price > 0, "Invalid price");
+
+        // Convert Pyth price to 8 decimal format (like Chainlink)
+        // Pyth price has variable exponent, convert to 8 decimals
+        uint256 ethPrice8Decimals;
+        if (price.expo >= 0) {
+            ethPrice8Decimals =
+                uint256(uint64(price.price)) *
+                (10 ** uint32(price.expo)) *
+                (10 ** 8);
+        } else {
+            ethPrice8Decimals =
+                (uint256(uint64(price.price)) * (10 ** 8)) /
+                (10 ** uint32(-1 * price.expo));
+        }
+
+        return ethPrice8Decimals;
     }
 
     function ethToUsd(
@@ -539,6 +704,14 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
 
     function setFakePoolMCapThreshold(uint32 _threshold) external onlyOwner {
         fakePoolMCapThreshold = _threshold;
+    }
+
+    function setPythOracle(address _pythOracle) external onlyOwner {
+        pythOracle = IPyth(_pythOracle);
+    }
+
+    function setEthUsdPriceId(bytes32 _ethUsdPriceId) external onlyOwner {
+        ethUsdPriceId = _ethUsdPriceId;
     }
 
     function withdrawProceeds() external onlyOwner {

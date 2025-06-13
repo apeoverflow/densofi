@@ -7,15 +7,18 @@ import {DensoFiLaunchpad} from "src/DensofiLaunchpad.sol";
 import {Token} from "src/Token.sol";
 import {DensoFiUniV3Vault} from "src/DensofiUniV3Vault.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IAggregatorV3} from "src/interfaces/IAggregatorV3.sol";
+import {IPyth} from "src/interfaces/IPyth.sol";
+import {PythStructs} from "src/interfaces/PythStructs.sol";
+import {MockPyth} from "src/interfaces/MockPyth.sol";
 import {INonfungiblePositionManager} from "src/interfaces/INonfungiblePositionManager.sol";
 import {IUniswapV3Factory} from "src/interfaces/IUniswapV3Factory.sol";
 import {IUniswapV3Pool} from "src/interfaces/IUniswapV3Pool.sol";
 
 contract DensoFiLaunchpadTest is Test {
     DensoFiLaunchpad public launchpad;
+    MockPyth public pythOracle;
 
-    // Mainnet addresses
+    // Mainnet Ethereum addresses (for forking)
     address constant UNISWAP_V3_ROUTER =
         0xE592427A0AEce92De3Edee1F18E0157C05861564;
     address constant UNISWAP_V3_FACTORY =
@@ -23,8 +26,11 @@ contract DensoFiLaunchpadTest is Test {
     address constant NONFUNGIBLE_POSITION_MANAGER =
         0xC36442b4a4522E871399CD717aBDD847Ab11FE88;
     address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    address constant ETH_USD_PRICE_FEED =
-        0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
+
+    // Pyth addresses for mainnet Ethereum
+    address constant PYTH_ORACLE = 0x4305FB66699C3B2702D4d05CF36551390A4c69C6;
+    bytes32 constant ETH_USD_PRICE_ID =
+        0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace;
 
     // Test users
     address public creator = makeAddr("creator");
@@ -60,18 +66,42 @@ contract DensoFiLaunchpadTest is Test {
     );
 
     function setUp() public {
-        // Fork mainnet at a recent block (URL provided via command line)
-        // vm.createFork is handled by forge test --fork-url
+        // For regular testing (non-fork), use MockPyth
+        if (block.number == 1) {
+            // We're in a regular test environment, not forking
+            pythOracle = new MockPyth(60, 1);
 
-        // Deploy the launchpad contract
-        vm.prank(deployer);
-        launchpad = new DensoFiLaunchpad(
-            UNISWAP_V3_ROUTER,
-            UNISWAP_V3_FACTORY,
-            NONFUNGIBLE_POSITION_MANAGER,
-            WETH,
-            ETH_USD_PRICE_FEED
-        );
+            // Set ETH price to $3000 (with -8 exponent)
+            pythOracle.updatePrice(
+                ETH_USD_PRICE_ID,
+                300000000000, // $3000 with 8 decimals = 3000 * 10^8
+                1000000000, // confidence
+                -8, // exponent
+                uint64(block.timestamp)
+            );
+
+            // Deploy the launchpad contract with mock oracle
+            vm.prank(deployer);
+            launchpad = new DensoFiLaunchpad(
+                UNISWAP_V3_ROUTER,
+                UNISWAP_V3_FACTORY,
+                NONFUNGIBLE_POSITION_MANAGER,
+                WETH,
+                address(pythOracle),
+                ETH_USD_PRICE_ID
+            );
+        } else {
+            // We're in a fork environment, use real Pyth oracle
+            vm.prank(deployer);
+            launchpad = new DensoFiLaunchpad(
+                UNISWAP_V3_ROUTER,
+                UNISWAP_V3_FACTORY,
+                NONFUNGIBLE_POSITION_MANAGER,
+                WETH,
+                PYTH_ORACLE,
+                ETH_USD_PRICE_ID
+            );
+        }
 
         // Fund test accounts
         vm.deal(creator, 100 ether);
@@ -84,7 +114,7 @@ contract DensoFiLaunchpadTest is Test {
         console.log("Launchpad deployed at:", address(launchpad));
     }
 
-    function testOraclePriceAccess() public {
+    function testOraclePriceAccess() public view {
         uint256 ethPrice = launchpad.getOraclePrice();
         console.log("Current ETH/USD price:", ethPrice / 1e8);
 
@@ -172,6 +202,41 @@ contract DensoFiLaunchpadTest is Test {
         console.log("Token Reserve:", tokenReserve);
     }
 
+    function testTokenCreationWithUpdate() public {
+        // This test is only relevant when using MockPyth
+        if (address(pythOracle) == address(0)) return;
+
+        uint256 creationFee = getCreationFee();
+        uint256 initialBuy = 1 ether;
+
+        // Create price update data
+        bytes[] memory updateData = createEthUpdate(3000);
+        uint256 updateFee = pythOracle.getUpdateFee(updateData);
+        uint256 totalPayment = creationFee + initialBuy + updateFee;
+
+        vm.recordLogs();
+
+        vm.prank(creator);
+        launchpad.createTokenWithUpdate{value: totalPayment}(
+            TOKEN_NAME,
+            TOKEN_SYMBOL,
+            IMAGE_CID,
+            DESCRIPTION,
+            SELL_PENALTY,
+            initialBuy,
+            updateData
+        );
+
+        // Verify token was created
+        address tokenAddress = getLastCreatedToken();
+        assertTrue(tokenAddress != address(0), "Token not created with update");
+
+        console.log(
+            "Token created successfully with price update:",
+            tokenAddress
+        );
+    }
+
     function testBuyTokens() public {
         // First create a token
         address tokenAddress = createTestToken();
@@ -201,6 +266,36 @@ contract DensoFiLaunchpadTest is Test {
 
         console.log("Tokens bought:", tokensReceived);
         console.log("Expected tokens:", expectedTokens);
+    }
+
+    function testBuyTokensWithUpdate() public {
+        // This test is only relevant when using MockPyth
+        if (address(pythOracle) == address(0)) return;
+
+        address tokenAddress = createTestToken();
+        uint256 buyAmount = 2 ether;
+
+        bytes[] memory updateData = createEthUpdate(3100);
+        uint256 updateFee = pythOracle.getUpdateFee(updateData);
+        uint256 totalPayment = buyAmount + updateFee;
+
+        uint256 expectedTokens = launchpad.quoteTokens(
+            tokenAddress,
+            buyAmount,
+            true
+        );
+
+        vm.prank(buyer1);
+        launchpad.buyTokensWithUpdate{value: totalPayment}(
+            tokenAddress,
+            expectedTokens,
+            updateData
+        );
+
+        uint256 finalBalance = Token(tokenAddress).balanceOf(buyer1);
+        assertGt(finalBalance, 0, "Should receive tokens with update");
+
+        console.log("Tokens bought with update:", finalBalance);
     }
 
     function testSellTokens() public {
@@ -258,8 +353,8 @@ contract DensoFiLaunchpadTest is Test {
             vm.prank(buyer);
             launchpad.buyTokens{value: buyAmount}(tokenAddress, 0);
 
-            (, , , , , bool locked) = launchpad.getPoolInfo(tokenAddress);
-            if (locked) {
+            (, , , , , bool isLocked) = launchpad.getPoolInfo(tokenAddress);
+            if (isLocked) {
                 console.log("Pool locked after", i + 1, "purchases");
                 break;
             }
@@ -296,7 +391,6 @@ contract DensoFiLaunchpadTest is Test {
 
         // Verify token is launched (transfers should work now)
         Token token = Token(tokenAddress);
-        uint256 tokenBalance = token.balanceOf(address(launchpad));
 
         // Try to transfer tokens between users (should work after launch)
         uint256 transferAmount = 1000 ether;
@@ -317,8 +411,7 @@ contract DensoFiLaunchpadTest is Test {
     function testPriceCalculations() public {
         address tokenAddress = createTestToken();
 
-        (uint256 ethReserve, uint256 tokenReserve, , , , ) = launchpad
-            .getPoolInfo(tokenAddress);
+        launchpad.getPoolInfo(tokenAddress);
 
         // Test quote functions
         uint256 buyQuote = launchpad.quoteTokens(tokenAddress, 1 ether, true);
@@ -451,6 +544,14 @@ contract DensoFiLaunchpadTest is Test {
         // Test setting market cap threshold
         vm.prank(deployer);
         launchpad.setFakePoolMCapThreshold(100000); // $100k
+
+        // Test setting Pyth oracle
+        vm.prank(deployer);
+        launchpad.setPythOracle(address(0x123));
+
+        // Test setting price ID
+        vm.prank(deployer);
+        launchpad.setEthUsdPriceId(bytes32(uint256(0x456)));
 
         console.log("Admin functions working correctly");
     }
@@ -591,5 +692,30 @@ contract DensoFiLaunchpadTest is Test {
                 break;
             }
         }
+    }
+
+    // Helper function for creating ETH price update data (MockPyth only)
+    function createEthUpdate(
+        int64 ethPrice
+    ) private view returns (bytes[] memory) {
+        if (address(pythOracle) == address(0)) {
+            // Return empty array if not using MockPyth
+            bytes[] memory emptyArray = new bytes[](0);
+            return emptyArray;
+        }
+
+        bytes[] memory updateData = new bytes[](1);
+        updateData[0] = pythOracle.createPriceFeedUpdateData(
+            ETH_USD_PRICE_ID,
+            ethPrice * 100000000, // price (8 decimals)
+            10 * 100000000, // confidence
+            -8, // exponent
+            ethPrice * 100000000, // emaPrice
+            10 * 100000000, // emaConfidence
+            uint64(block.timestamp), // publishTime
+            uint64(block.timestamp) // prevPublishTime
+        );
+
+        return updateData;
     }
 }

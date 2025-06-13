@@ -45,10 +45,10 @@ contract DensoFiUniV3Vault is IERC721Receiver {
     }
 
     function onERC721Received(
-        address operator,
-        address from,
+        address /* operator */,
+        address /* from */,
         uint256 id,
-        bytes calldata data
+        bytes calldata /* data */
     ) external override returns (bytes4) {
         require(tokenId == 0, "DensoFiVault: Already has position");
         require(msg.sender == address(nfpm), "DensoFiVault: Invalid NFT");

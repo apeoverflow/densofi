@@ -18,6 +18,7 @@ remappings = [
   "@createx/=lib/createx/src/",
   "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
   "forge-std/=lib/forge-std/src/",
+  "@pythnetwork/pyth-sdk-solidity/=lib/pyth-sdk-solidity/",
 ]
 
 
