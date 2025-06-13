@@ -144,6 +144,7 @@ export default function ClientPage() {
                         alt="Dino mascot" 
                         width={400} 
                         height={400}
+                        style={{opacity: 0.92}}
                         className="object-contain w-full h-auto drop-shadow-[0_0_30px_rgba(59,130,246,0.4)] transition-all duration-500"
                       />
                       <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-3xl -z-10 animate-pulse opacity-50" style={{ animationDuration: '4s' }}></div>
