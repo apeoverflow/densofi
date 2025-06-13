@@ -90,7 +90,7 @@ contract TokenMinterTest is Test {
         assertEq(address(tokenMinter.nftContract()), address(nftMinter));
         assertEq(tokenMinter.launchpadContract(), launchpadContract);
         assertEq(tokenMinter.owner(), owner);
-        assertEq(tokenMinter.directReceiptFee(), 500); // 5% default
+        assertEq(tokenMinter.fixedFee(), 0.01 ether); // 5% default
         assertEq(tokenMinter.proceeds(), 0);
     }
 
@@ -100,7 +100,7 @@ contract TokenMinterTest is Test {
 
     function testCreateTokenWithDirectReceipt() public {
         uint256 nftId = 1;
-        uint256 requiredFee = tokenMinter.calculateDirectReceiptFee();
+        uint256 requiredFee = tokenMinter.fixedFee();
 
         vm.prank(user1);
         address tokenAddress = tokenMinter.createTokenFromNFT{
@@ -137,7 +137,7 @@ contract TokenMinterTest is Test {
 
     function testCreateTokenWithDirectReceiptInsufficientFee() public {
         uint256 nftId = 1;
-        uint256 requiredFee = tokenMinter.calculateDirectReceiptFee();
+        uint256 requiredFee = tokenMinter.fixedFee();
         uint256 insufficientFee = requiredFee - 1;
 
         vm.prank(user1);
@@ -147,7 +147,7 @@ contract TokenMinterTest is Test {
 
     function testCreateTokenWithDirectReceiptOverpayment() public {
         uint256 nftId = 1;
-        uint256 requiredFee = tokenMinter.calculateDirectReceiptFee();
+        uint256 requiredFee = tokenMinter.fixedFee();
         uint256 overpayment = requiredFee + 0.005 ether;
 
         vm.prank(user1);
@@ -235,7 +235,7 @@ contract TokenMinterTest is Test {
 
     function testCreateTokenFromUsedNFT() public {
         uint256 nftId = 1;
-        uint256 requiredFee = tokenMinter.calculateDirectReceiptFee();
+        uint256 requiredFee = tokenMinter.fixedFee();
 
         // Use NFT once
         vm.prank(user1);
@@ -249,7 +249,7 @@ contract TokenMinterTest is Test {
 
     function testCreateTokenFromNonOwnedNFT() public {
         uint256 nftId = 1; // owned by user1
-        uint256 requiredFee = tokenMinter.calculateDirectReceiptFee();
+        uint256 requiredFee = tokenMinter.fixedFee();
 
         vm.prank(user2); // user2 tries to use user1's NFT
         vm.expectRevert("ERC1155: caller is not token owner");
@@ -314,7 +314,7 @@ contract TokenMinterTest is Test {
 
     function testWithdrawProceeds() public {
         uint256 nftId = 1;
-        uint256 requiredFee = tokenMinter.calculateDirectReceiptFee();
+        uint256 requiredFee = tokenMinter.fixedFee();
 
         // Generate some proceeds
         vm.prank(user1);
@@ -362,7 +362,7 @@ contract TokenMinterTest is Test {
 
     function testGetTokenAddress() public {
         uint256 nftId = 1;
-        uint256 requiredFee = tokenMinter.calculateDirectReceiptFee();
+        uint256 requiredFee = tokenMinter.fixedFee();
 
         vm.prank(user1);
         address tokenAddress = tokenMinter.createTokenFromNFT{
@@ -374,7 +374,7 @@ contract TokenMinterTest is Test {
 
     function testGetNFTName() public {
         uint256 nftId = 1;
-        uint256 requiredFee = tokenMinter.calculateDirectReceiptFee();
+        uint256 requiredFee = tokenMinter.fixedFee();
 
         vm.prank(user1);
         tokenMinter.createTokenFromNFT{value: requiredFee}(nftId, true);
@@ -384,7 +384,7 @@ contract TokenMinterTest is Test {
 
     function testGetTokenCreationDetails() public {
         uint256 nftId = 1;
-        uint256 requiredFee = tokenMinter.calculateDirectReceiptFee();
+        uint256 requiredFee = tokenMinter.fixedFee();
 
         vm.prank(user1);
         tokenMinter.createTokenFromNFT{value: requiredFee}(nftId, true);
@@ -398,7 +398,7 @@ contract TokenMinterTest is Test {
     }
 
     function testCalculateDirectReceiptFee() public view {
-        uint256 fee = tokenMinter.calculateDirectReceiptFee();
+        uint256 fee = tokenMinter.fixedFee();
         assertEq(fee, 0.01 ether);
     }
 
@@ -407,7 +407,7 @@ contract TokenMinterTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function testMultipleTokenCreations() public {
-        uint256 requiredFee = tokenMinter.calculateDirectReceiptFee();
+        uint256 requiredFee = tokenMinter.fixedFee();
 
         // Create token with direct receipt
         vm.prank(user1);
@@ -462,7 +462,7 @@ contract TokenMinterTest is Test {
     }
 
     function testFuzz_CreateTokenWithVariousFees(uint256 paymentAmount) public {
-        uint256 requiredFee = tokenMinter.calculateDirectReceiptFee();
+        uint256 requiredFee = tokenMinter.fixedFee();
         paymentAmount = bound(paymentAmount, requiredFee, 10 ether);
 
         uint256 nftId = 1;

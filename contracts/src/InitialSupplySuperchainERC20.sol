@@ -18,7 +18,8 @@ contract InitialSupplySuperchainERC20 is SuperchainERC20, Ownable {
         string memory symbol_,
         uint8 decimals_,
         uint256 initialSupply_,
-        uint256 initialSupplyChainId_
+        uint256 initialSupplyChainId_,
+        bool shouldLaunch_
     ) {
         _name = name_;
         _symbol = symbol_;
@@ -30,13 +31,14 @@ contract InitialSupplySuperchainERC20 is SuperchainERC20, Ownable {
             _mint(owner_, initialSupply_);
         }
 
-        // If the owner is not the sender (msg.sender), it means tokens are going to launchpad
-        // In this case, the sender (TokenMinter) becomes the launcher
-        if (owner_ != msg.sender) {
-            launcher = msg.sender;
-        } else {
-            // If owner is the sender, tokens are received directly and should be launched immediately
+        // Set launcher and launch status based on shouldLaunch parameter
+        if (shouldLaunch_) {
+            // Token should be launched immediately (direct receipt case)
             launched = true;
+        } else {
+            // Token goes to launchpad, needs to be launched later
+            launcher = msg.sender;
+            launched = false;
         }
     }
 
@@ -71,5 +73,6 @@ contract InitialSupplySuperchainERC20 is SuperchainERC20, Ownable {
                 "transfer not allowed before launch"
             );
         }
+        super._beforeTokenTransfer(from, to, amount);
     }
 }

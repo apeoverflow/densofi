@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import {Token} from "src/Token.sol";
+import {InitialSupplySuperchainERC20} from "src/InitialSupplySuperchainERC20.sol";
 import {DensoFiUniV3Vault} from "src/DensoFiUniV3Vault.sol";
 import {INonfungiblePositionManager} from "src/interfaces/INonfungiblePositionManager.sol";
 import {IUniV3Router} from "src/interfaces/IUniV3Router.sol";
@@ -27,6 +27,7 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
     uint16 public txFee = 10; // 1%
     uint16 public launchFee = 30; // 3%
     uint32 public fakePoolMCapThreshold = 75_000; // USD
+    uint32 public maxPriceStaleness = 3600; // 1 hour in seconds
 
     // Addresses
     address public uniV3Router;
@@ -135,123 +136,15 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         proceeds += creationEth;
 
         // Create token
-        Token token = new Token(name, symbol, TOKEN_SUPPLY, address(this));
-        address tokenAddress = address(token);
-
-        // Create fake pool
-        FakePool storage pool = fakePools[tokenAddress];
-        pool.token = tokenAddress;
-        pool.creator = msg.sender;
-        pool.fakeEth = FAKE_POOL_BASE_ETHER;
-        pool.ethReserve = FAKE_POOL_BASE_ETHER;
-        pool.tokenReserve = TOKEN_SUPPLY;
-        pool.sellPenalty = sellPenalty;
-
-        tokenCreators[tokenAddress] = msg.sender;
-
-        uint256 initialPrice = getTokenPrice(pool, 1 ether);
-
-        emit TokenCreated(
-            msg.sender,
-            tokenAddress,
-            TOKEN_SUPPLY,
-            name,
-            symbol,
-            imageCid,
-            description,
-            initialPrice
+        InitialSupplySuperchainERC20 token = new InitialSupplySuperchainERC20(
+            address(this), // owner
+            name, // name
+            symbol, // symbol
+            18, // decimals
+            TOKEN_SUPPLY, // initialSupply
+            block.chainid, // initialSupplyChainId
+            false // shouldLaunch - false because it goes to launchpad
         );
-
-        emit FakePoolCreated(
-            tokenAddress,
-            sellPenalty,
-            pool.ethReserve,
-            pool.tokenReserve
-        );
-
-        // Handle initial buy
-        if (initialBuy > 0) {
-            require(
-                remainingEth >= initialBuy,
-                "Insufficient ETH for initial buy"
-            );
-            remainingEth -= initialBuy;
-
-            uint256 tokensOut = _buyTokens(tokenAddress, initialBuy);
-            token.transfer(msg.sender, tokensOut);
-
-            emit Bought(
-                msg.sender,
-                tokenAddress,
-                initialBuy,
-                tokensOut,
-                getTokenPrice(pool, 1 ether)
-            );
-        }
-
-        // Refund remaining ETH
-        if (remainingEth > 0) {
-            payable(msg.sender).transfer(remainingEth);
-        }
-    }
-
-    // Token Creation with Price Update
-    function createTokenWithUpdate(
-        string calldata name,
-        string calldata symbol,
-        string calldata imageCid,
-        string calldata description,
-        uint16 sellPenalty,
-        uint256 initialBuy,
-        bytes[] calldata pythPriceUpdate
-    ) external payable nonReentrant {
-        // Update Pyth price feeds first
-        uint256 updateFee = pythOracle.getUpdateFee(pythPriceUpdate);
-        pythOracle.updatePriceFeeds{value: updateFee}(pythPriceUpdate);
-
-        // Reduce msg.value by update fee for token creation
-        uint256 adjustedValue = msg.value - updateFee;
-
-        // Use internal function to avoid double payment handling
-        _createTokenInternal(
-            name,
-            symbol,
-            imageCid,
-            description,
-            sellPenalty,
-            initialBuy,
-            adjustedValue
-        );
-    }
-
-    // Internal token creation function
-    function _createTokenInternal(
-        string calldata name,
-        string calldata symbol,
-        string calldata imageCid,
-        string calldata description,
-        uint16 sellPenalty,
-        uint256 initialBuy,
-        uint256 availableValue
-    ) internal {
-        require(
-            bytes(name).length <= 18 &&
-                bytes(symbol).length <= 18 &&
-                bytes(description).length <= 512,
-            "Invalid params"
-        );
-        require(sellPenalty <= 100, "Sell penalty too high");
-
-        // Calculate creation fee
-        uint256 usdEthPrice = getOraclePrice();
-        uint256 creationEth = usdToEth(usdEthPrice, creationPrice);
-        require(availableValue >= creationEth, "Insufficient payment");
-
-        uint256 remainingEth = availableValue - creationEth;
-        proceeds += creationEth;
-
-        // Create token
-        Token token = new Token(name, symbol, TOKEN_SUPPLY, address(this));
         address tokenAddress = address(token);
 
         // Create fake pool
@@ -325,7 +218,10 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         uint256 tokensOut = _buyTokens(tokenAddress, msg.value);
         require(tokensOut >= minTokensOut, "Insufficient tokens out");
 
-        Token(tokenAddress).transfer(msg.sender, tokensOut);
+        InitialSupplySuperchainERC20(tokenAddress).transfer(
+            msg.sender,
+            tokensOut
+        );
 
         emit Bought(
             msg.sender,
@@ -356,7 +252,10 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         uint256 tokensOut = _buyTokens(tokenAddress, adjustedValue);
         require(tokensOut >= minTokensOut, "Insufficient tokens out");
 
-        Token(tokenAddress).transfer(msg.sender, tokensOut);
+        InitialSupplySuperchainERC20(tokenAddress).transfer(
+            msg.sender,
+            tokensOut
+        );
 
         emit Bought(
             msg.sender,
@@ -377,7 +276,7 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         require(pool.token != address(0), "Token not found");
         require(!pool.locked, "Pool is locked");
 
-        Token(tokenAddress).transferFrom(
+        InitialSupplySuperchainERC20(tokenAddress).transferFrom(
             msg.sender,
             address(this),
             tokenAmount
@@ -486,7 +385,7 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         ethForLaunch += msg.value;
 
         // Launch token
-        Token(tokenAddress).launch();
+        InitialSupplySuperchainERC20(tokenAddress).launch();
 
         // Create Uniswap V3 pool and add liquidity
         address poolAddress = _createUniV3Pool(
@@ -558,7 +457,10 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         IwETH(weth).deposit{value: ethAmount}();
 
         // Approve tokens
-        Token(token).approve(nonfungiblePositionManager, tokenAmount);
+        InitialSupplySuperchainERC20(token).approve(
+            nonfungiblePositionManager,
+            tokenAmount
+        );
         IERC20(weth).approve(nonfungiblePositionManager, ethAmount);
 
         (address token0, address token1) = token < weth
@@ -648,16 +550,42 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         }
     }
 
-    // Oracle functions
+    // Oracle functions - now more flexible
     function getOraclePrice() public view returns (uint256) {
         PythStructs.Price memory price = pythOracle.getPriceNoOlderThan(
             ethUsdPriceId,
-            3600 // 1 hour staleness tolerance
+            maxPriceStaleness
         );
         require(price.price > 0, "Invalid price");
 
         // Convert Pyth price to 8 decimal format (like Chainlink)
         // Pyth price has variable exponent, convert to 8 decimals
+        uint256 ethPrice8Decimals;
+        if (price.expo >= 0) {
+            ethPrice8Decimals =
+                uint256(uint64(price.price)) *
+                (10 ** uint32(price.expo)) *
+                (10 ** 8);
+        } else {
+            ethPrice8Decimals =
+                (uint256(uint64(price.price)) * (10 ** 8)) /
+                (10 ** uint32(-1 * price.expo));
+        }
+
+        return ethPrice8Decimals;
+    }
+
+    // Alternative oracle function that's more lenient about staleness
+    function getOraclePriceWithStaleness(
+        uint32 maxStaleness
+    ) public view returns (uint256) {
+        PythStructs.Price memory price = pythOracle.getPriceNoOlderThan(
+            ethUsdPriceId,
+            maxStaleness
+        );
+        require(price.price > 0, "Invalid price");
+
+        // Convert Pyth price to 8 decimal format
         uint256 ethPrice8Decimals;
         if (price.expo >= 0) {
             ethPrice8Decimals =
@@ -748,6 +676,43 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
             pool.sellPenalty,
             pool.locked
         );
+    }
+
+    // Keeper function to update prices (can be called by anyone)
+    function updatePrices(bytes[] calldata pythPriceUpdate) external payable {
+        uint256 updateFee = pythOracle.getUpdateFee(pythPriceUpdate);
+        require(msg.value >= updateFee, "Insufficient fee for price update");
+
+        pythOracle.updatePriceFeeds{value: updateFee}(pythPriceUpdate);
+
+        // Refund excess payment
+        if (msg.value > updateFee) {
+            payable(msg.sender).transfer(msg.value - updateFee);
+        }
+    }
+
+    // Get the staleness of current price data
+    function getPriceStaleness() external view returns (uint256) {
+        PythStructs.Price memory price = pythOracle.getPrice(ethUsdPriceId);
+        return block.timestamp - price.publishTime;
+    }
+
+    // Check if price needs updating (more than 5 minutes old)
+    function needsPriceUpdate() external view returns (bool) {
+        try pythOracle.getPriceNoOlderThan(ethUsdPriceId, 300) returns (
+            PythStructs.Price memory
+        ) {
+            return false;
+        } catch {
+            return true;
+        }
+    }
+
+    // Admin function to set max price staleness
+    function setMaxPriceStaleness(uint32 _maxStaleness) external onlyOwner {
+        require(_maxStaleness >= 60, "Staleness too low"); // Minimum 1 minute
+        require(_maxStaleness <= 86400, "Staleness too high"); // Maximum 1 day
+        maxPriceStaleness = _maxStaleness;
     }
 
     receive() external payable {

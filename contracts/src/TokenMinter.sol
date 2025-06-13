@@ -33,6 +33,8 @@ contract TokenMinter is IERC1155Receiver, Ownable, ReentrancyGuard {
     // Collected proceeds from fees
     uint256 public proceeds;
 
+    uint256 public fixedFee = 0.01 ether;
+
     // Mapping to track which NFTs have been used to mint tokens
     mapping(uint256 => bool) public usedNFTs;
 
@@ -63,6 +65,7 @@ contract TokenMinter is IERC1155Receiver, Ownable, ReentrancyGuard {
     event DirectReceiptFeeUpdated(uint256 newFee);
     event LaunchpadContractUpdated(address newLaunchpad);
     event ProceedsWithdrawn(address to, uint256 amount);
+    event FixedFeeUpdated(uint256 newFee);
 
     /**
      * @dev Constructor initializes the contract with the NFT contract address
@@ -99,7 +102,7 @@ contract TokenMinter is IERC1155Receiver, Ownable, ReentrancyGuard {
         // Check if the caller owns the NFT
         require(
             nftContract.balanceOf(msg.sender, nftId) > 0,
-            "ERC1155: caller is not token owner"
+            "Caller does not own this NFT"
         );
 
         // If sending to launchpad, ensure launchpad is set
@@ -129,7 +132,7 @@ contract TokenMinter is IERC1155Receiver, Ownable, ReentrancyGuard {
         if (receiveTokensDirectly) {
             // Calculate and collect fee for direct receipt
             feeAmount = msg.value;
-            uint256 requiredFee = calculateDirectReceiptFee();
+            uint256 requiredFee = fixedFee;
             require(
                 feeAmount >= requiredFee,
                 "Insufficient fee for direct receipt"
@@ -150,7 +153,8 @@ contract TokenMinter is IERC1155Receiver, Ownable, ReentrancyGuard {
             tokenSymbol, // symbol
             18, // decimals
             1_000_000 * 10 ** 18, // initial supply (1 million tokens with 18 decimals)
-            block.chainid // initial supply chain ID (current chain)
+            block.chainid, // initial supply chain ID (current chain)
+            receiveTokensDirectly // should launch immediately if direct receipt
         );
 
         tokenAddress = address(newToken);
@@ -180,14 +184,9 @@ contract TokenMinter is IERC1155Receiver, Ownable, ReentrancyGuard {
         return tokenAddress;
     }
 
-    /**
-     * @dev Calculates the fee required for direct token receipt
-     * @return The fee amount in wei
-     */
-    function calculateDirectReceiptFee() public view returns (uint256) {
-        // Simple flat fee of 0.01 ETH for now
-        // Could be made more sophisticated (e.g., percentage of token value)
-        return 0.01 ether;
+    function setFixedFee(uint256 newFee) external onlyOwner {
+        fixedFee = newFee;
+        emit FixedFeeUpdated(newFee);
     }
 
     /**

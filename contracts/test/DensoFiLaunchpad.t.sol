@@ -4,7 +4,7 @@ pragma solidity ^0.8.30;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import {DensoFiLaunchpad} from "src/DensofiLaunchpad.sol";
-import {Token} from "src/Token.sol";
+import {InitialSupplySuperchainERC20} from "src/InitialSupplySuperchainERC20.sol";
 import {DensoFiUniV3Vault} from "src/DensofiUniV3Vault.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IPyth} from "src/interfaces/IPyth.sol";
@@ -161,7 +161,9 @@ contract DensoFiLaunchpadTest is Test {
         assertTrue(tokenAddress != address(0), "Token not created");
 
         // Verify token properties
-        Token token = Token(tokenAddress);
+        InitialSupplySuperchainERC20 token = InitialSupplySuperchainERC20(
+            tokenAddress
+        );
         assertEq(token.name(), TOKEN_NAME);
         assertEq(token.symbol(), TOKEN_SYMBOL);
         assertEq(token.totalSupply(), launchpad.TOKEN_SUPPLY());
@@ -202,41 +204,6 @@ contract DensoFiLaunchpadTest is Test {
         console.log("Token Reserve:", tokenReserve);
     }
 
-    function testTokenCreationWithUpdate() public {
-        // This test is only relevant when using MockPyth
-        if (address(pythOracle) == address(0)) return;
-
-        uint256 creationFee = getCreationFee();
-        uint256 initialBuy = 1 ether;
-
-        // Create price update data
-        bytes[] memory updateData = createEthUpdate(3000);
-        uint256 updateFee = pythOracle.getUpdateFee(updateData);
-        uint256 totalPayment = creationFee + initialBuy + updateFee;
-
-        vm.recordLogs();
-
-        vm.prank(creator);
-        launchpad.createTokenWithUpdate{value: totalPayment}(
-            TOKEN_NAME,
-            TOKEN_SYMBOL,
-            IMAGE_CID,
-            DESCRIPTION,
-            SELL_PENALTY,
-            initialBuy,
-            updateData
-        );
-
-        // Verify token was created
-        address tokenAddress = getLastCreatedToken();
-        assertTrue(tokenAddress != address(0), "Token not created with update");
-
-        console.log(
-            "Token created successfully with price update:",
-            tokenAddress
-        );
-    }
-
     function testBuyTokens() public {
         // First create a token
         address tokenAddress = createTestToken();
@@ -248,12 +215,14 @@ contract DensoFiLaunchpadTest is Test {
             true
         );
 
-        uint256 initialBalance = Token(tokenAddress).balanceOf(buyer1);
+        uint256 initialBalance = InitialSupplySuperchainERC20(tokenAddress)
+            .balanceOf(buyer1);
 
         vm.prank(buyer1);
         launchpad.buyTokens{value: buyAmount}(tokenAddress, expectedTokens);
 
-        uint256 finalBalance = Token(tokenAddress).balanceOf(buyer1);
+        uint256 finalBalance = InitialSupplySuperchainERC20(tokenAddress)
+            .balanceOf(buyer1);
         uint256 tokensReceived = finalBalance - initialBalance;
 
         assertGt(tokensReceived, 0, "Should receive tokens");
@@ -292,7 +261,8 @@ contract DensoFiLaunchpadTest is Test {
             updateData
         );
 
-        uint256 finalBalance = Token(tokenAddress).balanceOf(buyer1);
+        uint256 finalBalance = InitialSupplySuperchainERC20(tokenAddress)
+            .balanceOf(buyer1);
         assertGt(finalBalance, 0, "Should receive tokens with update");
 
         console.log("Tokens bought with update:", finalBalance);
@@ -307,12 +277,16 @@ contract DensoFiLaunchpadTest is Test {
         vm.prank(buyer1);
         launchpad.buyTokens{value: buyAmount}(tokenAddress, 0);
 
-        uint256 tokenBalance = Token(tokenAddress).balanceOf(buyer1);
+        uint256 tokenBalance = InitialSupplySuperchainERC20(tokenAddress)
+            .balanceOf(buyer1);
         uint256 sellAmount = tokenBalance / 2; // Sell half
 
         // Approve tokens for sale
         vm.prank(buyer1);
-        Token(tokenAddress).approve(address(launchpad), sellAmount);
+        InitialSupplySuperchainERC20(tokenAddress).approve(
+            address(launchpad),
+            sellAmount
+        );
 
         uint256 expectedEth = launchpad.quoteTokens(
             tokenAddress,
@@ -395,7 +369,9 @@ contract DensoFiLaunchpadTest is Test {
         );
 
         // Verify token is launched (transfers should work now)
-        Token token = Token(tokenAddress);
+        InitialSupplySuperchainERC20 token = InitialSupplySuperchainERC20(
+            tokenAddress
+        );
 
         // Try to transfer tokens between users (should work after launch)
         uint256 transferAmount = 1000 ether;
@@ -445,11 +421,15 @@ contract DensoFiLaunchpadTest is Test {
         (, , , , , bool locked) = launchpad.getPoolInfo(tokenAddress);
         assertFalse(locked, "Pool should not be locked yet");
 
-        uint256 tokenBalance = Token(tokenAddress).balanceOf(buyer1);
+        uint256 tokenBalance = InitialSupplySuperchainERC20(tokenAddress)
+            .balanceOf(buyer1);
 
         // Approve and sell tokens
         vm.prank(buyer1);
-        Token(tokenAddress).approve(address(launchpad), tokenBalance);
+        InitialSupplySuperchainERC20(tokenAddress).approve(
+            address(launchpad),
+            tokenBalance
+        );
 
         uint256 initialEthBalance = buyer1.balance;
 
