@@ -27,8 +27,6 @@ contract TokenMinter is IERC1155Receiver, Ownable, ReentrancyGuard {
     // Launchpad contract address
     address public launchpadContract;
 
-    // Fee for receiving tokens directly (in basis points, e.g., 500 = 5%)
-    uint256 public directReceiptFee = 500; // 5% default
 
     // Collected proceeds from fees
     uint256 public proceeds;
@@ -216,16 +214,6 @@ contract TokenMinter is IERC1155Receiver, Ownable, ReentrancyGuard {
         uint256 nftId
     ) public view returns (TokenCreationDetails memory) {
         return tokenCreationDetails[nftId];
-    }
-
-    /**
-     * @dev Sets the direct receipt fee (owner only)
-     * @param newFee The new fee in basis points (e.g., 500 = 5%)
-     */
-    function setDirectReceiptFee(uint256 newFee) external onlyOwner {
-        require(newFee <= 10000, "Fee cannot exceed 100%");
-        directReceiptFee = newFee;
-        emit DirectReceiptFeeUpdated(newFee);
     }
 
     /**
