@@ -118,8 +118,8 @@ export default function ClientPage() {
                       </h1>
                     </div>
                     <div className="text-lg text-gray-300 space-y-4 mb-8">
-                      <p>Fractional tokenization (ERC20) of domain names with launchpad mechanics and liquidity pools.</p>
-                      <p>Enabling NFT to ERC20 support and subdomain registration for utility.</p>
+                      <p>Fractional tokenization of domain names with launchpad mechanics and liquidity pools.</p>
+                      <p>Enabling NFT to Cross Chain Superchain ERC20 support and subdomain registration for utility.</p>
                     </div>
                     <div className="flex flex-wrap gap-4">
                       <Link href="/walkthrough">
