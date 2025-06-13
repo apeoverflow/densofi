@@ -1,0 +1,3 @@
+[submodule "contracts/lib/pyth-sdk-solidity"]
+	path = contracts/lib/pyth-sdk-solidity
+	url = https://github.com/pyth-network/pyth-sdk-solidity

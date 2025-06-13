@@ -11,32 +11,8 @@ import {INonfungiblePositionManager} from "src/interfaces/INonfungiblePositionMa
 import {IUniV3Router} from "src/interfaces/IUniV3Router.sol";
 import {IAggregatorV3} from "src/interfaces/IAggregatorV3.sol";
 import {IwETH} from "src/interfaces/IwETH.sol";
-
-interface IUniswapV3Factory {
-    function getPool(
-        address tokenA,
-        address tokenB,
-        uint24 fee
-    ) external view returns (address pool);
-
-    function createPool(
-        address tokenA,
-        address tokenB,
-        uint24 fee
-    ) external returns (address pool);
-}
-
-interface IUniswapV3Pool {
-    function initialize(uint160 sqrtPriceX96) external;
-
-    function swap(
-        address recipient,
-        bool zeroForOne,
-        int256 amountSpecified,
-        uint160 sqrtPriceLimitX96,
-        bytes calldata data
-    ) external returns (int256 amount0, int256 amount1);
-}
+import {IUniswapV3Factory} from "src/interfaces/IUniswapV3Factory.sol";
+import {IUniswapV3Pool} from "src/interfaces/IUniswapV3Pool.sol";
 
 contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
     // Constants
@@ -48,7 +24,7 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
     // Configuration
     uint32 public creationPrice = 1; // USD
     uint16 public txFee = 10; // 1%
-    uint16 public launchFee = 20; // 2%
+    uint16 public launchFee = 30; // 3%
     uint32 public fakePoolMCapThreshold = 75_000; // USD
 
     // Addresses
@@ -144,7 +120,7 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
                 bytes(description).length <= 512,
             "Invalid params"
         );
-        require(sellPenalty <= 700, "Sell penalty too high"); // Max 70%
+        require(sellPenalty <= 100, "Sell penalty too high"); // Max 10%
 
         // Calculate creation fee
         uint256 usdEthPrice = getOraclePrice();
@@ -318,20 +294,17 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         proceeds += fee;
         ethOut -= fee;
 
-        // Apply sell penalty
+        // Apply sell penalty and update reserves correctly
+        uint256 penalty = 0;
         if (pool.sellPenalty > 0) {
-            uint256 penalty = (ethOut * pool.sellPenalty) / 1000;
-            pool.ethReserve += penalty; // Redistribute penalty back to pool
+            penalty = (ethOut * pool.sellPenalty) / 1000;
             ethOut -= penalty;
+            // Penalty stays in the pool (increases value for remaining holders)
         }
 
-        // Update reserves
-        pool.ethReserve -= (ethOut +
-            (
-                pool.sellPenalty > 0
-                    ? (ethOut * pool.sellPenalty) / (1000 - pool.sellPenalty)
-                    : 0
-            ));
+        // Update reserves: subtract what user receives, add tokens back
+        // The penalty amount remains in the pool automatically
+        pool.ethReserve -= ethOut;
         pool.tokenReserve += tokenAmount;
 
         require(pool.ethReserve >= pool.fakeEth, "Insufficient ETH in pool");
@@ -560,7 +533,7 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
     }
 
     function setLaunchFee(uint16 _fee) external onlyOwner {
-        require(_fee <= 100, "Fee too high"); // Max 10%
+        require(_fee <= 200, "Fee too high"); // Max 20%
         launchFee = _fee;
     }
 

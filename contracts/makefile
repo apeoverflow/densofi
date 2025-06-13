@@ -1,12 +1,13 @@
 -include .env
 
-.PHONY: help deploy-sepolia verify-sepolia test clean get-address
+.PHONY: help deploy-sepolia verify-sepolia test test-launchpad-fork clean get-address
 
 help:
 	@echo "Available commands:"
 	@echo "  make deploy-sepolia   - Deploy contracts to Sepolia testnet"
 	@echo "  make verify-sepolia   - Verify contracts on Sepolia after deployment"
 	@echo "  make test            - Run forge tests"
+	@echo "  make test-launchpad-fork - Run DensoFi Launchpad tests with mainnet fork"
 	@echo "  make get-address     - Get your wallet address from private key"
 	@echo "  make clean           - Clean build artifacts"
 
@@ -91,6 +92,11 @@ verify-sepolia: check-env
 test:
 	@echo "Running tests..."
 	@forge test -vv
+
+# Run DensoFi Launchpad tests with mainnet fork
+test-launchpad-fork:
+	@echo "Running DensoFi Launchpad tests with mainnet fork..."
+	@forge test --match-contract DensoFiLaunchpadTest --fork-url https://eth-mainnet.public.blastapi.io -vv
 
 get-address: check-env
 	@echo "Your public address is:"
