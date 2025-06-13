@@ -9,6 +9,9 @@ contract InitialSupplySuperchainERC20 is SuperchainERC20, Ownable {
     string private _symbol;
     uint8 private immutable _decimals;
 
+    address internal launcher;
+    bool internal launched = false;
+
     constructor(
         address owner_,
         string memory name_,
@@ -26,6 +29,15 @@ contract InitialSupplySuperchainERC20 is SuperchainERC20, Ownable {
         if (initialSupplyChainId_ == block.chainid) {
             _mint(owner_, initialSupply_);
         }
+
+        // If the owner is not the sender (msg.sender), it means tokens are going to launchpad
+        // In this case, the sender (TokenMinter) becomes the launcher
+        if (owner_ != msg.sender) {
+            launcher = msg.sender;
+        } else {
+            // If owner is the sender, tokens are received directly and should be launched immediately
+            launched = true;
+        }
     }
 
     function name() public view virtual override returns (string memory) {
@@ -38,5 +50,26 @@ contract InitialSupplySuperchainERC20 is SuperchainERC20, Ownable {
 
     function decimals() public view override returns (uint8) {
         return _decimals;
+    }
+
+    function launch() external {
+        require(
+            msg.sender == launcher && launched == false,
+            "Only launcher can launch and token must not be launched yet"
+        );
+        launched = true;
+    }
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal override {
+        if (!launched) {
+            require(
+                from == launcher || to == launcher,
+                "transfer not allowed before launch"
+            );
+        }
     }
 }

@@ -3,6 +3,7 @@ pragma solidity ^0.8.30;
 
 import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./NFTMinter.sol";
 import "src/libraries/StringBytes32.sol";
 import {InitialSupplySuperchainERC20} from "./InitialSupplySuperchainERC20.sol";
@@ -12,16 +13,25 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * @title TokenMinter
  * @dev Contract that allows creating ERC20 tokens from NFTs
  *
- * This contract allows users with the MINTER_ROLE to create ERC20 tokens
- * based on NFTs they own. The NFT is transferred to this contract and
- * becomes the backing for the new ERC20 token.
+ * This contract allows users with NFTs to create ERC20 tokens
+ * based on NFTs they own. Users can choose to receive all tokens directly (with fee)
+ * or send them to a launchpad contract.
  */
-contract TokenMinter is IERC1155Receiver, Ownable {
+contract TokenMinter is IERC1155Receiver, Ownable, ReentrancyGuard {
     using StringBytes32 for string;
     using StringBytes32 for bytes32;
 
     // Reference to the NFT contract
     NFTMinter public nftContract;
+
+    // Launchpad contract address
+    address public launchpadContract;
+
+    // Fee for receiving tokens directly (in basis points, e.g., 500 = 5%)
+    uint256 public directReceiptFee = 500; // 5% default
+
+    // Collected proceeds from fees
+    uint256 public proceeds;
 
     // Mapping to track which NFTs have been used to mint tokens
     mapping(uint256 => bool) public usedNFTs;
@@ -32,33 +42,58 @@ contract TokenMinter is IERC1155Receiver, Ownable {
     // Mapping to store NFT names
     mapping(uint256 => string) private _nftNames;
 
+    // Mapping to store token creation details
+    mapping(uint256 => TokenCreationDetails) public tokenCreationDetails;
+
+    struct TokenCreationDetails {
+        address creator;
+        bool receivedDirectly;
+        uint256 feeAmount;
+        uint256 creationTime;
+    }
+
     event TokenCreated(
         uint256 indexed nftId,
         address tokenAddress,
-        string tokenName
+        string tokenName,
+        bool receivedDirectly,
+        uint256 feeAmount
     );
     event NFTReceived(uint256 indexed tokenId, address from);
+    event DirectReceiptFeeUpdated(uint256 newFee);
+    event LaunchpadContractUpdated(address newLaunchpad);
+    event ProceedsWithdrawn(address to, uint256 amount);
 
     /**
      * @dev Constructor initializes the contract with the NFT contract address
      * @param _nftContract Address of the NFTMinter contract
+     * @param _launchpadContract Address of the launchpad contract (can be zero initially)
      */
-    constructor(address deployer, address _nftContract) Ownable(deployer) {
+    constructor(
+        address deployer,
+        address _nftContract,
+        address _launchpadContract
+    ) Ownable(deployer) {
         nftContract = NFTMinter(_nftContract);
+        launchpadContract = _launchpadContract;
     }
 
     /**
      * @dev Creates a new Superchain ERC20 token based on an NFT
      * @param nftId The ID of the NFT to use as reference
+     * @param receiveTokensDirectly If true, user receives all tokens directly (with fee). If false, tokens go to launchpad
      * @return tokenAddress The address of the created token contract
      *
      * Requirements:
      * - NFT must not have been used to create a token before
      * - Caller must own the NFT
+     * - If receiveTokensDirectly is true, caller must pay the direct receipt fee
+     * - If receiveTokensDirectly is false, launchpad contract must be set
      */
     function createTokenFromNFT(
-        uint256 nftId
-    ) public returns (address tokenAddress) {
+        uint256 nftId,
+        bool receiveTokensDirectly
+    ) public payable nonReentrant returns (address tokenAddress) {
         require(!usedNFTs[nftId], "NFT already used to create a token");
 
         // Check if the caller owns the NFT
@@ -66,6 +101,14 @@ contract TokenMinter is IERC1155Receiver, Ownable {
             nftContract.balanceOf(msg.sender, nftId) > 0,
             "ERC1155: caller is not token owner"
         );
+
+        // If sending to launchpad, ensure launchpad is set
+        if (!receiveTokensDirectly) {
+            require(
+                launchpadContract != address(0),
+                "Launchpad contract not set"
+            );
+        }
 
         string memory nftName = nftContract
             .s_tokenIdToDomainName(nftId)
@@ -80,9 +123,29 @@ contract TokenMinter is IERC1155Receiver, Ownable {
         nftContract.safeTransferFrom(msg.sender, address(this), nftId, 1, "");
         emit NFTReceived(nftId, msg.sender);
 
+        uint256 feeAmount = 0;
+        address tokenOwner;
+
+        if (receiveTokensDirectly) {
+            // Calculate and collect fee for direct receipt
+            feeAmount = msg.value;
+            uint256 requiredFee = calculateDirectReceiptFee();
+            require(
+                feeAmount >= requiredFee,
+                "Insufficient fee for direct receipt"
+            );
+
+            proceeds += feeAmount;
+            tokenOwner = msg.sender;
+        } else {
+            // No fee required, tokens go to launchpad
+            require(msg.value == 0, "No payment required for launchpad option");
+            tokenOwner = launchpadContract;
+        }
+
         // Create new Superchain ERC20 token with 1 million initial supply
         InitialSupplySuperchainERC20 newToken = new InitialSupplySuperchainERC20(
-            msg.sender, // owner
+            tokenOwner, // owner receives the tokens
             tokenName, // name
             tokenSymbol, // symbol
             18, // decimals
@@ -98,9 +161,33 @@ contract TokenMinter is IERC1155Receiver, Ownable {
         // Store the token contract address
         nftToToken[nftId] = tokenAddress;
 
-        emit TokenCreated(nftId, tokenAddress, tokenName);
+        // Store creation details
+        tokenCreationDetails[nftId] = TokenCreationDetails({
+            creator: msg.sender,
+            receivedDirectly: receiveTokensDirectly,
+            feeAmount: feeAmount,
+            creationTime: block.timestamp
+        });
+
+        emit TokenCreated(
+            nftId,
+            tokenAddress,
+            tokenName,
+            receiveTokensDirectly,
+            feeAmount
+        );
 
         return tokenAddress;
+    }
+
+    /**
+     * @dev Calculates the fee required for direct token receipt
+     * @return The fee amount in wei
+     */
+    function calculateDirectReceiptFee() public view returns (uint256) {
+        // Simple flat fee of 0.01 ETH for now
+        // Could be made more sophisticated (e.g., percentage of token value)
+        return 0.01 ether;
     }
 
     /**
@@ -119,6 +206,53 @@ contract TokenMinter is IERC1155Receiver, Ownable {
      */
     function getNFTName(uint256 nftId) public view returns (string memory) {
         return _nftNames[nftId];
+    }
+
+    /**
+     * @dev Returns the creation details for a token
+     * @param nftId The ID of the NFT used to create the token
+     * @return The creation details struct
+     */
+    function getTokenCreationDetails(
+        uint256 nftId
+    ) public view returns (TokenCreationDetails memory) {
+        return tokenCreationDetails[nftId];
+    }
+
+    /**
+     * @dev Sets the direct receipt fee (owner only)
+     * @param newFee The new fee in basis points (e.g., 500 = 5%)
+     */
+    function setDirectReceiptFee(uint256 newFee) external onlyOwner {
+        require(newFee <= 10000, "Fee cannot exceed 100%");
+        directReceiptFee = newFee;
+        emit DirectReceiptFeeUpdated(newFee);
+    }
+
+    /**
+     * @dev Sets the launchpad contract address (owner only)
+     * @param newLaunchpad The new launchpad contract address
+     */
+    function setLaunchpadContract(address newLaunchpad) external onlyOwner {
+        launchpadContract = newLaunchpad;
+        emit LaunchpadContractUpdated(newLaunchpad);
+    }
+
+    /**
+     * @dev Withdraws collected proceeds (owner only)
+     */
+    function withdrawProceeds() external onlyOwner {
+        uint256 amount = proceeds;
+        proceeds = 0;
+        payable(owner()).transfer(amount);
+        emit ProceedsWithdrawn(owner(), amount);
+    }
+
+    /**
+     * @dev Emergency withdraw function (owner only)
+     */
+    function emergencyWithdraw() external onlyOwner {
+        payable(owner()).transfer(address(this).balance);
     }
 
     /**
@@ -157,4 +291,9 @@ contract TokenMinter is IERC1155Receiver, Ownable {
             interfaceId == type(IERC1155Receiver).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
     }
+
+    /**
+     * @dev Allow contract to receive ETH
+     */
+    receive() external payable {}
 }
