@@ -252,7 +252,7 @@ contract TokenMinterTest is Test {
         uint256 requiredFee = tokenMinter.fixedFee();
 
         vm.prank(user2); // user2 tries to use user1's NFT
-        vm.expectRevert("ERC1155: caller is not token owner");
+        vm.expectRevert("Caller does not own this NFT");
         tokenMinter.createTokenFromNFT{value: requiredFee}(nftId, true);
     }
 
