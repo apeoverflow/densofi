@@ -322,7 +322,7 @@ contract DensoFiLaunchpadTest is Test {
         address tokenAddress = createTestToken();
 
         // Buy tokens to increase market cap
-        uint256 buyAmount = 10 ether;
+        uint256 buyAmount = 1 ether;
 
         // Multiple buyers to reach threshold
         for (uint i = 0; i < 5; i++) {
