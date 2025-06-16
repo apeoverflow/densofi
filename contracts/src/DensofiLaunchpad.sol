@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import {InitialSupplySuperchainERC20} from "src/InitialSupplySuperchainERC20.sol";
-import {DensoFiUniV3Vault} from "src/DensoFiUniV3Vault.sol";
+import {DensoFiUniV3Vault} from "src/DensofiUniV3Vault.sol";
 import {INonfungiblePositionManager} from "src/interfaces/INonfungiblePositionManager.sol";
 import {IUniV3Router} from "src/interfaces/IUniV3Router.sol";
 import {IPyth} from "src/interfaces/IPyth.sol";
@@ -55,6 +55,8 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
     // Mappings
     mapping(address => FakePool) public s_fakePools;
     mapping(address => address) public s_tokenCreators;
+    mapping(string => address) public s_domainToVault; // domain name -> vault address
+    mapping(address => string) public s_vaultToDomain; // vault address -> domain name
 
     // Events
     event TokenCreated(
@@ -94,6 +96,14 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         uint256 tokenReserve
     );
     event FakePoolMCapReached(address indexed token);
+    event DomainAssignedToVault(
+        string indexed domainName,
+        address indexed vault
+    );
+    event VaultDomainOwnershipUpdated(
+        address indexed vault,
+        address indexed newOwner
+    );
 
     constructor(
         address _owner,
@@ -399,10 +409,42 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
             tokenAddress,
             tokensForLaunch,
             ethForLaunch,
-            pool.creator
+            pool.creator,
+            _stringBeforeSpace(
+                InitialSupplySuperchainERC20(tokenAddress).name()
+            )
         );
 
         emit TokenLaunched(pool.creator, tokenAddress, poolAddress, vault);
+    }
+
+    function _stringBeforeSpace(
+        string memory str
+    ) internal pure returns (string memory) {
+        bytes memory strBytes = bytes(str);
+
+        // Find the first space character
+        uint256 spaceIndex = type(uint256).max; // Use max value to indicate "not found"
+        for (uint256 i = 0; i < strBytes.length; i++) {
+            if (strBytes[i] == 0x20) {
+                // 0x20 is the hex value for space character
+                spaceIndex = i;
+                break;
+            }
+        }
+
+        // If no space found, return the entire string
+        if (spaceIndex == type(uint256).max) {
+            return str;
+        }
+
+        // Create a new bytes array with the length up to the space
+        bytes memory result = new bytes(spaceIndex);
+        for (uint256 i = 0; i < spaceIndex; i++) {
+            result[i] = strBytes[i];
+        }
+
+        return string(result);
     }
 
     // Create Uniswap V3 pool
@@ -446,14 +488,20 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         address token,
         uint256 tokenAmount,
         uint256 ethAmount,
-        address creator
+        address creator,
+        string memory domainName
     ) internal returns (address) {
-        // Create vault for the creator
+        // Create vault for the creator with domain name
         DensoFiUniV3Vault vault = new DensoFiUniV3Vault(
             address(this),
             creator,
-            s_nonfungiblePositionManager
+            s_nonfungiblePositionManager,
+            domainName
         );
+
+        // Store domain mappings
+        s_domainToVault[domainName] = address(vault);
+        s_vaultToDomain[address(vault)] = domainName;
 
         // Wrap ETH
         IwETH(s_weth).deposit{value: ethAmount}();
@@ -488,7 +536,14 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
                 deadline: block.timestamp + 15 minutes
             });
 
-        INonfungiblePositionManager(s_nonfungiblePositionManager).mint(params);
+        (uint256 tokenId, , , ) = INonfungiblePositionManager(
+            s_nonfungiblePositionManager
+        ).mint(params);
+
+        // Ensure vault has the token ID (fallback in case onERC721Received doesn't work)
+        vault.setTokenId(tokenId);
+
+        emit DomainAssignedToVault(domainName, address(vault));
 
         return address(vault);
     }
@@ -723,6 +778,51 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
     // Admin function to set max price staleness
     function setMaxPriceStaleness(uint32 _maxStaleness) external onlyOwner {
         s_maxPriceStaleness = _maxStaleness;
+    }
+
+    // Admin function to update domain ownership
+    function updateDomainOwnership(
+        string memory domainName,
+        address newOwner
+    ) external onlyOwner {
+        address vaultAddress = s_domainToVault[domainName];
+        require(vaultAddress != address(0), "Domain not found");
+
+        DensoFiUniV3Vault(vaultAddress).updateDomainOwner(newOwner);
+        emit VaultDomainOwnershipUpdated(vaultAddress, newOwner);
+    }
+
+    // Batch update function for efficiency
+    function batchUpdateDomainOwnership(
+        string[] memory domainNames,
+        address[] memory newOwners
+    ) external onlyOwner {
+        require(
+            domainNames.length == newOwners.length,
+            "Arrays length mismatch"
+        );
+
+        for (uint256 i = 0; i < domainNames.length; i++) {
+            address vaultAddress = s_domainToVault[domainNames[i]];
+            require(vaultAddress != address(0), "Domain not found");
+
+            DensoFiUniV3Vault(vaultAddress).updateDomainOwner(newOwners[i]);
+            emit VaultDomainOwnershipUpdated(vaultAddress, newOwners[i]);
+        }
+    }
+
+    // View function to get vault by domain
+    function getVaultByDomain(
+        string memory domainName
+    ) external view returns (address) {
+        return s_domainToVault[domainName];
+    }
+
+    // View function to get domain by vault
+    function getDomainByVault(
+        address vault
+    ) external view returns (string memory) {
+        return s_vaultToDomain[vault];
     }
 
     receive() external payable {

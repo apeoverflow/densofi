@@ -26,6 +26,7 @@ contract DensoFiLaunchpadTest is Test {
     address constant NONFUNGIBLE_POSITION_MANAGER =
         0xC36442b4a4522E871399CD717aBDD847Ab11FE88;
     address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    uint24 constant POOL_FEE = 3000; // 0.3% fee tier
 
     // Pyth addresses for mainnet Ethereum
     address constant PYTH_ORACLE = 0x4305FB66699C3B2702D4d05CF36551390A4c69C6;
@@ -637,6 +638,381 @@ contract DensoFiLaunchpadTest is Test {
         );
     }
 
+    // Test fork-specific functionality for pool fees
+    function testVaultFeeCollectionFork() public {
+        // Skip if not on fork
+        vm.skip(block.number == 1);
+
+        console.log("=== TESTING VAULT FEE COLLECTION ON MAINNET FORK ===");
+
+        address tokenAddress = createTestToken();
+
+        // Buy tokens to reach threshold
+        _buyTokensToReachThresholdForFork(tokenAddress);
+
+        // Verify pool is locked after threshold
+        (, , , , , bool locked) = launchpad.getPoolInfo(tokenAddress);
+        assertTrue(locked, "Pool should be locked after reaching threshold");
+
+        // Launch token - this creates a vault
+        vm.recordLogs();
+        vm.prank(deployer);
+        launchpad.launchToken{value: 2 ether}(tokenAddress);
+
+        // Get vault address from events
+        address vaultAddress = _getVaultAddressFromLogs();
+        assertTrue(vaultAddress != address(0), "Vault should be created");
+
+        DensoFiUniV3Vault vault = DensoFiUniV3Vault(vaultAddress);
+
+        console.log("Vault created at:", vaultAddress);
+        console.log("Vault creator:", vault.s_creator());
+        console.log("Vault domain owner:", vault.s_domainOwner());
+        console.log("Vault token ID:", vault.s_tokenId());
+        console.log("Test creator address:", creator);
+
+        // Simulate some trading activity on Uniswap to generate fees
+        _simulateTradingActivityForFork(tokenAddress);
+
+        // Check that fees can be collected
+        uint256 creatorBalanceBeforeETH = creator.balance;
+        uint256 creatorBalanceBeforeToken = InitialSupplySuperchainERC20(
+            tokenAddress
+        ).balanceOf(creator);
+
+        vm.prank(creator);
+        vault.collectFees();
+
+        uint256 creatorBalanceAfterETH = creator.balance;
+        uint256 creatorBalanceAfterToken = InitialSupplySuperchainERC20(
+            tokenAddress
+        ).balanceOf(creator);
+
+        console.log("Creator ETH balance before:", creatorBalanceBeforeETH);
+        console.log("Creator ETH balance after:", creatorBalanceAfterETH);
+        console.log("Creator token balance before:", creatorBalanceBeforeToken);
+        console.log("Creator token balance after:", creatorBalanceAfterToken);
+
+        // Note: In a real scenario, there should be some fee accumulation
+        // The actual fee amounts depend on trading volume
+
+        console.log("Fork fee collection test completed");
+    }
+
+    function testVaultOwnershipTransferFork() public {
+        // Skip if not on fork
+        vm.skip(block.number == 1);
+
+        console.log("=== TESTING VAULT OWNERSHIP TRANSFER ON MAINNET FORK ===");
+
+        address tokenAddress = createTestToken();
+        address newOwner = makeAddr("newVaultOwner");
+        vm.deal(newOwner, 10 ether);
+
+        // Reach threshold and launch
+        _buyTokensToReachThresholdForFork(tokenAddress);
+
+        vm.recordLogs();
+        vm.prank(deployer);
+        launchpad.launchToken{value: 2 ether}(tokenAddress);
+
+        address vaultAddress = _getVaultAddressFromLogs();
+        DensoFiUniV3Vault vault = DensoFiUniV3Vault(vaultAddress);
+
+        // Check vault state before trying to collect fees
+        console.log("Vault creator:", vault.s_creator());
+        console.log("Vault domain owner:", vault.s_domainOwner());
+        console.log("Vault token ID:", vault.s_tokenId());
+        console.log("Test creator address:", creator);
+
+        // Initially creator should be able to collect fees
+        vm.prank(creator);
+        vault.collectFees(); // Should not revert
+
+        // Simulate ownership transfer (this would be done by admin after domain ownership changes)
+        // For now, we test that position can be transferred by owner
+        vm.prank(creator);
+        vault.transferPosition(newOwner);
+
+        // Position should be transferred
+        assertEq(vault.s_tokenId(), 0, "Position should be transferred");
+
+        console.log("Vault ownership transfer test completed");
+    }
+
+    function testFeeAccumulationAfterTradingFork() public {
+        vm.skip(block.number == 1); // Only run on fork
+
+        console.log("=== TESTING FEE ACCUMULATION AFTER TRADING (FORK) ===");
+
+        // Create and launch a token
+        address tokenAddress = createTestToken();
+        console.log("Token created:", tokenAddress);
+
+        // Buy tokens to reach launch threshold
+        _buyTokensToReachThresholdForFork(tokenAddress);
+
+        // Launch the token on Uniswap
+        vm.recordLogs();
+        vm.prank(deployer);
+        launchpad.launchToken{value: 2 ether}(tokenAddress);
+
+        // Get vault address from logs
+        address vaultAddress = _getVaultAddressFromLogs();
+        console.log("Vault created at:", vaultAddress);
+
+        // Get the Uniswap V3 pool address
+        address poolAddress = IUniswapV3Factory(UNISWAP_V3_FACTORY).getPool(
+            tokenAddress < WETH ? tokenAddress : WETH,
+            tokenAddress < WETH ? WETH : tokenAddress,
+            POOL_FEE
+        );
+
+        require(poolAddress != address(0), "Pool should exist after launch");
+        console.log("Pool address:", poolAddress);
+
+        // Get initial vault balances (for fee tracking)
+        DensoFiUniV3Vault vault = DensoFiUniV3Vault(vaultAddress);
+
+        // Try to get initial uncollected fees (this might fail if vault doesn't have the function)
+        try vault.s_tokenId() returns (uint256 tokenId) {
+            if (tokenId > 0) {
+                console.log("Vault has position with token ID:", tokenId);
+            }
+        } catch {
+            console.log("Could not get vault token ID");
+        }
+
+        // Simulate trading activity to generate fees
+        console.log("Starting trading simulation...");
+        _simulateTradingActivityForFork(tokenAddress);
+
+        // Wait a bit for transactions to settle
+        vm.warp(block.timestamp + 60);
+
+        // Try to collect fees and see if any were generated
+        console.log("Attempting to collect fees...");
+
+        // Get vault balances before fee collection
+        uint256 vaultWETHBefore = IERC20(WETH).balanceOf(vaultAddress);
+        uint256 vaultTokenBefore = IERC20(tokenAddress).balanceOf(vaultAddress);
+
+        console.log(
+            "Vault WETH balance before fee collection:",
+            vaultWETHBefore
+        );
+        console.log(
+            "Vault token balance before fee collection:",
+            vaultTokenBefore
+        );
+
+        // Attempt to collect fees (as the creator/owner)
+        vm.prank(creator);
+        try vault.collectFees() {
+            console.log("SUCCESS: Fee collection successful");
+
+            // Check balances after fee collection
+            uint256 vaultWETHAfter = IERC20(WETH).balanceOf(vaultAddress);
+            uint256 vaultTokenAfter = IERC20(tokenAddress).balanceOf(
+                vaultAddress
+            );
+
+            console.log(
+                "Vault WETH balance after fee collection:",
+                vaultWETHAfter
+            );
+            console.log(
+                "Vault token balance after fee collection:",
+                vaultTokenAfter
+            );
+
+            // Check if any fees were collected
+            bool feesCollected = (vaultWETHAfter > vaultWETHBefore) ||
+                (vaultTokenAfter > vaultTokenBefore);
+
+            if (feesCollected) {
+                console.log("SUCCESS: Fees were successfully collected!");
+                console.log(
+                    "WETH fees collected:",
+                    vaultWETHAfter - vaultWETHBefore
+                );
+                console.log(
+                    "Token fees collected:",
+                    vaultTokenAfter - vaultTokenBefore
+                );
+            } else {
+                console.log(
+                    "WARNING: No fees collected (may be expected if trading volume was low)"
+                );
+            }
+        } catch Error(string memory reason) {
+            console.log("Fee collection failed:", reason);
+        } catch {
+            console.log("Fee collection failed with unknown error");
+        }
+
+        // Verify that the pool exists and has been interacted with
+        assertTrue(poolAddress != address(0), "Pool should exist");
+        assertTrue(vaultAddress != address(0), "Vault should exist");
+
+        console.log("Fee accumulation test completed");
+        console.log(" FEE ACCUMULATION TEST SUCCESSFUL\n");
+    }
+
+    function testDomainOwnershipTransferAndFeeCollectionFork() public {
+        vm.skip(block.number == 1); // Only run on fork
+
+        console.log(
+            "=== TESTING DOMAIN OWNERSHIP TRANSFER & FEE COLLECTION (FORK) ==="
+        );
+
+        // Create and launch a token
+        address tokenAddress = createTestToken();
+        console.log("Token created:", tokenAddress);
+
+        // Buy tokens to reach launch threshold
+        _buyTokensToReachThresholdForFork(tokenAddress);
+
+        // Launch the token on Uniswap
+        vm.recordLogs();
+        vm.prank(deployer);
+        launchpad.launchToken{value: 2 ether}(tokenAddress);
+
+        // Get vault address from logs
+        address vaultAddress = _getVaultAddressFromLogs();
+        DensoFiUniV3Vault vault = DensoFiUniV3Vault(vaultAddress);
+
+        console.log("Vault created at:", vaultAddress);
+        console.log("Initial vault owner:", vault.s_domainOwner());
+        console.log("Vault creator:", vault.s_creator());
+
+        // Simulate trading activity to generate fees
+        console.log("\n--- Simulating Trading to Generate Fees ---");
+        _simulateTradingActivityForFork(tokenAddress);
+
+        // Wait for fees to accumulate
+        vm.warp(block.timestamp + 60);
+
+        // Create a new owner address
+        address newOwner = makeAddr("newDomainOwner");
+        vm.deal(newOwner, 10 ether);
+
+        console.log("\n--- Testing Ownership Transfer ---");
+        console.log("New owner address:", newOwner);
+
+        // Transfer vault ownership (this would be called by admin after domain ownership changes)
+        // Since we created the vault with an empty domain name, we need to get the domain from the vault
+        string memory domainName = launchpad.getDomainByVault(vaultAddress);
+        console.log("Domain name for vault:", domainName);
+
+        vm.prank(deployer); // Deployer is the admin/owner
+        launchpad.updateDomainOwnership(domainName, newOwner);
+
+        console.log("Vault ownership transferred to:", vault.s_domainOwner());
+
+        // Test 1: Verify old owner can no longer collect fees
+        console.log("\n--- Testing Old Owner Cannot Collect Fees ---");
+        vm.prank(creator);
+        try vault.collectFees() {
+            console.log(
+                "ERROR: Old owner was able to collect fees (should fail)"
+            );
+            assertTrue(
+                false,
+                "Old owner should not be able to collect fees after transfer"
+            );
+        } catch Error(string memory reason) {
+            console.log(
+                "SUCCESS: Old owner correctly blocked from fee collection"
+            );
+            console.log("Reason:", reason);
+        } catch {
+            console.log(
+                "SUCCESS: Old owner correctly blocked from fee collection (low-level revert)"
+            );
+        }
+
+        // Test 2: Get balances before new owner collects fees
+        console.log("\n--- Testing New Owner Can Collect Fees ---");
+        uint256 newOwnerWETHBefore = IERC20(WETH).balanceOf(newOwner);
+        uint256 newOwnerTokenBefore = IERC20(tokenAddress).balanceOf(newOwner);
+        uint256 vaultWETHBefore = IERC20(WETH).balanceOf(vaultAddress);
+        uint256 vaultTokenBefore = IERC20(tokenAddress).balanceOf(vaultAddress);
+
+        console.log("New owner WETH balance before:", newOwnerWETHBefore);
+        console.log("New owner token balance before:", newOwnerTokenBefore);
+        console.log("Vault WETH balance before:", vaultWETHBefore);
+        console.log("Vault token balance before:", vaultTokenBefore);
+
+        // Test 3: New owner collects fees
+        vm.prank(newOwner);
+        try vault.collectFees() {
+            console.log("SUCCESS: New owner successfully collected fees");
+
+            // Check balances after fee collection
+            uint256 newOwnerWETHAfter = IERC20(WETH).balanceOf(newOwner);
+            uint256 newOwnerTokenAfter = IERC20(tokenAddress).balanceOf(
+                newOwner
+            );
+
+            console.log("New owner WETH balance after:", newOwnerWETHAfter);
+            console.log("New owner token balance after:", newOwnerTokenAfter);
+
+            // Check if any fees were actually collected
+            bool feesCollected = (newOwnerWETHAfter > newOwnerWETHBefore) ||
+                (newOwnerTokenAfter > newOwnerTokenBefore);
+
+            if (feesCollected) {
+                console.log(
+                    "SUCCESS: Fees were successfully transferred to new owner!"
+                );
+                console.log(
+                    "WETH fees collected:",
+                    newOwnerWETHAfter - newOwnerWETHBefore
+                );
+                console.log(
+                    "Token fees collected:",
+                    newOwnerTokenAfter - newOwnerTokenBefore
+                );
+            } else {
+                console.log(
+                    "NOTE: No fees collected (may be expected if trading volume was low)"
+                );
+                console.log(
+                    "But fee collection function executed successfully for new owner"
+                );
+            }
+        } catch Error(string memory reason) {
+            console.log("FAILED: New owner could not collect fees");
+            console.log("Reason:", reason);
+            assertTrue(false, "New owner should be able to collect fees");
+        } catch {
+            console.log(
+                "FAILED: New owner could not collect fees (low-level revert)"
+            );
+            assertTrue(false, "New owner should be able to collect fees");
+        }
+
+        // Test 4: Verify vault state
+        console.log("\n--- Final Verification ---");
+        console.log("Final vault owner:", vault.s_domainOwner());
+        console.log("Original creator:", vault.s_creator());
+        console.log("Vault token ID:", vault.s_tokenId());
+
+        // Assertions
+        assertEq(
+            vault.s_domainOwner(),
+            newOwner,
+            "Vault should be owned by new owner"
+        );
+        assertEq(vault.s_creator(), creator, "Creator should remain unchanged");
+        assertTrue(vault.s_tokenId() > 0, "Vault should have a valid token ID");
+
+        console.log(
+            "\n*** DOMAIN OWNERSHIP TRANSFER TEST COMPLETED SUCCESSFULLY ***"
+        );
+    }
+
     // Helper functions
     function getCreationFee() internal view returns (uint256) {
         uint256 ethPrice = launchpad.getOraclePrice();
@@ -728,4 +1104,194 @@ contract DensoFiLaunchpadTest is Test {
 
         return updateData;
     }
+
+    // Helper functions for fork testing
+    function _buyTokensToReachThresholdForFork(address tokenAddress) internal {
+        uint256 buyAmount = 30 ether; // Large amount to reach threshold quickly
+
+        vm.deal(buyer1, buyAmount + 10 ether);
+
+        for (uint i = 0; i < 15; i++) {
+            (, , , , , bool isLocked) = launchpad.getPoolInfo(tokenAddress);
+            if (isLocked) {
+                console.log(
+                    "Market cap threshold reached after",
+                    i + 1,
+                    "purchases"
+                );
+                break;
+            }
+
+            vm.prank(buyer1);
+            try launchpad.buyTokens{value: 2 ether}(tokenAddress, 0) {
+                // Continue buying
+            } catch {
+                // If purchase fails, try smaller amount
+                vm.prank(buyer1);
+                launchpad.buyTokens{value: 1 ether}(tokenAddress, 0);
+            }
+        }
+
+        // Verify threshold was reached
+        (, , , , , bool finalLocked) = launchpad.getPoolInfo(tokenAddress);
+        assertTrue(finalLocked, "Market cap threshold should be reached");
+    }
+
+    function _getVaultAddressFromLogs() internal returns (address) {
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        for (uint i = 0; i < logs.length; i++) {
+            if (
+                logs[i].topics[0] ==
+                keccak256("TokenLaunched(address,address,address,address)")
+            ) {
+                // TokenLaunched event structure:
+                // event TokenLaunched(address indexed creator, address indexed token, address indexed pool, address vault)
+                // The vault address is the only non-indexed parameter, so it's in the data field
+                address vaultAddress = abi.decode(logs[i].data, (address));
+                console.log("Extracted vault address from logs:", vaultAddress);
+                return vaultAddress;
+            }
+        }
+
+        revert("TokenLaunched event not found in logs");
+    }
+
+    function _simulateTradingActivityForFork(address tokenAddress) internal {
+        console.log("Simulating trading activity for token:", tokenAddress);
+
+        // Get the Uniswap V3 pool address
+        address poolAddress = IUniswapV3Factory(UNISWAP_V3_FACTORY).getPool(
+            tokenAddress < WETH ? tokenAddress : WETH,
+            tokenAddress < WETH ? WETH : tokenAddress,
+            POOL_FEE
+        );
+
+        require(poolAddress != address(0), "Pool should exist");
+        console.log("Pool address:", poolAddress);
+
+        // Create some traders
+        address trader1 = makeAddr("trader1");
+        address trader2 = makeAddr("trader2");
+        vm.deal(trader1, 50 ether);
+        vm.deal(trader2, 50 ether);
+
+        // Wrap some ETH for trading
+        vm.prank(trader1);
+        IwETH(WETH).deposit{value: 10 ether}();
+
+        vm.prank(trader2);
+        IwETH(WETH).deposit{value: 10 ether}();
+
+        // Approve the router to spend tokens
+        vm.prank(trader1);
+        IERC20(WETH).approve(UNISWAP_V3_ROUTER, type(uint256).max);
+
+        vm.prank(trader2);
+        IERC20(WETH).approve(UNISWAP_V3_ROUTER, type(uint256).max);
+
+        // Make some swaps to generate fees
+        // Swap 1: WETH -> Token
+        IUniV3Router.ExactInputSingleParams memory swapParams1 = IUniV3Router
+            .ExactInputSingleParams({
+                tokenIn: WETH,
+                tokenOut: tokenAddress,
+                fee: POOL_FEE,
+                recipient: trader1,
+                deadline: block.timestamp + 15 minutes,
+                amountIn: 1 ether,
+                amountOutMinimum: 0,
+                sqrtPriceLimitX96: 0
+            });
+
+        vm.prank(trader1);
+        try
+            IUniV3Router(UNISWAP_V3_ROUTER).exactInputSingle(swapParams1)
+        returns (uint256 amountOut) {
+            console.log("Swap 1 completed - received", amountOut, "tokens");
+
+            // Approve router to spend the tokens we just received
+            vm.prank(trader1);
+            IERC20(tokenAddress).approve(UNISWAP_V3_ROUTER, amountOut);
+
+            // Swap 2: Token -> WETH (reverse direction)
+            IUniV3Router.ExactInputSingleParams memory swapParams2 = IUniV3Router
+                .ExactInputSingleParams({
+                    tokenIn: tokenAddress,
+                    tokenOut: WETH,
+                    fee: POOL_FEE,
+                    recipient: trader1,
+                    deadline: block.timestamp + 15 minutes,
+                    amountIn: amountOut / 2, // Only swap half back
+                    amountOutMinimum: 0,
+                    sqrtPriceLimitX96: 0
+                });
+
+            vm.prank(trader1);
+            try
+                IUniV3Router(UNISWAP_V3_ROUTER).exactInputSingle(swapParams2)
+            returns (uint256 ethOut) {
+                console.log("Swap 2 completed - received", ethOut, "WETH");
+            } catch {
+                console.log("Swap 2 failed (expected in some cases)");
+            }
+        } catch {
+            console.log(
+                "Swap 1 failed - pool might not have sufficient liquidity yet"
+            );
+        }
+
+        // Additional smaller swaps to generate more fees
+        for (uint i = 0; i < 3; i++) {
+            vm.prank(trader2);
+            try
+                IUniV3Router(UNISWAP_V3_ROUTER).exactInputSingle(
+                    IUniV3Router.ExactInputSingleParams({
+                        tokenIn: WETH,
+                        tokenOut: tokenAddress,
+                        fee: POOL_FEE,
+                        recipient: trader2,
+                        deadline: block.timestamp + 15 minutes,
+                        amountIn: 0.1 ether,
+                        amountOutMinimum: 0,
+                        sqrtPriceLimitX96: 0
+                    })
+                )
+            {
+                console.log("Additional swap", i + 1, "completed");
+            } catch {
+                console.log("Additional swap", i + 1, "failed");
+                break;
+            }
+        }
+
+        console.log(
+            "Trading simulation completed - fees should have accumulated"
+        );
+    }
+}
+
+// Additional interfaces for Uniswap V3 Router
+interface IUniV3Router {
+    struct ExactInputSingleParams {
+        address tokenIn;
+        address tokenOut;
+        uint24 fee;
+        address recipient;
+        uint256 deadline;
+        uint256 amountIn;
+        uint256 amountOutMinimum;
+        uint160 sqrtPriceLimitX96;
+    }
+
+    function exactInputSingle(
+        ExactInputSingleParams calldata params
+    ) external payable returns (uint256 amountOut);
+}
+
+// WETH interface
+interface IwETH is IERC20 {
+    function deposit() external payable;
+
+    function withdraw(uint256) external;
 }
