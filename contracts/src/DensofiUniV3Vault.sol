@@ -69,31 +69,10 @@ contract DensoFiUniV3Vault is IERC721Receiver {
         emit DomainOwnershipUpdated(newOwner, s_domainName);
     }
 
-    function onERC721Received(
-        address /* operator */,
-        address /* from */,
-        uint256 id,
-        bytes calldata /* data */
-    ) external override returns (bytes4) {
-        require(s_tokenId == 0, "DensoFiVault: Already has position");
-        require(msg.sender == address(s_nfpm), "DensoFiVault: Invalid NFT");
-
-        s_tokenId = id;
-
-        return IERC721Receiver.onERC721Received.selector;
-    }
-
     // Fallback function to set token ID if onERC721Received is not called properly
     function setTokenId(uint256 tokenId) external onlyLauncher {
         require(s_tokenId == 0, "DensoFiVault: Already has position");
         s_tokenId = tokenId;
-    }
-
-    function transferPosition(address to) external onlyDomainOwner {
-        require(s_tokenId != 0, "DensoFiVault: No position to transfer");
-
-        s_nfpm.safeTransferFrom(address(this), to, s_tokenId);
-        s_tokenId = 0;
     }
 
     // View functions
