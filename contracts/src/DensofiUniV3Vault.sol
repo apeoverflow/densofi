@@ -26,6 +26,7 @@ contract DensoFiUniV3Vault is IERC721Receiver {
         uint256 amount0,
         uint256 amount1
     );
+    event TokenIdSet(uint256 tokenId);
 
     modifier onlyLauncher() {
         require(msg.sender == s_launcher, "DensoFiVault: Only launcher");
@@ -69,10 +70,24 @@ contract DensoFiUniV3Vault is IERC721Receiver {
         emit DomainOwnershipUpdated(newOwner, s_domainName);
     }
 
-    // Fallback function to set token ID if onERC721Received is not called properly
-    function setTokenId(uint256 tokenId) external onlyLauncher {
+    function onERC721Received(
+        address /* operator */,
+        address /* from */,
+        uint256 id,
+        bytes calldata /* data */
+    ) external override returns (bytes4) {
         require(s_tokenId == 0, "DensoFiVault: Already has position");
+        require(msg.sender == address(s_nfpm), "DensoFiVault: Invalid NFT");
+
+        s_tokenId = id;
+        emit TokenIdSet(id);
+
+        return IERC721Receiver.onERC721Received.selector;
+    }
+
+    function setTokenId(uint256 tokenId) external onlyLauncher {
         s_tokenId = tokenId;
+        emit TokenIdSet(tokenId);
     }
 
     // View functions

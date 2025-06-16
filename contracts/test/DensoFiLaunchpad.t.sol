@@ -699,14 +699,14 @@ contract DensoFiLaunchpadTest is Test {
         console.log("Fork fee collection test completed");
     }
 
-    function testVaultOwnershipTransferFork() public {
+    function testDomainOwnershipTransferFork() public {
         // Skip if not on fork
         vm.skip(block.number == 1);
 
         console.log("=== TESTING VAULT OWNERSHIP TRANSFER ON MAINNET FORK ===");
 
         address tokenAddress = createTestToken();
-        address newOwner = makeAddr("newVaultOwner");
+        address newOwner = makeAddr("newDomainOwner");
         vm.deal(newOwner, 10 ether);
 
         // Reach threshold and launch
@@ -731,11 +731,17 @@ contract DensoFiLaunchpadTest is Test {
 
         // Simulate ownership transfer (this would be done by admin after domain ownership changes)
         // For now, we test that position can be transferred by owner
-        vm.prank(creator);
-        vault.transferPosition(newOwner);
+        string memory domainName = InitialSupplySuperchainERC20(tokenAddress)
+            .name();
+        vm.prank(deployer);
+        launchpad.updateDomainOwnership(domainName, newOwner);
 
-        // Position should be transferred
-        assertEq(vault.s_tokenId(), 0, "Position should be transferred");
+        // Domain owner should be transferred
+        assertEq(
+            vault.s_domainOwner(),
+            newOwner,
+            "Position should be transferred"
+        );
 
         console.log("Vault ownership transfer test completed");
     }

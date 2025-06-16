@@ -410,9 +410,7 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
             tokensForLaunch,
             ethForLaunch,
             pool.creator,
-            _stringBeforeSpace(
-                InitialSupplySuperchainERC20(tokenAddress).name()
-            )
+            InitialSupplySuperchainERC20(tokenAddress).name()
         );
 
         emit TokenLaunched(pool.creator, tokenAddress, poolAddress, vault);

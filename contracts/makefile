@@ -91,6 +91,11 @@ verify-sepolia: check-env
 # Run tests
 test:
 	@echo "Running tests..."
+	@$(MAKE) test-no-fork
+	@$(MAKE) test-launchpad-fork
+
+test-no-fork:
+	@echo "Running tests..."
 	@forge test -vv
 
 # Run DensoFi Launchpad tests with mainnet fork
