@@ -102,6 +102,7 @@ contract EndToEndFlowTest is Test {
         // 4. Deploy DensoFiLaunchpad
         vm.prank(deployer);
         launchpad = new DensoFiLaunchpad(
+            deployer,
             UNISWAP_V3_ROUTER,
             UNISWAP_V3_FACTORY,
             NONFUNGIBLE_POSITION_MANAGER,

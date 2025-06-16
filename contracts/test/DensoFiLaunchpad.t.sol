@@ -83,6 +83,7 @@ contract DensoFiLaunchpadTest is Test {
             // Deploy the launchpad contract with mock oracle
             vm.prank(deployer);
             launchpad = new DensoFiLaunchpad(
+                deployer,
                 UNISWAP_V3_ROUTER,
                 UNISWAP_V3_FACTORY,
                 NONFUNGIBLE_POSITION_MANAGER,
@@ -94,6 +95,7 @@ contract DensoFiLaunchpadTest is Test {
             // We're in a fork environment, use real Pyth oracle
             vm.prank(deployer);
             launchpad = new DensoFiLaunchpad(
+                deployer,
                 UNISWAP_V3_ROUTER,
                 UNISWAP_V3_FACTORY,
                 NONFUNGIBLE_POSITION_MANAGER,
@@ -321,18 +323,36 @@ contract DensoFiLaunchpadTest is Test {
     function testMarketCapThreshold() public {
         address tokenAddress = createTestToken();
 
+        // Check initial market cap
+        (uint256 initialEthMcap, uint256 initialUsdMcap) = launchpad
+            .calculateMarketCap(tokenAddress);
+        console.log("=== Initial Market Cap ===");
+        console.log("ETH Market Cap:", initialEthMcap);
+        console.log("USD Market Cap:", initialUsdMcap);
+        console.log("Threshold:", launchpad.s_fakePoolMCapThreshold());
+
         // Buy tokens to increase market cap
         uint256 buyAmount = 1 ether;
 
         // Multiple buyers to reach threshold
-        for (uint i = 0; i < 5; i++) {
+        for (uint i = 0; i < 10; i++) {
             address buyer = makeAddr(string(abi.encodePacked("buyer", i)));
             vm.deal(buyer, buyAmount + 1 ether);
+
+            console.log("=== Purchase", i + 1, "===");
+            console.log("Buyer:", buyer);
+            console.log("Amount:", buyAmount);
 
             vm.prank(buyer);
             launchpad.buyTokens{value: buyAmount}(tokenAddress, 0);
 
+            // Check market cap after purchase
+            (, uint256 usdMcap) = launchpad.calculateMarketCap(tokenAddress);
+            console.log("Market Cap after purchase:", usdMcap);
+
             (, , , , , bool isLocked) = launchpad.getPoolInfo(tokenAddress);
+            console.log("Pool locked:", isLocked);
+
             if (isLocked) {
                 console.log("Pool locked after", i + 1, "purchases");
                 break;
@@ -479,7 +499,7 @@ contract DensoFiLaunchpadTest is Test {
         console.log("Initial market cap (USD):", totalMCapInUsd);
         console.log(
             "Market cap threshold (USD):",
-            launchpad.fakePoolMCapThreshold()
+            launchpad.s_fakePoolMCapThreshold()
         );
 
         // Test with different buy amounts to see when threshold is reached
@@ -495,7 +515,7 @@ contract DensoFiLaunchpadTest is Test {
             console.log("=== Testing buy amount:", amount, "ETH ===");
 
             // Simulate the buy calculation
-            uint256 fee = (amount * launchpad.txFee()) / 1000;
+            uint256 fee = (amount * launchpad.s_txFee()) / 1000;
             uint256 ethAfterFee = amount - fee;
             uint256 tokensOut = launchpad.getAmountOut(
                 ethAfterFee,
@@ -514,7 +534,7 @@ contract DensoFiLaunchpadTest is Test {
             console.log("New market cap (USD):", newMCapInUsd);
             console.log(
                 "Would trigger threshold:",
-                newMCapInUsd >= launchpad.fakePoolMCapThreshold()
+                newMCapInUsd >= launchpad.s_fakePoolMCapThreshold()
             );
         }
     }
@@ -620,7 +640,7 @@ contract DensoFiLaunchpadTest is Test {
     // Helper functions
     function getCreationFee() internal view returns (uint256) {
         uint256 ethPrice = launchpad.getOraclePrice();
-        return launchpad.usdToEth(ethPrice, launchpad.creationPrice());
+        return launchpad.usdToEth(ethPrice, launchpad.s_creationPrice());
     }
 
     function createTestToken() internal returns (address) {

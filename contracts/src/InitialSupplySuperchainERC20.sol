@@ -9,8 +9,8 @@ contract InitialSupplySuperchainERC20 is SuperchainERC20, Ownable {
     string private _symbol;
     uint8 private immutable _decimals;
 
-    address internal launcher;
-    bool internal launched = false;
+    address internal immutable s_launcher;
+    bool internal s_launched = false;
 
     constructor(
         address owner_,
@@ -34,11 +34,11 @@ contract InitialSupplySuperchainERC20 is SuperchainERC20, Ownable {
         // Set launcher and launch status based on shouldLaunch parameter
         if (shouldLaunch_) {
             // Token should be launched immediately (direct receipt case)
-            launched = true;
+            s_launched = true;
         } else {
             // Token goes to launchpad, needs to be launched later
-            launcher = msg.sender;
-            launched = false;
+            s_launcher = msg.sender;
+            s_launched = false;
         }
     }
 
@@ -54,12 +54,9 @@ contract InitialSupplySuperchainERC20 is SuperchainERC20, Ownable {
         return _decimals;
     }
 
-    function launch() external {
-        require(
-            msg.sender == launcher && launched == false,
-            "Only launcher can launch and token must not be launched yet"
-        );
-        launched = true;
+    function launch() external onlyOwner {
+        require(s_launched == false, "Token already launched");
+        s_launched = true;
     }
 
     function _beforeTokenTransfer(
@@ -67,9 +64,9 @@ contract InitialSupplySuperchainERC20 is SuperchainERC20, Ownable {
         address to,
         uint256 amount
     ) internal override {
-        if (!launched) {
+        if (!s_launched) {
             require(
-                from == launcher || to == launcher,
+                from == s_launcher || to == s_launcher,
                 "transfer not allowed before launch"
             );
         }
