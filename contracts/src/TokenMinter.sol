@@ -27,7 +27,6 @@ contract TokenMinter is IERC1155Receiver, Ownable, ReentrancyGuard {
     // Launchpad contract address
     address public launchpadContract;
 
-
     // Collected proceeds from fees
     uint256 public proceeds;
 
@@ -67,6 +66,7 @@ contract TokenMinter is IERC1155Receiver, Ownable, ReentrancyGuard {
 
     /**
      * @dev Constructor initializes the contract with the NFT contract address
+     * @param deployer Address of the deployer
      * @param _nftContract Address of the NFTMinter contract
      * @param _launchpadContract Address of the launchpad contract (can be zero initially)
      */

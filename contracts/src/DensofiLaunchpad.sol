@@ -139,15 +139,52 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         );
         require(sellPenalty <= 100, "Sell penalty too high"); // Max 10%
 
-        // Calculate creation fee
-        uint256 usdEthPrice = getOraclePrice();
-        uint256 creationEth = usdToEth(usdEthPrice, s_creationPrice);
+        // Calculate creation fee and remaining ETH
+        uint256 remainingEth = _handleCreationFee();
+
+        // Create token and get address
+        address tokenAddress = _createTokenContract(name, symbol);
+
+        // Setup fake pool
+        _setupFakePool(tokenAddress, sellPenalty);
+
+        // Emit events
+        _emitTokenCreationEvents(
+            tokenAddress,
+            name,
+            symbol,
+            imageCid,
+            description,
+            sellPenalty
+        );
+
+        // Handle initial buy if specified
+        if (initialBuy > 0) {
+            remainingEth = _handleInitialBuy(
+                tokenAddress,
+                initialBuy,
+                remainingEth
+            );
+        }
+
+        // Refund remaining ETH
+        if (remainingEth > 0) {
+            payable(msg.sender).transfer(remainingEth);
+        }
+    }
+
+    function _handleCreationFee() internal returns (uint256) {
+        uint256 creationEth = usdToEth(getOraclePrice(), s_creationPrice);
         require(msg.value >= creationEth, "Insufficient payment");
 
-        uint256 remainingEth = msg.value - creationEth;
         s_proceeds += creationEth;
+        return msg.value - creationEth;
+    }
 
-        // Create token
+    function _createTokenContract(
+        string calldata name,
+        string calldata symbol
+    ) internal returns (address) {
         InitialSupplySuperchainERC20 token = new InitialSupplySuperchainERC20(
             address(this), // owner
             name, // name
@@ -157,9 +194,10 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
             block.chainid, // initialSupplyChainId
             false // shouldLaunch - false because it goes to launchpad
         );
-        address tokenAddress = address(token);
+        return address(token);
+    }
 
-        // Create fake pool
+    function _setupFakePool(address tokenAddress, uint16 sellPenalty) internal {
         FakePool storage pool = s_fakePools[tokenAddress];
         pool.token = tokenAddress;
         pool.creator = msg.sender;
@@ -169,7 +207,17 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         pool.sellPenalty = sellPenalty;
 
         s_tokenCreators[tokenAddress] = msg.sender;
+    }
 
+    function _emitTokenCreationEvents(
+        address tokenAddress,
+        string calldata name,
+        string calldata symbol,
+        string calldata imageCid,
+        string calldata description,
+        uint16 sellPenalty
+    ) internal {
+        FakePool storage pool = s_fakePools[tokenAddress];
         uint256 initialPrice = getTokenPrice(pool, 1 ether);
 
         emit TokenCreated(
@@ -189,31 +237,31 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
             pool.ethReserve,
             pool.tokenReserve
         );
+    }
 
-        // Handle initial buy
-        if (initialBuy > 0) {
-            require(
-                remainingEth >= initialBuy,
-                "Insufficient ETH for initial buy"
-            );
-            remainingEth -= initialBuy;
+    function _handleInitialBuy(
+        address tokenAddress,
+        uint256 initialBuy,
+        uint256 remainingEth
+    ) internal returns (uint256) {
+        require(remainingEth >= initialBuy, "Insufficient ETH for initial buy");
 
-            uint256 tokensOut = _buyTokens(tokenAddress, initialBuy);
-            token.transfer(msg.sender, tokensOut);
+        uint256 tokensOut = _buyTokens(tokenAddress, initialBuy);
+        InitialSupplySuperchainERC20(tokenAddress).transfer(
+            msg.sender,
+            tokensOut
+        );
 
-            emit Bought(
-                msg.sender,
-                tokenAddress,
-                initialBuy,
-                tokensOut,
-                getTokenPrice(pool, 1 ether)
-            );
-        }
+        FakePool storage pool = s_fakePools[tokenAddress];
+        emit Bought(
+            msg.sender,
+            tokenAddress,
+            initialBuy,
+            tokensOut,
+            getTokenPrice(pool, 1 ether)
+        );
 
-        // Refund remaining ETH
-        if (remainingEth > 0) {
-            payable(msg.sender).transfer(remainingEth);
-        }
+        return remainingEth - initialBuy;
     }
 
     // Buy tokens
