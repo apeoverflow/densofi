@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://denso.fi/sitemap.xml
+
+# Crawl-delay for all bots (optional, remove if not needed)
+Crawl-delay: 1
+
+# Block access to admin areas (add if you have any)
+# Disallow: /admin/
+# Disallow: /api/internal/
+
+# Allow specific important pages
+Allow: /
+Allow: /create-token
+Allow: /mint-nft
+Allow: /tokens
+Allow: /walkthrough 

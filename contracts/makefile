@@ -1,11 +1,16 @@
 -include .env
 
-.PHONY: help deploy-sepolia verify-sepolia test test-launchpad-fork clean get-address
+.PHONY: help deploy-sepolia deploy-flow verify-sepolia verify-flow test test-launchpad-fork clean get-address show-config-sepolia show-config-flow
 
 help:
 	@echo "Available commands:"
 	@echo "  make deploy-sepolia   - Deploy contracts to Sepolia testnet"
+	@echo "  make deploy-flow      - Deploy contracts to Flow mainnet"
+	@echo "  make deploy-flow-simple - Deploy to Flow using simplified script (recommended)"
 	@echo "  make verify-sepolia   - Verify contracts on Sepolia after deployment"
+	@echo "  make verify-flow      - Verify contracts on Flow after deployment"
+	@echo "  make show-config-sepolia - Show Sepolia configuration before deployment"
+	@echo "  make show-config-flow    - Show Flow configuration before deployment"
 	@echo "  make test            - Run forge tests"
 	@echo "  make test-launchpad-fork - Run DensoFi Launchpad tests with mainnet fork"
 	@echo "  make get-address     - Get your wallet address from private key"
@@ -17,76 +22,99 @@ check-env:
 		echo "Error: PRIVATE_KEY is not set. Add it to .env file or export it."; \
 		exit 1; \
 	fi
-	@if [ -z "$(INFURA_API_KEY)" ]; then \
-		echo "Error: INFURA_API_KEY is not set. Add it to .env file or export it."; \
+
+check-env-sepolia: check-env
+	@if [ -z "$(SEPOLIA_RPC_URL)" ]; then \
+		echo "Error: SEPOLIA_RPC_URL is not set. Add it to .env file or export it."; \
+		echo "Example: SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/your-api-key"; \
 		exit 1; \
 	fi
 
-# Deploy to Sepolia (without verification)
-deploy-sepolia: check-env
+check-env-flow: check-env
+	@if [ -z "$(FLOW_RPC_URL)" ]; then \
+		echo "Error: FLOW_RPC_URL is not set. Add it to .env file or export it."; \
+		echo "Example: FLOW_RPC_URL=https://mainnet.evm.nodes.onflow.org"; \
+		exit 1; \
+	fi
+
+# Show configuration before deployment
+show-config-sepolia: check-env-sepolia
+	@echo "Showing Sepolia configuration..."
+	@forge script script/ShowChainConfig.s.sol --rpc-url $(SEPOLIA_RPC_URL)
+
+show-config-flow: check-env-flow
+	@echo "Showing Flow configuration..."
+	@forge script script/ShowChainConfig.s.sol --rpc-url $(FLOW_RPC_URL)
+
+# Deploy to Sepolia
+deploy-sepolia: check-env-sepolia
 	@echo "Deploying to Sepolia..."
 	@mkdir -p deployment-addresses
-	@DEPLOYER_ADDRESS=$$(cast wallet address --private-key $(PRIVATE_KEY)); \
-	OUTPUT=$$(forge script script/DeployContracts.s.sol --rpc-url https://sepolia.infura.io/v3/$(INFURA_API_KEY) --sender $$DEPLOYER_ADDRESS --broadcast -vvvv); \
-	echo "$$OUTPUT" | grep "deployed at:" | awk '{ \
-		if ($$1 == "DomainRegistration") addr1=$$4; \
-		if ($$1 == "NFTMinter") addr2=$$4; \
-		if ($$1 == "TokenMinter") addr3=$$4; \
-	} END { \
-		print "{"; \
-		print "  \"DomainRegistration\": \"" addr1 "\","; \
-		print "  \"NFTMinter\": \"" addr2 "\","; \
-		print "  \"TokenMinter\": \"" addr3 "\""; \
-		print "}"; \
-	}' > deployment-addresses/sepolia-addresses.json
+	@forge script script/DeployContracts.s.sol --rpc-url $(SEPOLIA_RPC_URL) --broadcast -vvv
+	@echo "Deployment complete. Addresses saved to deployment-addresses/11155111-addresses.json"
 
-	@echo "Deployment complete. Addresses saved to deployment-addresses/sepolia-addresses.json"
+# Deploy to Flow
+deploy-flow: check-env-flow
+	@echo "Deploying to Flow..."
+	@mkdir -p deployment-addresses
+	@forge script script/DeployContracts.s.sol --rpc-url $(FLOW_RPC_URL) --broadcast --legacy -vvv
+	@echo "Deployment complete. Addresses saved to deployment-addresses/747-addresses.json"
 
 # Verify contracts on Sepolia
-verify-sepolia: check-env
+verify-sepolia: check-env-sepolia
 	@if [ -z "$(ETHERSCAN_API_KEY)" ]; then \
 		echo "Error: ETHERSCAN_API_KEY is not set for verification"; \
 		exit 1; \
 	fi
-	@echo "Cleaning and rebuilding contracts..."
-	@forge clean
-	@forge build --force
+	@if [ ! -f "deployment-addresses/11155111-addresses.json" ]; then \
+		echo "Error: Deployment addresses file not found. Deploy first with 'make deploy-sepolia'"; \
+		exit 1; \
+	fi
 	@echo "Verifying contracts on Sepolia..."
-	
-	@DEPLOYER_ADDRESS=$$(cast wallet address --private-key $(PRIVATE_KEY)); \
-	DOMAIN_REGISTRATION_ADDRESS=$$(cat deployment-addresses/sepolia-addresses.json | jq -r '.DomainRegistration'); \
-	NFT_MINTER_ADDRESS=$$(cat deployment-addresses/sepolia-addresses.json | jq -r '.NFTMinter'); \
-	TOKEN_MINTER_ADDRESS=$$(cat deployment-addresses/sepolia-addresses.json | jq -r '.TokenMinter'); \
-	echo "Verifying DomainRegistration at $$DOMAIN_REGISTRATION_ADDRESS..."; \
-	forge verify-contract \
-		--chain-id 11155111 \
-		--num-of-optimizations 200 \
-		--watch \
-		--constructor-args $$(cast abi-encode "constructor(uint256,address)" 10000000000000000 $$DEPLOYER_ADDRESS) \
-		--etherscan-api-key $(ETHERSCAN_API_KEY) \
-		--compiler-version v0.8.30 \
-		$$DOMAIN_REGISTRATION_ADDRESS \
-		DomainRegistration; \
-	echo "Verifying NFTMinter at $$NFT_MINTER_ADDRESS..."; \
-	forge verify-contract \
-		--chain-id 11155111 \
-		--num-of-optimizations 200 \
-		--watch \
-		--constructor-args $$(cast abi-encode "constructor(address)" $$DEPLOYER_ADDRESS) \
-		--etherscan-api-key $(ETHERSCAN_API_KEY) \
-		--compiler-version v0.8.30 \
-		$$NFT_MINTER_ADDRESS \
-		NFTMinter; \
-	echo "Verifying TokenMinter at $$TOKEN_MINTER_ADDRESS..."; \
-	forge verify-contract \
-		--chain-id 11155111 \
-		--num-of-optimizations 200 \
-		--watch \
-		--constructor-args $$(cast abi-encode "constructor(address,address)" $$DEPLOYER_ADDRESS $$NFT_MINTER_ADDRESS) \
-		--etherscan-api-key $(ETHERSCAN_API_KEY) \
-		--compiler-version v0.8.30 \
-		$$TOKEN_MINTER_ADDRESS \
-		TokenMinter
+	@forge script script/DeployContracts.s.sol --rpc-url $(SEPOLIA_RPC_URL) --verify --etherscan-api-key $(ETHERSCAN_API_KEY)
+
+# Verify contracts on Flow
+verify-flow: check-env-flow
+	@if [ ! -f "deployment-addresses/747-addresses.json" ]; then \
+		echo "Error: Deployment addresses file not found. Deploy first with 'make deploy-flow'"; \
+		exit 1; \
+	fi
+	@echo "Verifying contracts on Flow using Blockscout..."
+	@echo "Reading deployment addresses from deployment-addresses/747-addresses.json"
+	@echo ""
+	@echo "Verifying DomainRegistration contract..."
+	@forge verify-contract \
+		--rpc-url https://mainnet.evm.nodes.onflow.org/ \
+		--verifier blockscout \
+		--verifier-url 'https://evm.flowscan.io/api/' \
+		$$(cat deployment-addresses/747-addresses.json | jq -r '.addresses.domainRegistration') \
+		src/DomainRegistration.sol:DomainRegistration
+	@echo ""
+	@echo "Verifying NFTMinter contract..."
+	@forge verify-contract \
+		--rpc-url https://mainnet.evm.nodes.onflow.org/ \
+		--verifier blockscout \
+		--verifier-url 'https://evm.flowscan.io/api/' \
+		$$(cat deployment-addresses/747-addresses.json | jq -r '.addresses.nftMinter') \
+		src/NFTMinter.sol:NFTMinter
+	@echo ""
+	@echo "Verifying TokenMinter contract..."
+	@forge verify-contract \
+		--rpc-url https://mainnet.evm.nodes.onflow.org/ \
+		--verifier blockscout \
+		--verifier-url 'https://evm.flowscan.io/api/' \
+		$$(cat deployment-addresses/747-addresses.json | jq -r '.addresses.tokenMinter') \
+		src/TokenMinter.sol:TokenMinter
+	@echo ""
+	@echo "Verifying DensoFiLaunchpad contract..."
+	@forge verify-contract \
+		--rpc-url https://mainnet.evm.nodes.onflow.org/ \
+		--verifier blockscout \
+		--verifier-url 'https://evm.flowscan.io/api/' \
+		$$(cat deployment-addresses/747-addresses.json | jq -r '.addresses.launchpad') \
+		src/DensofiLaunchpad.sol:DensoFiLaunchpad
+	@echo ""
+	@echo "All contracts verified on Flow!"
 
 # Run tests
 test:
