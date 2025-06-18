@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import { WalletConnectButton } from '../WalletConnectButton';
 
 type NavLink = {
@@ -21,6 +22,7 @@ const navLinks: NavLink[] = [
 
 export default function Navbar() {
   const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // Handle dynamic routes like /tokens/[id]
   const isTokenDetail = pathname.startsWith('/tokens/') && pathname !== '/tokens';
@@ -28,6 +30,14 @@ export default function Navbar() {
 
   // Filter links based on current path
   const links = navLinks.filter(link => link.showOn.includes(currentPath));
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
 
   return (
     <>
@@ -40,26 +50,23 @@ export default function Navbar() {
         </div>
         
         <div className="relative container mx-auto px-4 py-2.5 flex items-center justify-center">
-          <div className="flex items-center py-1 px-9 rounded-lg gap-3 group bg-white text-black text-center px-2/">
+          <div className="flex items-center py-1 px-3 md:px-9 rounded-lg gap-2 md:gap-3 group bg-white text-black text-center">
             <div className="relative">
               <Image 
                 src="/full-flow-logo.webp" 
                 alt="Flow Network Logo" 
-                width={100} 
-                height={32}
-                className="mr-8 px-3 py-2 rounded-md opacity-90 bg-white group-hover:opacity-100 transition-opacity duration-300 filter w-[0_0_8px_rgba(34,197,94,0.8)]"
+                width={80} 
+                height={25}
+                className="md:w-[100px] md:h-[32px] mr-2 md:mr-8 px-2 md:px-3 py-1 md:py-2 rounded-md opacity-90 bg-white group-hover:opacity-100 transition-opacity duration-300"
                 priority
               />
               {/* Subtle glow behind logo */}
               <div className="absolute inset-0 bg-gradient-to-r from-green-400/10 to-emerald-400/10 rounded-lg blur-md -z-10 group-hover:from-green-400/20 group-hover:to-emerald-400/20 transition-all duration-300"></div>
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-semibold  tracking-wide  transition-colors duration-300">
+              <span className="text-xs md:text-sm font-semibold tracking-wide transition-colors duration-300">
                 Coming to Flow Network
               </span>
-              {/* <span className="text-xs text-gray-400 font-medium  transition-colors duration-300">
-                Cross-chain expansion
-              </span> */}
             </div>
           </div>
           
@@ -74,10 +81,13 @@ export default function Navbar() {
       {/* Main Navbar - Sticky */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-black/30 border-b border-white/10 shadow-lg shadow-black/20">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+          {/* Logo */}
           <div className="text-white font-bold text-xl">
-            <Link href="/">Denso.fi</Link>
+            <Link href="/" onClick={closeMobileMenu}>Denso.fi</Link>
           </div>
-          <div className="flex items-center gap-4">
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-4">
             {links.map((link) => (
               <Link 
                 key={link.label} 
@@ -89,7 +99,68 @@ export default function Navbar() {
             ))}
             <WalletConnectButton />
           </div>
+
+          {/* Mobile Menu Button */}
+          <div className="md:hidden flex items-center gap-3">
+            <div className="scale-75">
+              <WalletConnectButton />
+            </div>
+            <button
+              onClick={toggleMobileMenu}
+              className="text-white hover:text-blue-400 transition-colors duration-200"
+              aria-label="Toggle mobile menu"
+            >
+              <svg 
+                className="w-6 h-6" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                {isMobileMenuOpen ? (
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M6 18L18 6M6 6l12 12" 
+                  />
+                ) : (
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M4 6h16M4 12h16M4 18h16" 
+                  />
+                )}
+              </svg>
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Menu Dropdown */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden absolute top-full left-0 w-full backdrop-blur-md bg-black/90 border-b border-white/10 shadow-lg">
+            <div className="container mx-auto px-4 py-4 flex flex-col gap-4">
+              {links.map((link) => (
+                <Link 
+                  key={link.label} 
+                  href={link.href} 
+                  className="text-white hover:text-blue-400 transition-colors duration-200 py-2 border-b border-white/10 last:border-b-0"
+                  onClick={closeMobileMenu}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Menu Overlay */}
+        {isMobileMenuOpen && (
+          <div 
+            className="md:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-40" 
+            onClick={closeMobileMenu}
+          />
+        )}
       </header>
     </>
   );
