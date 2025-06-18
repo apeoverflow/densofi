@@ -1,6 +1,6 @@
 -include .env
 
-.PHONY: help deploy-sepolia deploy-flow verify-sepolia verify-flow test test-launchpad-fork test-launchpad-flow-fork clean get-address show-config-sepolia show-config-flow
+.PHONY: help deploy-sepolia deploy-flow verify-sepolia verify-flow test test-launchpad-fork test-launchpad-flow-fork clean get-address show-config-sepolia show-config-flow generate-abis
 
 help:
 	@echo "Available commands:"
@@ -15,6 +15,7 @@ help:
 	@echo "  make test-launchpad-fork - Run DensoFi Launchpad tests with mainnet fork"
 	@echo "  make test-launchpad-flow-fork - Run DensoFi Launchpad tests with Flow fork"
 	@echo "  make get-address     - Get your wallet address from private key"
+	@echo "  make generate-abis   - Generate ABI files for all contracts"
 	@echo "  make clean           - Clean build artifacts"
 
 # Check if required environment variables are set
@@ -142,7 +143,40 @@ get-address: check-env
 	@echo "Your public address is:"
 	@cast wallet address --private-key $(PRIVATE_KEY)
 
+# Generate ABI files for all contracts
+generate-abis:
+	@echo "Generating ABI files for all contracts..."
+	@mkdir -p abis
+	@forge build
+	@echo "Extracting ABIs from compiled contracts..."
+	@if [ -f "out/DomainRegistration.sol/DomainRegistration.json" ]; then \
+		jq '.abi' out/DomainRegistration.sol/DomainRegistration.json > abis/DomainRegistration.json; \
+		echo "Generated abis/DomainRegistration.json"; \
+	fi
+	@if [ -f "out/NFTMinter.sol/NFTMinter.json" ]; then \
+		jq '.abi' out/NFTMinter.sol/NFTMinter.json > abis/NFTMinter.json; \
+		echo "Generated abis/NFTMinter.json"; \
+	fi
+	@if [ -f "out/TokenMinter.sol/TokenMinter.json" ]; then \
+		jq '.abi' out/TokenMinter.sol/TokenMinter.json > abis/TokenMinter.json; \
+		echo "Generated abis/TokenMinter.json"; \
+	fi
+	@if [ -f "out/DensofiLaunchpad.sol/DensoFiLaunchpad.json" ]; then \
+		jq '.abi' out/DensofiLaunchpad.sol/DensoFiLaunchpad.json > abis/DensoFiLaunchpad.json; \
+		echo "Generated abis/DensoFiLaunchpad.json"; \
+	fi
+	@if [ -f "out/DensofiUniV3Vault.sol/DensofiUniV3Vault.json" ]; then \
+		jq '.abi' out/DensofiUniV3Vault.sol/DensofiUniV3Vault.json > abis/DensofiUniV3Vault.json; \
+		echo "Generated abis/DensofiUniV3Vault.json"; \
+	fi
+	@if [ -f "out/InitialSupplySuperchainERC20.sol/InitialSupplySuperchainERC20.json" ]; then \
+		jq '.abi' out/InitialSupplySuperchainERC20.sol/InitialSupplySuperchainERC20.json > abis/InitialSupplySuperchainERC20.json; \
+		echo "Generated abis/InitialSupplySuperchainERC20.json"; \
+	fi
+	@echo "ABI generation complete. Files saved to abis/ directory"
+
 # Clean build artifacts
 clean:
 	@echo "Cleaning build artifacts..."
 	@forge clean
+	@rm -rf abis

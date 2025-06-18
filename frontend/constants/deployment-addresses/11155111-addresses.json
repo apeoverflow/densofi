@@ -1,0 +1,20 @@
+{
+  "chainId": 11155111,
+  "deployer": "0x9b8A91c271B230e8647F01cA9d31e28b79f6d6AA",
+  "addresses": {
+    "domainRegistration": "0xA6f09EB11F5eDEE3ed04cA213a33e5b362fC8c5B",
+    "nftMinter": "0xB41920fD5d6AFDcFBf648F8E2A1CB6376EF0EFA0",
+    "tokenMinter": "0xF2029e8B4d5EA818789D2Ab13bfaF0CD48a9D160",
+    "launchpad": "0x9AFDC6EcC6DB0176102f9E7EAA104E899b2Dc833"
+  },
+  "parameters": {
+    "domainRegistrationFee": "1000000000000000",
+    "uniV3Router": "0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E",
+    "uniV3Factory": "0x0227628f3F023bb0B980b67D528571c95c6DaC1c",
+    "nonfungiblePositionManager": "0x1238536071E1c677A632429e3655c799b22cDA52",
+    "weth": "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+    "pythOracle": "0xDd24F84d36BF92C65F92307595335bdFab5Bbd21",
+    "ethUsdPriceId": "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace",
+    "tokenMinterFixedFee": "100000000000000"
+  }
+}
