@@ -122,6 +122,7 @@ test:
 	@echo "Running tests..."
 	@$(MAKE) test-no-fork
 	@$(MAKE) test-launchpad-fork
+	@$(MAKE) test-launchpad-flow-fork
 
 test-no-fork:
 	@echo "Running tests..."
