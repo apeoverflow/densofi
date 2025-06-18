@@ -55,9 +55,9 @@ export default function Navbar() {
               <Image 
                 src="/full-flow-logo.webp" 
                 alt="Flow Network Logo" 
-                width={80} 
-                height={25}
-                className="md:w-[100px] md:h-[32px] mr-2 md:mr-8 px-2 md:px-3 py-1 md:py-2 rounded-md opacity-90 bg-white group-hover:opacity-100 transition-opacity duration-300"
+                width={60} 
+                height={32}
+                className=" mr-2  py-1 rounded-md opacity-90 bg-white group-hover:opacity-100 transition-opacity duration-300"
                 priority
               />
               {/* Subtle glow behind logo */}
