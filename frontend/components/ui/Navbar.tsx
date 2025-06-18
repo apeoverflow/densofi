@@ -57,9 +57,9 @@ export default function Navbar() {
               <span className="text-sm font-semibold  tracking-wide  transition-colors duration-300">
                 Coming to Flow Network
               </span>
-              <span className="text-xs text-gray-400 font-medium  transition-colors duration-300">
+              {/* <span className="text-xs text-gray-400 font-medium  transition-colors duration-300">
                 Cross-chain expansion
-              </span>
+              </span> */}
             </div>
           </div>
           
