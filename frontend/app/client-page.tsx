@@ -153,7 +153,17 @@ export default function ClientPage() {
                 </div>
                 <div className="flex justify-center mt-12">
                   <button 
-                    onClick={() => document.getElementById('how-it-works')?.scrollIntoView({behavior: 'smooth'})}
+                    onClick={() => {
+                      const target = document.getElementById('how-it-works');
+                      if (target) {
+                        const navbarHeight = 0; // Approximate height of sticky navbar
+                        const targetPosition = target.offsetTop - navbarHeight;
+                        window.scrollTo({
+                          top: targetPosition,
+                          behavior: 'smooth'
+                        });
+                      }
+                    }}
                     className="opacity-60 w-14 h-14 rounded-full backdrop-blur-xl flex items-center justify-center border border-white/10 hover:border-white/20 hover:opacity-80 transition-all duration-300 shadow-lg shadow-blue-500/5 hover:shadow-blue-500/15 group"
                     aria-label="Scroll down to How It Works"
                     style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)' }}
