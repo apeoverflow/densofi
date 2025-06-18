@@ -1,6 +1,6 @@
 -include .env
 
-.PHONY: help deploy-sepolia deploy-flow verify-sepolia verify-flow test test-launchpad-fork clean get-address show-config-sepolia show-config-flow
+.PHONY: help deploy-sepolia deploy-flow verify-sepolia verify-flow test test-launchpad-fork test-launchpad-flow-fork clean get-address show-config-sepolia show-config-flow
 
 help:
 	@echo "Available commands:"
@@ -13,6 +13,7 @@ help:
 	@echo "  make show-config-flow    - Show Flow configuration before deployment"
 	@echo "  make test            - Run forge tests"
 	@echo "  make test-launchpad-fork - Run DensoFi Launchpad tests with mainnet fork"
+	@echo "  make test-launchpad-flow-fork - Run DensoFi Launchpad tests with Flow fork"
 	@echo "  make get-address     - Get your wallet address from private key"
 	@echo "  make clean           - Clean build artifacts"
 
@@ -130,6 +131,11 @@ test-no-fork:
 test-launchpad-fork:
 	@echo "Running DensoFi Launchpad tests with mainnet fork..."
 	@forge test --match-contract DensoFiLaunchpadTest --fork-url https://eth-mainnet.public.blastapi.io -vv
+
+# Run DensoFi Launchpad tests with Flow fork
+test-launchpad-flow-fork: check-env-flow
+	@echo "Running DensoFi Launchpad tests with Flow fork..."
+	@forge test --match-contract DensoFiLaunchpadTest --fork-url $(FLOW_RPC_URL) -vv
 
 get-address: check-env
 	@echo "Your public address is:"

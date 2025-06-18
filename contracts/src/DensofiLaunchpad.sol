@@ -657,6 +657,7 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         console.log("ETH Market Cap (wei):", ethMcap);
         console.log("USD Market Cap:", amountUsd);
         console.log("Threshold:", s_fakePoolMCapThreshold);
+
         console.log("Threshold reached:", amountUsd >= s_fakePoolMCapThreshold);
 
         if (amountUsd >= s_fakePoolMCapThreshold) {

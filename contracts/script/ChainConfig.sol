@@ -131,7 +131,7 @@ library ChainConfig {
                     nonfungiblePositionManager: 0xDfA7829Eb75B66790b6E9758DF48E518c69ee34a, // PunchSwap NonfungiblePositionManager
                     weth: 0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e, // WFLOW
                     pythOracle: 0x2880aB155794e7179c9eE2e38200202908C17B43, // Pyth Oracle on Flow
-                    ethUsdPriceId: 0x2fb245b9a84554a0f15aa123cbb5f64cd263b59e9a87d80148cbffab50c69f30, // Flow USD Price ID
+                    ethUsdPriceId: 0x2fb245b9a84554a0f15aa123cbb5f64cd263b59e9a87d80148cbffab50c69f30, // Flow USD Price ID (FLOW is native token)
                     tokenMinterFixedFee: 0.0001 ether
                 });
         } else {
