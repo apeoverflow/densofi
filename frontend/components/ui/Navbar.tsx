@@ -30,9 +30,9 @@ export default function Navbar() {
   const links = navLinks.filter(link => link.showOn.includes(currentPath));
 
   return (
-    <header className="relative z-10">
-      {/* Coming to Flow Banner - Subtle Glass Design */}
-      <div className="relative backdrop-blur-xl bg-gradient-to-r from-slate-900/80 via-slate-800/60 to-slate-900/80 border-b border-white/10">
+    <>
+      {/* Coming to Flow Banner - Non-sticky, scrolls away */}
+      <div className="relative z-10 backdrop-blur-xl bg-gradient-to-r from-slate-900/80 via-slate-800/60 to-slate-900/80 border-b border-white/10">
         {/* Animated background glow */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-0 left-1/4 w-32 h-8 bg-gradient-to-r from-blue-500/20 to-teal-500/20 rounded-full blur-xl animate-pulse opacity-60" style={{ animationDuration: '4s' }}></div>
@@ -71,8 +71,8 @@ export default function Navbar() {
         <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-blue-400/30 to-transparent"></div>
       </div>
 
-      {/* Main Navbar */}
-      <div className="backdrop-blur-md bg-black/20 border-b border-white/10">
+      {/* Main Navbar - Sticky */}
+      <header className="sticky top-0 z-50 backdrop-blur-md bg-black/30 border-b border-white/10 shadow-lg shadow-black/20">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           <div className="text-white font-bold text-xl">
             <Link href="/">Denso.fi</Link>
@@ -82,7 +82,7 @@ export default function Navbar() {
               <Link 
                 key={link.label} 
                 href={link.href} 
-                className="text-white hover:text-blue-400"
+                className="text-white hover:text-blue-400 transition-colors duration-200"
               >
                 {link.label}
               </Link>
@@ -90,7 +90,7 @@ export default function Navbar() {
             <WalletConnectButton />
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+    </>
   );
 }
