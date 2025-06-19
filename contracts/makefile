@@ -79,6 +79,9 @@ verify-sepolia: check-env-sepolia
 	@forge verify-contract \
 		--rpc-url $(SEPOLIA_RPC_URL) \
 		--etherscan-api-key $(ETHERSCAN_API_KEY) \
+		--constructor-args $$(cast abi-encode "constructor(uint256,address)" \
+			$$(cat deployment-addresses/11155111-addresses.json | jq -r '.parameters.domainRegistrationFee') \
+			$$(cat deployment-addresses/11155111-addresses.json | jq -r '.deployer')) \
 		$$(cat deployment-addresses/11155111-addresses.json | jq -r '.addresses.domainRegistration') \
 		src/DomainRegistration.sol:DomainRegistration
 	@echo ""
@@ -86,6 +89,8 @@ verify-sepolia: check-env-sepolia
 	@forge verify-contract \
 		--rpc-url $(SEPOLIA_RPC_URL) \
 		--etherscan-api-key $(ETHERSCAN_API_KEY) \
+		--constructor-args $$(cast abi-encode "constructor(address)" \
+			$$(cat deployment-addresses/11155111-addresses.json | jq -r '.deployer')) \
 		$$(cat deployment-addresses/11155111-addresses.json | jq -r '.addresses.nftMinter') \
 		src/NFTMinter.sol:NFTMinter
 	@echo ""
@@ -93,6 +98,10 @@ verify-sepolia: check-env-sepolia
 	@forge verify-contract \
 		--rpc-url $(SEPOLIA_RPC_URL) \
 		--etherscan-api-key $(ETHERSCAN_API_KEY) \
+		--constructor-args $$(cast abi-encode "constructor(address,address,address)" \
+			$$(cat deployment-addresses/11155111-addresses.json | jq -r '.deployer') \
+			$$(cat deployment-addresses/11155111-addresses.json | jq -r '.addresses.nftMinter') \
+			$$(cat deployment-addresses/11155111-addresses.json | jq -r '.addresses.launchpad')) \
 		$$(cat deployment-addresses/11155111-addresses.json | jq -r '.addresses.tokenMinter') \
 		src/TokenMinter.sol:TokenMinter
 	@echo ""
@@ -100,6 +109,14 @@ verify-sepolia: check-env-sepolia
 	@forge verify-contract \
 		--rpc-url $(SEPOLIA_RPC_URL) \
 		--etherscan-api-key $(ETHERSCAN_API_KEY) \
+		--constructor-args $$(cast abi-encode "constructor(address,address,address,address,address,address,bytes32)" \
+			$$(cat deployment-addresses/11155111-addresses.json | jq -r '.deployer') \
+			$$(cat deployment-addresses/11155111-addresses.json | jq -r '.parameters.uniV3Router') \
+			$$(cat deployment-addresses/11155111-addresses.json | jq -r '.parameters.uniV3Factory') \
+			$$(cat deployment-addresses/11155111-addresses.json | jq -r '.parameters.nonfungiblePositionManager') \
+			$$(cat deployment-addresses/11155111-addresses.json | jq -r '.parameters.weth') \
+			$$(cat deployment-addresses/11155111-addresses.json | jq -r '.parameters.pythOracle') \
+			$$(cat deployment-addresses/11155111-addresses.json | jq -r '.parameters.ethUsdPriceId')) \
 		$$(cat deployment-addresses/11155111-addresses.json | jq -r '.addresses.launchpad') \
 		src/DensofiLaunchpad.sol:DensoFiLaunchpad
 	@echo ""
