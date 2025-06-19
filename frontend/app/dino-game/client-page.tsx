@@ -65,6 +65,13 @@ export default function DinoGameClient() {
   const [totalXP, setTotalXP] = useState(0);
   const [isClaimingXP, setIsClaimingXP] = useState(false);
   const [xpSubmissionResult, setXpSubmissionResult] = useState<string | null>(null);
+  const [playerStats, setPlayerStats] = useState<any>(null);
+  const [currentRank, setCurrentRank] = useState<number | string>('Unranked');
+  const [showStatsModal, setShowStatsModal] = useState(false);
+  const [gameStats, setGameStats] = useState<any>(null);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [playerHistory, setPlayerHistory] = useState<any[]>([]);
+  const [statsLoading, setStatsLoading] = useState(false);
   const gameLoopRef = useRef<number | undefined>(undefined);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const spriteImageRef = useRef<HTMLImageElement | null>(null);
@@ -74,18 +81,142 @@ export default function DinoGameClient() {
   const [backgroundOffset, setBackgroundOffset] = useState(0);
   const [showRulesModal, setShowRulesModal] = useState(false);
 
-  // Load XP from localStorage on component mount
+  // Load player stats from server when authenticated
   useEffect(() => {
-    const storedXP = localStorage.getItem('densofi-game-xp');
-    if (storedXP) {
-      setTotalXP(parseInt(storedXP, 10) || 0);
-    }
-  }, []);
+    const loadPlayerStats = async () => {
+      if (isAuthenticated && address && authenticatedFetch) {
+        try {
+          const response = await authenticatedFetch(`http://localhost:8000/api/game/stats/${address}`, {
+            method: 'GET',
+            requireAuth: false // Try without strict auth requirement
+          });
 
-  // Save XP to localStorage whenever totalXP changes
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              setPlayerStats(data.data);
+              setTotalXP(data.data.totalXP);
+              setCurrentRank(data.data.currentRank);
+              return; // Successfully loaded from server
+            }
+          } else if (response.status === 404) {
+            // Player hasn't played any games yet, use defaults
+            console.log('Player has no stats yet - first time player');
+            setTotalXP(0);
+            setPlayerStats(null);
+            setCurrentRank('Unranked');
+            return;
+          }
+        } catch (error) {
+          console.error('Failed to load player stats:', error);
+        }
+      }
+      
+      // Fallback to localStorage (not authenticated or error occurred)
+      const storedXP = localStorage.getItem('densofi-game-xp');
+      if (storedXP) {
+        setTotalXP(parseInt(storedXP, 10) || 0);
+      } else {
+        setTotalXP(0);
+      }
+      setPlayerStats(null);
+      setCurrentRank('Unranked');
+    };
+
+    loadPlayerStats();
+  }, [isAuthenticated, address, authenticatedFetch]);
+
+  // Save XP to localStorage as backup
   useEffect(() => {
     localStorage.setItem('densofi-game-xp', totalXP.toString());
   }, [totalXP]);
+
+  // Load comprehensive game stats
+  const loadComprehensiveStats = async () => {
+    setStatsLoading(true);
+    try {
+      // Load overall game statistics (public endpoint)
+      try {
+        console.log('Loading overall stats...');
+        const overallStatsResponse = await fetch('http://localhost:8000/api/game/stats');
+        console.log('Overall stats response status:', overallStatsResponse.status);
+        
+        if (overallStatsResponse.ok) {
+          const overallData = await overallStatsResponse.json();
+          console.log('Overall stats data:', overallData);
+          
+          if (overallData.success) {
+            setGameStats(overallData.data);
+          } else {
+            console.error('Overall stats API returned success: false', overallData);
+          }
+        } else {
+          console.error('Overall stats API failed with status:', overallStatsResponse.status);
+          const errorText = await overallStatsResponse.text();
+          console.error('Error response:', errorText);
+        }
+      } catch (error) {
+        console.error('Failed to load overall stats:', error);
+      }
+
+      // Load leaderboard (public endpoint)
+      try {
+        console.log('Loading leaderboard...');
+        const leaderboardResponse = await fetch('http://localhost:8000/api/game/leaderboard?limit=10');
+        console.log('Leaderboard response status:', leaderboardResponse.status);
+        
+        if (leaderboardResponse.ok) {
+          const leaderboardData = await leaderboardResponse.json();
+          console.log('Leaderboard data:', leaderboardData);
+          
+          if (leaderboardData.success) {
+            setLeaderboard(leaderboardData.data.leaderboard || []);
+            console.log('Leaderboard set:', leaderboardData.data.leaderboard);
+          } else {
+            console.error('Leaderboard API returned success: false', leaderboardData);
+            setLeaderboard([]);
+          }
+        } else {
+          console.error('Leaderboard API failed with status:', leaderboardResponse.status);
+          const errorText = await leaderboardResponse.text();
+          console.error('Error response:', errorText);
+          setLeaderboard([]);
+        }
+      } catch (error) {
+        console.error('Failed to load leaderboard:', error);
+        setLeaderboard([]);
+      }
+
+      // Load player history only if authenticated and address exists
+      if (isAuthenticated && address && authenticatedFetch) {
+        try {
+                      const historyResponse = await authenticatedFetch(`http://localhost:8000/api/game/history/${address}?limit=10`, {
+              method: 'GET',
+              requireAuth: false // Try without strict auth requirement first
+            });
+          if (historyResponse.ok) {
+            const historyData = await historyResponse.json();
+            if (historyData.success) {
+              setPlayerHistory(historyData.data.history);
+            }
+          } else {
+            console.log('Player history not available or user not authenticated');
+            setPlayerHistory([]);
+          }
+        } catch (error) {
+          console.error('Failed to load player history:', error);
+          setPlayerHistory([]);
+        }
+      } else {
+        // Clear player history if not authenticated
+        setPlayerHistory([]);
+      }
+    } catch (error) {
+      console.error('Failed to load comprehensive stats:', error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
 
   // Load sprite image
   useEffect(() => {
@@ -522,6 +653,10 @@ export default function DinoGameClient() {
       }
 
       // Submit XP to backend
+      if (!authenticatedFetch) {
+        throw new Error('Authentication service not available');
+      }
+
       const response = await authenticatedFetch('/api/game/submit-xp', {
         method: 'POST',
         requireAuth: true,
@@ -540,9 +675,36 @@ export default function DinoGameClient() {
       const result = await response.json();
       
       if (result.success) {
-        const xpEarned = result.data.xpEarned;
-        setTotalXP(prev => prev + xpEarned);
-        setXpSubmissionResult(`Successfully earned ${xpEarned} XP! Total: ${totalXP + xpEarned}`);
+        const { xpEarned, totalXP: newTotalXP, newHighScore } = result.data;
+        
+        // Update state with server data
+        setTotalXP(newTotalXP);
+        
+        // Show enhanced success message
+        let message = `Successfully earned ${xpEarned} XP! Total: ${newTotalXP}`;
+        if (newHighScore) {
+          message += ' 🎉 NEW HIGH SCORE!';
+        }
+        setXpSubmissionResult(message); 
+        
+        // Refresh player stats to get updated rank
+        if (address && authenticatedFetch) {
+          try {
+            const statsResponse = await authenticatedFetch(`http://localhost:8000/api/game/stats/${address}`, {
+              method: 'GET',
+              requireAuth: false
+            });
+            if (statsResponse.ok) {
+              const statsData = await statsResponse.json();
+              if (statsData.success) {
+                setPlayerStats(statsData.data);
+                setCurrentRank(statsData.data.currentRank);
+              }
+            }
+          } catch (error) {
+            console.error('Failed to refresh player stats:', error);
+          }
+        }
         
         // Reset game after claiming
         resetGame();
@@ -560,7 +722,7 @@ export default function DinoGameClient() {
   };
 
   return (
-    <div className="relative flex flex-col h-[780px] bg-gradient-to-b from-slate-900 via-slate-900/20 to-black overflow-hidden">
+    <div className="relative flex flex-col h-screen bg-gradient-to-b from-slate-900 via-slate-900/20 to-black overflow-hidden">
       <InteractiveBackground />
       
       {/* Static gradient overlay for depth and readability */}
@@ -603,35 +765,76 @@ export default function DinoGameClient() {
             </Alert>
           )}
           
-          {/* Compact Stats Section */}
-          <div className="grid grid-cols-3 gap-1 sm:gap-2 md:gap-4 mb-3 mt-3">
+          {/* Enhanced Stats Section */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-2 mb-2 mt-2">
             <div className="relative group">
-              <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 border border-slate-700/50 hover:border-green-500/30 transition-all duration-300 backdrop-blur-sm">
+              <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-md p-2 border border-slate-700/50 hover:border-green-500/30 transition-all duration-300 backdrop-blur-sm">
                 <div className="relative z-10 text-center">
-                  <p className="text-xs text-gray-400 mb-1">Total XP</p>
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-green-400">{totalXP}</p>
+                  <p className="text-xs text-gray-400 mb-0.5">Total XP</p>
+                  <p className="text-sm sm:text-base font-bold text-green-400">{totalXP}</p>
                 </div>
               </div>
             </div>
             
             <div className="relative group">
-              <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 border border-slate-700/50 hover:border-orange-500/30 transition-all duration-300 backdrop-blur-sm">
+              <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-md p-2 border border-slate-700/50 hover:border-orange-500/30 transition-all duration-300 backdrop-blur-sm">
                 <div className="relative z-10 text-center">
-                  <p className="text-xs text-gray-400 mb-1">Score</p>
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-orange-400">{gameState.score}</p>
+                  <p className="text-xs text-gray-400 mb-0.5">Current Score</p>
+                  <p className="text-sm sm:text-base font-bold text-orange-400">{gameState.score}</p>
                 </div>
               </div>
             </div>
             
             <div className="relative group">
-              <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 border border-slate-700/50 hover:border-purple-500/30 transition-all duration-300 backdrop-blur-sm min-h-[100%]">
+              <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-md p-2 border border-slate-700/50 hover:border-blue-500/30 transition-all duration-300 backdrop-blur-sm">
                 <div className="relative z-10 text-center">
-                  <p className="text-xs text-gray-400 mb-1">Wallet</p>
-                  <p className="text-xs sm:text-sm md:text-base font-bold text-purple-400">{isConnected ? 'Connected' : 'Not Connected'}</p>
+                  <p className="text-xs text-gray-400 mb-0.5">High Score</p>
+                  <p className="text-sm sm:text-base font-bold text-blue-400">{playerStats?.highScore || 0}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="relative group">
+              <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-md p-2 border border-slate-700/50 hover:border-purple-500/30 transition-all duration-300 backdrop-blur-sm">
+                <div className="relative z-10 text-center">
+                  <p className="text-xs text-gray-400 mb-0.5">Rank</p>
+                  <p className="text-sm sm:text-base font-bold text-purple-400">#{currentRank}</p>
                 </div>
               </div>
             </div>
           </div>
+          
+          {/* Additional Stats Row */}
+          {playerStats && (
+            <div className="grid grid-cols-3 gap-1 sm:gap-2 mb-2">
+              <div className="relative group">
+                <div className="relative bg-gradient-to-br from-slate-800/30 to-slate-900/30 rounded-md p-1.5 border border-slate-700/30 backdrop-blur-sm">
+                  <div className="relative z-10 text-center">
+                    <p className="text-xs text-gray-400 mb-0.5">Games Played</p>
+                    <p className="text-xs sm:text-sm font-bold text-cyan-400">{playerStats.gamesPlayed}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="relative group">
+                <div className="relative bg-gradient-to-br from-slate-800/30 to-slate-900/30 rounded-md p-1.5 border border-slate-700/30 backdrop-blur-sm">
+                  <div className="relative z-10 text-center">
+                    <p className="text-xs text-gray-400 mb-0.5">Average Score</p>
+                    <p className="text-xs sm:text-sm font-bold text-yellow-400">{playerStats.averageScore}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="relative group">
+                <div className="relative bg-gradient-to-br from-slate-800/30 to-slate-900/30 rounded-md p-1.5 border border-slate-700/30 backdrop-blur-sm">
+                  <div className="relative z-10 text-center">
+                    <p className="text-xs text-gray-400 mb-0.5">Status</p>
+                    <p className="text-xs sm:text-sm font-bold text-emerald-400">{isConnected ? (isAuthenticated ? 'Ready' : 'Auth Needed') : 'Connect Wallet'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Game Container with Overlay Title */}
           <div className="relative group flex-shrink-0">
@@ -676,6 +879,16 @@ export default function DinoGameClient() {
                         >
                           📖 Rules
                         </Button>
+                        <Button 
+                          onClick={() => {
+                            setShowStatsModal(true);
+                            loadComprehensiveStats();
+                          }}
+                          variant="outline"
+                          className="border-white/20 hover:bg-white/10 text-xs sm:text-sm px-3 py-2"
+                        >
+                          📊 Stats
+                        </Button>
                       </div>
                     </div>
                   ) : isConnected && !isAuthenticated ? (
@@ -691,13 +904,25 @@ export default function DinoGameClient() {
                             }, 1000);
                           }}
                         />
-                        <Button 
-                          onClick={() => setShowRulesModal(true)}
-                          variant="outline"
-                          className="border-white/20 hover:bg-white/10 text-xs sm:text-sm px-3 py-2"
-                        >
-                          📖 Rules
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            onClick={() => setShowRulesModal(true)}
+                            variant="outline"
+                            className="border-white/20 hover:bg-white/10 text-xs sm:text-sm px-3 py-2"
+                          >
+                            📖 Rules
+                          </Button>
+                          <Button 
+                            onClick={() => {
+                              setShowStatsModal(true);
+                              loadComprehensiveStats();
+                            }}
+                            variant="outline"
+                            className="border-white/20 hover:bg-white/10 text-xs sm:text-sm px-3 py-2"
+                          >
+                            📊 Stats
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ) : isConnected && isAuthenticated && !gameState.isGameRunning && !gameState.isGameOver && gameStartCountdown === 0 ? (
@@ -713,13 +938,25 @@ export default function DinoGameClient() {
                         >
                           🌵 Start Desert Run
                         </Button>
-                        <Button 
-                          onClick={() => setShowRulesModal(true)}
-                          variant="outline"
-                          className="border-white/20 hover:bg-white/10 text-xs sm:text-sm px-3 py-2"
-                        >
-                          📖 Rules
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            onClick={() => setShowRulesModal(true)}
+                            variant="outline"
+                            className="border-white/20 hover:bg-white/10 text-xs sm:text-sm px-3 py-2"
+                          >
+                            📖 Rules
+                          </Button>
+                          <Button 
+                            onClick={() => {
+                              setShowStatsModal(true);
+                              loadComprehensiveStats();
+                            }}
+                            variant="outline"
+                            className="border-white/20 hover:bg-white/10 text-xs sm:text-sm px-3 py-2"
+                          >
+                            📊 Stats
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ) : gameStartCountdown > 0 ? (
@@ -758,6 +995,183 @@ export default function DinoGameClient() {
           </div>
         </div>
       </main>
+
+      {/* Game Stats Modal */}
+      {showStatsModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="relative bg-gradient-to-br from-slate-800/95 to-slate-900/95 rounded-2xl p-6 md:p-8 border border-slate-700/50 backdrop-blur-md shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-2xl"></div>
+            
+            <div className="relative z-10">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-bold text-white">📊 Game Statistics</h3>
+                <button
+                  onClick={() => setShowStatsModal(false)}
+                  className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {statsLoading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                  <p className="text-gray-400">Loading statistics...</p>
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {/* Debug/Troubleshooting Info */}
+                  {(!gameStats && !leaderboard.length) && !statsLoading && (
+                    <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-lg p-4 mb-6">
+                      <h4 className="text-yellow-400 font-semibold mb-2">🔧 Troubleshooting</h4>
+                      <p className="text-yellow-200 text-sm mb-2">
+                        No game data found. This could mean:
+                      </p>
+                      <ul className="text-yellow-200 text-sm space-y-1 ml-4">
+                        <li>• Backend server is not running</li>
+                        <li>• MongoDB is not connected</li>
+                        <li>• No games have been played yet</li>
+                        <li>• API endpoints are not responding</li>
+                      </ul>
+                      <p className="text-yellow-200 text-xs mt-3">
+                        Check the browser console for detailed error messages.
+                      </p>
+                    </div>
+                  )}
+
+
+                  <div className="grid md:grid-cols-2 gap-8">
+                    {/* Leaderboard */}
+                    <div>
+                      <h4 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                        🏆 Top Players
+                      </h4>
+                      <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg border border-slate-700/50 overflow-hidden">
+                        <div className="max-h-80 overflow-y-auto">
+                          {leaderboard.length > 0 ? (
+                            <div className="divide-y divide-slate-700/50">
+                              {leaderboard.map((player, index) => (
+                                <div key={player.walletAddress} className="p-4 hover:bg-slate-700/30 transition-colors">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                                      index === 0 ? 'bg-yellow-500 text-yellow-900' :
+                                      index === 1 ? 'bg-gray-400 text-gray-900' :
+                                      index === 2 ? 'bg-amber-600 text-amber-900' :
+                                      'bg-slate-600 text-slate-200'
+                                    }`}>
+                                      {index + 1}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-white font-medium truncate">
+                                        {player.walletAddress.slice(0, 6)}...{player.walletAddress.slice(-4)}
+                                      </p>
+                                      <p className="text-sm text-gray-400">
+                                        {player.totalXP} XP • {player.gamesPlayed} games
+                                      </p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-sm text-green-400 font-bold">{player.highScore}</p>
+                                      <p className="text-xs text-gray-500">High Score</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="p-8 text-center text-gray-400">
+                              <p className="mb-2">📊 No leaderboard data available</p>
+                              <p className="text-sm text-gray-500">
+                                {statsLoading ? 'Loading...' : 'Be the first to play and earn XP!'}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Player Personal Stats & History */}
+                    <div>
+                      <h4 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                        📈 {isAuthenticated ? 'Your Statistics' : 'Personal Stats'}
+                      </h4>
+                      
+                      {isAuthenticated && playerStats ? (
+                        <div className="space-y-4">
+                          {/* Personal Stats Summary */}
+                          <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg border border-slate-700/50 p-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <p className="text-gray-400 text-sm">Total XP</p>
+                                <p className="text-xl font-bold text-green-400">{playerStats.totalXP}</p>
+                              </div>
+                              <div>
+                                <p className="text-gray-400 text-sm">Rank</p>
+                                <p className="text-xl font-bold text-purple-400">#{currentRank}</p>
+                              </div>
+                              <div>
+                                <p className="text-gray-400 text-sm">High Score</p>
+                                <p className="text-xl font-bold text-blue-400">{playerStats.highScore}</p>
+                              </div>
+                              <div>
+                                <p className="text-gray-400 text-sm">Games Played</p>
+                                <p className="text-xl font-bold text-orange-400">{playerStats.gamesPlayed}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Recent Game History */}
+                          <div>
+                            <h5 className="text-lg font-semibold text-white mb-3">Recent Games</h5>
+                            <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg border border-slate-700/50 overflow-hidden">
+                              <div className="max-h-60 overflow-y-auto">
+                                {playerHistory.length > 0 ? (
+                                  <div className="divide-y divide-slate-700/50">
+                                    {playerHistory.map((game, index) => (
+                                      <div key={index} className="p-3 hover:bg-slate-700/30 transition-colors">
+                                        <div className="flex justify-between items-center">
+                                          <div>
+                                            <p className="text-white font-medium">Score: {game.score}</p>
+                                            <p className="text-sm text-gray-400">
+                                              {new Date(game.timestamp).toLocaleDateString()} • {game.gameType}
+                                            </p>
+                                          </div>
+                                          <div className="text-right">
+                                            <p className="text-green-400 font-bold">+{game.xpEarned} XP</p>
+                                            <p className="text-xs text-gray-500">{game.difficulty}</p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="p-6 text-center text-gray-400">
+                                    No game history available
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg border border-slate-700/50 p-8 text-center">
+                          <p className="text-gray-400 mb-4">
+                            {isAuthenticated ? 'Play your first game to see your statistics!' : 'Connect and authenticate your wallet to see your personal statistics and game history.'}
+                          </p>
+                          {!isAuthenticated && (
+                            <WalletConnectButton />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Rules Modal */}
       {showRulesModal && (

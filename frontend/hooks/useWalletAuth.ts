@@ -61,11 +61,10 @@ export function useWalletAuth() {
             addressMatches,
             storedAddress: parsed.walletAddress,
             currentAddress: address?.toLowerCase(),
-            expiresAt: parsed.expiresAt,
-            currentAuthState: authState.isAuthenticated
+            expiresAt: parsed.expiresAt
           });
           
-          if (!isExpired && addressMatches && !authState.isAuthenticated) {
+          if (!isExpired && addressMatches) {
             console.log('Restoring auth state from localStorage');
             setAuthState({
               isAuthenticated: true,
@@ -75,50 +74,71 @@ export function useWalletAuth() {
               walletAddress: parsed.walletAddress,
               expiresAt: parsed.expiresAt,
             });
-          } else if (isExpired || !addressMatches) {
+          } else {
             // Clear expired or mismatched session
-            console.log('Clearing invalid auth state');
+            if (isExpired) {
+              console.log('Clearing expired auth session');
+            } else if (!addressMatches) {
+              console.log('Clearing auth session - wallet address mismatch:', {
+                stored: parsed.walletAddress,
+                current: address?.toLowerCase()
+              });
+            }
             localStorage.removeItem('wallet-auth');
-            setAuthState(prev => ({
-              ...prev,
+            setAuthState({
               isAuthenticated: false,
+              isLoading: false,
+              error: null,
               sessionId: null,
               walletAddress: null,
               expiresAt: null,
-            }));
+            });
           }
-        } else if (!storedAuth && authState.isAuthenticated) {
-          // Clear auth state if no stored auth but currently authenticated
-          console.log('No stored auth found, clearing auth state');
-          setAuthState(prev => ({
-            ...prev,
+        } else if (storedAuth && !address) {
+          // Wallet disconnected but stored auth exists
+          console.log('Wallet disconnected but stored auth exists, clearing...');
+          localStorage.removeItem('wallet-auth');
+          setAuthState({
             isAuthenticated: false,
+            isLoading: false,
+            error: null,
             sessionId: null,
             walletAddress: null,
             expiresAt: null,
-          }));
+          });
+        } else if (!storedAuth && (authState.isAuthenticated || authState.sessionId)) {
+          // No stored auth but state shows authenticated - clear state
+          console.log('No stored auth found but state shows authenticated, clearing auth state');
+          setAuthState({
+            isAuthenticated: false,
+            isLoading: false,
+            error: null,
+            sessionId: null,
+            walletAddress: null,
+            expiresAt: null,
+          });
         }
       } catch (error) {
         console.error('Error loading auth state:', error);
         localStorage.removeItem('wallet-auth');
-        setAuthState(prev => ({
-          ...prev,
+        setAuthState({
           isAuthenticated: false,
+          isLoading: false,
+          error: null,
           sessionId: null,
           walletAddress: null,
           expiresAt: null,
-        }));
+        });
       }
     };
 
-    if (isConnected && address) {
-      loadAuthState();
-    }
+    loadAuthState();
   }, [address, isConnected]);
 
   // Clear auth state when wallet disconnects
   useEffect(() => {
     if (!isConnected) {
+      console.log('Wallet disconnected, clearing auth state');
       setAuthState({
         isAuthenticated: false,
         isLoading: false,
@@ -130,6 +150,32 @@ export function useWalletAuth() {
       localStorage.removeItem('wallet-auth');
     }
   }, [isConnected]);
+
+  // Additional check for wallet address changes while authenticated
+  useEffect(() => {
+    if (isConnected && address && authState.isAuthenticated && authState.walletAddress) {
+      const currentAddress = address.toLowerCase();
+      const authenticatedAddress = authState.walletAddress.toLowerCase();
+      
+      if (currentAddress !== authenticatedAddress) {
+        console.log('Wallet address changed while authenticated, clearing session:', {
+          previous: authenticatedAddress,
+          current: currentAddress
+        });
+        
+        // Clear authentication state immediately
+        setAuthState({
+          isAuthenticated: false,
+          isLoading: false,
+          error: 'Wallet changed - please re-authenticate',
+          sessionId: null,
+          walletAddress: null,
+          expiresAt: null,
+        });
+        localStorage.removeItem('wallet-auth');
+      }
+    }
+  }, [address, isConnected, authState.isAuthenticated, authState.walletAddress]);
 
   const requestAuthMessage = useCallback(async (): Promise<AuthMessage> => {
     const response = await fetch(`${BACKEND_SERVICE_URL}/api/auth/request-message`, {
