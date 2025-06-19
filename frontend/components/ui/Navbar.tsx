@@ -84,7 +84,7 @@ export default function Navbar() {
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           {/* Logo */}
           <div className="text-white font-bold text-xl">
-            <Link href="/" onClick={closeMobileMenu}>Denso.fi</Link>
+            <Link href="/" onClick={closeMobileMenu}>Densofi</Link>
           </div>
 
           {/* Desktop Navigation */}
