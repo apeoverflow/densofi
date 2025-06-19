@@ -22,7 +22,7 @@ export const CHAIN_CONFIGS = {
 } as const;
 
 // Legacy Sepolia addresses (for backward compatibility)
-export const LEGACY_SEPOLIA_ADDRESSES = addressesSepolia;
+export const LEGACY_CONTRACT_ADDRESSES = addressesSepolia;
 
 // Contract ABIs
 export const ABIS = {

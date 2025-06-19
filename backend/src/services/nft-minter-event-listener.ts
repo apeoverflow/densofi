@@ -1,6 +1,6 @@
 import { parseAbiItem } from 'viem';
 import { publicClient } from './viem-client.js';
-import { SEPOLIA_ADDRESSES, NFT_MINTER_ABI } from '../config/contracts.js';
+import { CONTRACT_ADDRESSES, NFT_MINTER_ABI } from '../config/contracts.js';
 import { ENV } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 import { DomainService } from './domain-service.js';
@@ -145,10 +145,16 @@ class NFTMinterEventListener {
       return;
     }
 
+    if (!('addresses' in CONTRACT_ADDRESSES) || !CONTRACT_ADDRESSES.addresses?.nftMinter) {
+      throw new Error('NFT Minter contract address not configured');
+    }
+
+    const contractAddress = CONTRACT_ADDRESSES.addresses.nftMinter as `0x${string}`;
+
     try {
       // Watch for NFTMinted events
       this.unwatchNFTMinted = publicClient.watchEvent({
-        address: SEPOLIA_ADDRESSES.NFTMinter,
+        address: contractAddress,
         event: parseAbiItem('event NFTMinted(uint256 indexed tokenId, address indexed to, bytes32 domainNameHash, string domainName)'),
         pollingInterval: ENV.POLLING_INTERVAL,
         onLogs: (logs) => {
@@ -166,7 +172,7 @@ class NFTMinterEventListener {
 
       // Watch for DomainOwnerSet events
       this.unwatchDomainOwnerSet = publicClient.watchEvent({
-        address: SEPOLIA_ADDRESSES.NFTMinter,
+        address: contractAddress,
         event: parseAbiItem('event DomainOwnerSet(bytes32 indexed domainNameHash, address owner, string domainName)'),
         pollingInterval: ENV.POLLING_INTERVAL,
         onLogs: (logs) => {
@@ -184,7 +190,7 @@ class NFTMinterEventListener {
 
       // Watch for DomainMintableStatusSet events
       this.unwatchDomainMintableStatusSet = publicClient.watchEvent({
-        address: SEPOLIA_ADDRESSES.NFTMinter,
+        address: contractAddress,
         event: parseAbiItem('event DomainMintableStatusSet(bytes32 indexed domainNameHash, bool isMintable, string domainName)'),
         pollingInterval: ENV.POLLING_INTERVAL,
         onLogs: (logs) => {
@@ -202,7 +208,7 @@ class NFTMinterEventListener {
 
       // Watch for DomainNFTMintedStatusSet events
       this.unwatchDomainNFTMintedStatusSet = publicClient.watchEvent({
-        address: SEPOLIA_ADDRESSES.NFTMinter,
+        address: contractAddress,
         event: parseAbiItem('event DomainNFTMintedStatusSet(bytes32 indexed domainNameHash, bool isMinted, string domainName)'),
         pollingInterval: ENV.POLLING_INTERVAL,
         onLogs: (logs) => {
@@ -219,7 +225,7 @@ class NFTMinterEventListener {
       });
 
       this.isListening = true;
-      logger.info(`🎧 Started listening for NFT minter events on contract: ${SEPOLIA_ADDRESSES.NFTMinter}`);
+      logger.info(`🎧 Started listening for NFT minter events on contract: ${contractAddress}`);
       logger.info(`📊 Polling interval: ${ENV.POLLING_INTERVAL}ms`);
 
     } catch (error) {

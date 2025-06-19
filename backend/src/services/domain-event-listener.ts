@@ -1,6 +1,6 @@
 import { parseAbiItem, formatEther } from 'viem';
 import { publicClient } from './viem-client.js';
-import { SEPOLIA_ADDRESSES, DOMAIN_REGISTRATION_ABI } from '../config/contracts.js';
+import { CONTRACT_ADDRESSES, DOMAIN_REGISTRATION_ABI } from '../config/contracts.js';
 import { ENV } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 import { DomainService } from './domain-service.js';
@@ -76,10 +76,16 @@ class DomainEventListener {
       return;
     }
 
+    if (!('addresses' in CONTRACT_ADDRESSES) || !CONTRACT_ADDRESSES.addresses?.domainRegistration) {
+      throw new Error('Domain Registration contract address not configured');
+    }
+
+    const contractAddress = CONTRACT_ADDRESSES.addresses.domainRegistration as `0x${string}`;
+
     try {
       // Watch for RegistrationRequested events
       this.unwatchRegistration = publicClient.watchEvent({
-        address: SEPOLIA_ADDRESSES.DomainRegistration,
+        address: contractAddress,
         event: parseAbiItem('event RegistrationRequested(string domainName, address requester, uint256 fee)'),
         pollingInterval: ENV.POLLING_INTERVAL,
         onLogs: (logs) => {
@@ -97,7 +103,7 @@ class DomainEventListener {
 
       // Watch for OwnershipUpdateRequested events
       this.unwatchOwnershipUpdate = publicClient.watchEvent({
-        address: SEPOLIA_ADDRESSES.DomainRegistration,
+        address: contractAddress,
         event: parseAbiItem('event OwnershipUpdateRequested(string domainName, address requester, uint256 fee)'),
         pollingInterval: ENV.POLLING_INTERVAL,
         onLogs: (logs) => {
@@ -114,7 +120,7 @@ class DomainEventListener {
       });
 
       this.isListening = true;
-      logger.info(`🎧 Started listening for domain registration events on contract: ${SEPOLIA_ADDRESSES.DomainRegistration}`);
+      logger.info(`🎧 Started listening for domain registration events on contract: ${contractAddress}`);
       logger.info(`📊 Polling interval: ${ENV.POLLING_INTERVAL}ms`);
 
     } catch (error) {

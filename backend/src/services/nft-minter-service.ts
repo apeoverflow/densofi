@@ -1,6 +1,6 @@
 import { type Address, type Hex } from 'viem';
 import { WalletService } from './wallet-service.js';
-import {SEPOLIA_ADDRESSES} from '../config/contracts.js';
+import {CONTRACT_ADDRESSES} from '../config/contracts.js';
 import { logger } from '../utils/logger.js';
 
 // NFTMinter contract ABI - focusing on the functions we need
@@ -17,11 +17,11 @@ export class NFTMinterService {
       // Make sure WalletService is initialized
       await WalletService.initialize();
 
-      if (!SEPOLIA_ADDRESSES.NFTMinter) {
-        throw new Error('domain  environment variable is required');
+      if (!('addresses' in CONTRACT_ADDRESSES) || !CONTRACT_ADDRESSES.addresses?.nftMinter) {
+        throw new Error('NFTMinter contract address is required');
       }
 
-      this.contractAddress = SEPOLIA_ADDRESSES.NFTMinter as Address;
+      this.contractAddress = CONTRACT_ADDRESSES.addresses.nftMinter as Address;
 
       logger.info('✅ NFTMinter service initialized successfully');
       logger.info(`   Contract: ${this.contractAddress}`);

@@ -44,11 +44,6 @@ const addresses11155111 = {
   }
 } as const;
 
-const addressesSepolia = {
-  "DomainRegistration": "0x2544b5d7aAe9A75D37D94aB015998de847386C10",
-  "NFTMinter": "0x53b02Ee79D1B7a69D25C0DAdC59CBaF5241D2Dd0",
-  "TokenMinter": "0x2a3D9095ffFCaF9DfA57D1b17D69aEFb449eEd0c"
-} as const;
 
 // Supported chain IDs for backend operations
 export const SUPPORTED_CHAIN_IDS = [747, 11155111] as const;
@@ -59,9 +54,6 @@ export const CHAIN_CONFIGS = {
   747: addresses747,
   11155111: addresses11155111,
 } as const;
-
-// Legacy Sepolia addresses (for backward compatibility during migration)
-export const LEGACY_SEPOLIA_ADDRESSES = addressesSepolia;
 
 // Export ABIs
 export { DOMAIN_REGISTRATION_ABI, NFT_MINTER_ABI };
