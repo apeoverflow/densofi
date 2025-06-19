@@ -516,4 +516,186 @@ router.get('/debug/wallet-auth', (req, res) => {
   }
 });
 
+/**
+ * Submit game XP score
+ * Requires wallet authentication
+ */
+router.post('/game/submit-xp', optionalWalletAuth, async (req: WalletAuthenticatedRequest, res) => {
+  try {
+    const { score, gameType = 'dino-runner', difficulty = 'normal' } = req.body;
+    
+    if (!req.wallet) {
+      return res.status(401).json({
+        success: false,
+        error: 'Wallet authentication required'
+      });
+    }
+    
+    if (typeof score !== 'number' || score < 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid score: must be a non-negative number'
+      });
+    }
+
+    // Calculate XP based on score (1 XP per 100 points)
+    const xpEarned = Math.floor(score / 100);
+    
+    if (xpEarned === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Score too low: minimum 100 points required to earn XP'
+      });
+    }
+
+    const walletAddress = req.wallet.walletAddress;
+    const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+    const userAgent = req.get('User-Agent');
+    const timestamp = new Date().toISOString();
+
+    // Log the XP submission
+    logger.info(`XP submission: ${walletAddress} earned ${xpEarned} XP (score: ${score}, game: ${gameType})`, {
+      walletAddress,
+      score,
+      xpEarned,
+      gameType,
+      difficulty,
+      ipAddress,
+      userAgent,
+      timestamp
+    });
+
+    // For now, we'll just return the calculated XP
+    // In a full implementation, you'd save this to a database
+    const response = {
+      success: true,
+      data: {
+        walletAddress,
+        score,
+        xpEarned,
+        gameType,
+        difficulty,
+        timestamp,
+        message: `Successfully earned ${xpEarned} XP!`
+      }
+    };
+
+    res.json(response);
+    
+  } catch (error) {
+    logger.error('Error submitting game XP:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to submit XP score'
+    });
+  }
+});
+
+/**
+ * Get player XP leaderboard
+ * Public endpoint
+ */
+router.get('/game/leaderboard', async (req, res) => {
+  try {
+    // For now, return a placeholder response
+    // In a full implementation, you'd query from database
+    const leaderboard = [
+      {
+        rank: 1,
+        walletAddress: '0x742d35Cc6cBB8B4E03F0B3A9DFaEbB4f13A3A7b3',
+        totalXP: 2500,
+        gamesPlayed: 25,
+        highScore: 15400,
+        lastPlayed: '2024-01-15T10:30:00Z'
+      },
+      {
+        rank: 2,
+        walletAddress: '0x3e7Bf2F8a9B1C5D4E6F8G2H4I6J8K0L2M4N6O8P0',
+        totalXP: 2100,
+        gamesPlayed: 21,
+        highScore: 12800,
+        lastPlayed: '2024-01-15T09:15:00Z'
+      }
+    ];
+
+    res.json({
+      success: true,
+      data: {
+        leaderboard,
+        totalPlayers: leaderboard.length,
+        lastUpdated: new Date().toISOString()
+      }
+    });
+    
+  } catch (error) {
+    logger.error('Error fetching leaderboard:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch leaderboard'
+    });
+  }
+});
+
+/**
+ * Get player stats
+ * Requires wallet authentication or admin override
+ */
+router.get('/game/stats/:address?', optionalWalletAuth, async (req: WalletAuthenticatedRequest, res) => {
+  try {
+    const requestedAddress = req.params.address;
+    const authenticatedAddress = req.wallet?.walletAddress;
+    const isAdmin = req.isAdminAuthenticated;
+
+    // Determine which address to get stats for
+    let targetAddress: string;
+    
+    if (requestedAddress) {
+      // If a specific address is requested, check permissions
+      if (!isAdmin && authenticatedAddress !== requestedAddress.toLowerCase()) {
+        return res.status(403).json({
+          success: false,
+          error: 'Can only view your own stats unless admin'
+        });
+      }
+      targetAddress = requestedAddress;
+    } else {
+      // No specific address requested, use authenticated wallet
+      if (!authenticatedAddress) {
+        return res.status(401).json({
+          success: false,
+          error: 'Wallet authentication required to view stats'
+        });
+      }
+      targetAddress = authenticatedAddress;
+    }
+
+    // For now, return placeholder stats
+    // In a full implementation, you'd query from database
+    const stats = {
+      walletAddress: targetAddress,
+      totalXP: 1250,
+      gamesPlayed: 15,
+      highScore: 8900,
+      averageScore: 593,
+      totalPlayTime: '2h 45m',
+      achievementsUnlocked: 3,
+      currentRank: 5,
+      lastPlayed: '2024-01-15T08:30:00Z',
+      createdAt: '2024-01-10T15:20:00Z'
+    };
+
+    res.json({
+      success: true,
+      data: stats
+    });
+    
+  } catch (error) {
+    logger.error('Error fetching player stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch player stats'
+    });
+  }
+});
+
 export { router as domainRoutes }; 

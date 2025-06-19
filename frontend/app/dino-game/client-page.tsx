@@ -5,6 +5,10 @@ import { useAccount, useSignMessage } from 'wagmi';
 import { Button } from "@/components/ui/button";
 import { WalletConnectButton } from "@/components/WalletConnectButton";
 import { InteractiveBackground } from "@/components/ui/InteractiveBackground";
+import { WalletAuthButton } from "@/components/WalletAuthButton";
+import { useWalletAuth } from "@/hooks/useWalletAuth";
+import { useAuthenticatedFetch } from "@/hooks/useAuthenticatedFetch";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Obstacle {
   x: number;
@@ -49,10 +53,18 @@ const GROUND_HEIGHT = GAME_HEIGHT + 20;
 export default function DinoGameClient() {
   const { address, isConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
+  const { isAuthenticated, error: authError, isLoading: authLoading, sessionId, forceRefreshAuthState } = useWalletAuth();
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('DinoGame auth state:', { isConnected, isAuthenticated, authError, authLoading });
+  }, [isConnected, isAuthenticated, authError, authLoading]);
+  const authenticatedFetch = useAuthenticatedFetch();
   const [gameState, setGameState] = useState<GameState>(INITIAL_GAME_STATE);
   const [keys, setKeys] = useState<Set<string>>(new Set<string>());
   const [totalXP, setTotalXP] = useState(0);
   const [isClaimingXP, setIsClaimingXP] = useState(false);
+  const [xpSubmissionResult, setXpSubmissionResult] = useState<string | null>(null);
   const gameLoopRef = useRef<number | undefined>(undefined);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const spriteImageRef = useRef<HTMLImageElement | null>(null);
@@ -196,7 +208,11 @@ export default function DinoGameClient() {
 
   // Start game with countdown
   const startGame = useCallback(() => {
-    if (!isConnected) return;
+    console.log('startGame called with:', { isConnected, isAuthenticated });
+    if (!isConnected || !isAuthenticated) {
+      console.log('Cannot start game - wallet not connected or not authenticated');
+      return;
+    }
     
     setGameStartCountdown(3);
     setAnimationFrame(0);
@@ -217,7 +233,13 @@ export default function DinoGameClient() {
         return prev - 1;
       });
     }, 1000);
-  }, [isConnected]);
+  }, [isConnected, isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('User is now authenticated, they should be able to start the game');
+    }
+  }, [isAuthenticated]);
 
   // Reset game
   const resetGame = useCallback(() => {
@@ -491,22 +513,47 @@ export default function DinoGameClient() {
     if (!isConnected || !address || gameState.score === 0) return;
 
     setIsClaimingXP(true);
+    setXpSubmissionResult(null);
+    
     try {
-      const xpAmount = Math.floor(gameState.score / 100); // 1 XP per 100 points
-      const message = `Claiming ${xpAmount} XP for Densofi Dino Game. Score: ${gameState.score}. Address: ${address}. Timestamp: ${Date.now()}`;
+      if (!isAuthenticated) {
+        alert('Please authenticate your wallet first!');
+        return;
+      }
+
+      // Submit XP to backend
+      const response = await authenticatedFetch('/api/game/submit-xp', {
+        method: 'POST',
+        requireAuth: true,
+        body: JSON.stringify({
+          score: gameState.score,
+          gameType: 'dino-runner',
+          difficulty: 'normal'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to submit XP');
+      }
+
+      const result = await response.json();
       
-      await signMessageAsync({ message });
+      if (result.success) {
+        const xpEarned = result.data.xpEarned;
+        setTotalXP(prev => prev + xpEarned);
+        setXpSubmissionResult(`Successfully earned ${xpEarned} XP! Total: ${totalXP + xpEarned}`);
+        
+        // Reset game after claiming
+        resetGame();
+      } else {
+        throw new Error(result.error || 'Failed to submit XP');
+      }
       
-      // Simulate XP being added to account
-      setTotalXP(prev => prev + xpAmount);
-      
-      // Reset game after claiming
-      resetGame();
-      
-      alert(`Successfully claimed ${xpAmount} XP!`);
     } catch (error) {
       console.error('Failed to claim XP:', error);
-      alert('Failed to claim XP. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to claim XP. Please try again.';
+      setXpSubmissionResult(`Error: ${errorMessage}`);
     } finally {
       setIsClaimingXP(false);
     }
@@ -530,6 +577,31 @@ export default function DinoGameClient() {
       
       <main className="relative z-20 flex-grow flex flex-col">
         <div className="container mx-auto px-2 sm:px-4 max-w-5xl py-4 sm:py-6 lg:py-8">
+          
+
+
+          {/* Authentication Status Alert */}
+          {authError && (
+            <Alert className="mb-4 border-red-500/50 bg-red-900/20">
+              <AlertDescription className="text-red-400">
+                Authentication Error: {authError}
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {xpSubmissionResult && (
+            <Alert className={`mb-4 ${xpSubmissionResult.startsWith('Error:') 
+              ? 'border-red-500/50 bg-red-900/20' 
+              : 'border-green-500/50 bg-green-900/20'
+            }`}>
+              <AlertDescription className={xpSubmissionResult.startsWith('Error:') 
+                ? 'text-red-400' 
+                : 'text-green-400'
+              }>
+                {xpSubmissionResult}
+              </AlertDescription>
+            </Alert>
+          )}
           
           {/* Compact Stats Section */}
           <div className="grid grid-cols-3 gap-1 sm:gap-2 md:gap-4 mb-3 mt-3">
@@ -606,9 +678,34 @@ export default function DinoGameClient() {
                         </Button>
                       </div>
                     </div>
-                  ) : !gameState.isGameRunning && !gameState.isGameOver && gameStartCountdown === 0 ? (
+                  ) : isConnected && !isAuthenticated ? (
+                    <div className="space-y-3">
+                      <p className="text-gray-300 text-sm px-2">Authenticate your wallet to play and earn XP!</p>
+                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center items-center">
+                        <WalletAuthButton 
+                          onAuthSuccess={() => {
+                            console.log('Auth success callback triggered');
+                            // Additional refresh after 1 second if needed
+                            setTimeout(() => {
+                              forceRefreshAuthState();
+                            }, 1000);
+                          }}
+                        />
+                        <Button 
+                          onClick={() => setShowRulesModal(true)}
+                          variant="outline"
+                          className="border-white/20 hover:bg-white/10 text-xs sm:text-sm px-3 py-2"
+                        >
+                          📖 Rules
+                        </Button>
+                      </div>
+                    </div>
+                  ) : isConnected && isAuthenticated && !gameState.isGameRunning && !gameState.isGameOver && gameStartCountdown === 0 ? (
                     <div className="space-y-3">
                       <p className="text-xs sm:text-sm text-gray-400 px-2">TAP SCREEN, SPACE or ↑ to jump • Press again for DOUBLE JUMP</p>
+                      <div className="text-xs text-center text-green-400 mb-2">
+                        ✅ Wallet Connected & Authenticated - Ready to Play!
+                      </div>
                       <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center items-center">
                         <Button 
                           onClick={startGame}
@@ -647,7 +744,7 @@ export default function DinoGameClient() {
                             disabled={isClaimingXP}
                             className="bg-gradient-to-r from-purple-500 to-pink-600 hover:brightness-110 hover:shadow-lg hover:shadow-purple-500/25 transition-all text-sm px-4 py-2"
                           >
-                            {isClaimingXP ? 'Claiming...' : `Claim ${Math.floor(gameState.score / 100)} XP`}
+                            {isClaimingXP ? 'Submitting...' : `Claim ${Math.floor(gameState.score / 100)} XP`}
                           </Button>
                         )}
                       </div>
@@ -716,11 +813,11 @@ export default function DinoGameClient() {
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-purple-400 mt-1">•</span>
-                      <span>Sign wallet transaction to claim XP</span>
+                      <span>XP submitted to authenticated backend</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-purple-400 mt-1">•</span>
-                      <span>Wallet connection required to play</span>
+                      <span>Wallet authentication required to play</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-purple-400 mt-1">•</span>

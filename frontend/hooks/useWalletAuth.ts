@@ -38,17 +38,35 @@ export function useWalletAuth() {
     expiresAt: null,
   });
 
-  // Load authentication state from localStorage on mount
+  // Load authentication state from localStorage on mount and when address changes
   useEffect(() => {
     const loadAuthState = () => {
       try {
         const storedAuth = localStorage.getItem('wallet-auth');
-        if (storedAuth) {
+        console.log('Loading auth state:', { 
+          hasStoredAuth: !!storedAuth, 
+          address: address?.toLowerCase(),
+          isConnected 
+        });
+        
+        if (storedAuth && address) {
           const parsed = JSON.parse(storedAuth);
           
           // Check if the session is still valid and matches current wallet
-          if (parsed.expiresAt && new Date(parsed.expiresAt) > new Date() && 
-              parsed.walletAddress === address?.toLowerCase()) {
+          const isExpired = !parsed.expiresAt || new Date(parsed.expiresAt) <= new Date();
+          const addressMatches = parsed.walletAddress === address?.toLowerCase();
+          
+          console.log('Auth state check:', {
+            isExpired,
+            addressMatches,
+            storedAddress: parsed.walletAddress,
+            currentAddress: address?.toLowerCase(),
+            expiresAt: parsed.expiresAt,
+            currentAuthState: authState.isAuthenticated
+          });
+          
+          if (!isExpired && addressMatches && !authState.isAuthenticated) {
+            console.log('Restoring auth state from localStorage');
             setAuthState({
               isAuthenticated: true,
               isLoading: false,
@@ -57,19 +75,46 @@ export function useWalletAuth() {
               walletAddress: parsed.walletAddress,
               expiresAt: parsed.expiresAt,
             });
-          } else {
+          } else if (isExpired || !addressMatches) {
             // Clear expired or mismatched session
+            console.log('Clearing invalid auth state');
             localStorage.removeItem('wallet-auth');
+            setAuthState(prev => ({
+              ...prev,
+              isAuthenticated: false,
+              sessionId: null,
+              walletAddress: null,
+              expiresAt: null,
+            }));
           }
+        } else if (!storedAuth && authState.isAuthenticated) {
+          // Clear auth state if no stored auth but currently authenticated
+          console.log('No stored auth found, clearing auth state');
+          setAuthState(prev => ({
+            ...prev,
+            isAuthenticated: false,
+            sessionId: null,
+            walletAddress: null,
+            expiresAt: null,
+          }));
         }
       } catch (error) {
         console.error('Error loading auth state:', error);
         localStorage.removeItem('wallet-auth');
+        setAuthState(prev => ({
+          ...prev,
+          isAuthenticated: false,
+          sessionId: null,
+          walletAddress: null,
+          expiresAt: null,
+        }));
       }
     };
 
-    loadAuthState();
-  }, [address]);
+    if (isConnected && address) {
+      loadAuthState();
+    }
+  }, [address, isConnected]);
 
   // Clear auth state when wallet disconnects
   useEffect(() => {
@@ -170,6 +215,7 @@ export function useWalletAuth() {
         expiresAt: authResult.expiresAt,
       };
 
+      console.log('Setting new auth state:', newAuthState);
       setAuthState(newAuthState);
 
       // Persist to localStorage
@@ -178,6 +224,33 @@ export function useWalletAuth() {
         walletAddress: authResult.walletAddress,
         expiresAt: authResult.expiresAt,
       }));
+
+      // Force refresh auth state after a short delay to ensure all components sync
+      setTimeout(() => {
+        console.log('Auto-refreshing auth state after authentication...');
+        const storedAuth = localStorage.getItem('wallet-auth');
+        if (storedAuth && address) {
+          try {
+            const parsed = JSON.parse(storedAuth);
+            const isExpired = !parsed.expiresAt || new Date(parsed.expiresAt) <= new Date();
+            const addressMatches = parsed.walletAddress === address?.toLowerCase();
+            
+            if (!isExpired && addressMatches) {
+              console.log('Auto-refresh: Setting auth state to authenticated');
+              setAuthState({
+                isAuthenticated: true,
+                isLoading: false,
+                error: null,
+                sessionId: parsed.sessionId,
+                walletAddress: parsed.walletAddress,
+                expiresAt: parsed.expiresAt,
+              });
+            }
+          } catch (error) {
+            console.error('Error in auto-refresh:', error);
+          }
+        }
+      }, 500); // 500ms delay to ensure state propagation
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
@@ -203,6 +276,36 @@ export function useWalletAuth() {
     localStorage.removeItem('wallet-auth');
   }, []);
 
+  const forceRefreshAuthState = useCallback(() => {
+    console.log('Force refreshing auth state...');
+    const storedAuth = localStorage.getItem('wallet-auth');
+    console.log('Current stored auth:', storedAuth);
+    console.log('Current address:', address);
+    console.log('Current auth state:', authState);
+    
+    if (storedAuth && address) {
+      try {
+        const parsed = JSON.parse(storedAuth);
+        const isExpired = !parsed.expiresAt || new Date(parsed.expiresAt) <= new Date();
+        const addressMatches = parsed.walletAddress === address?.toLowerCase();
+        
+        if (!isExpired && addressMatches) {
+          console.log('Force setting auth state to authenticated');
+          setAuthState({
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+            sessionId: parsed.sessionId,
+            walletAddress: parsed.walletAddress,
+            expiresAt: parsed.expiresAt,
+          });
+        }
+      } catch (error) {
+        console.error('Error in force refresh:', error);
+      }
+    }
+  }, [address, authState]);
+
   const getAuthHeaders = useCallback(() => {
     if (!authState.sessionId) {
       return {};
@@ -220,6 +323,7 @@ export function useWalletAuth() {
     ...authState,
     authenticate,
     logout,
+    forceRefreshAuthState,
     getAuthHeaders,
     needsAuthentication,
     isWalletConnected: isConnected,
