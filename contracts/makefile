@@ -73,7 +73,37 @@ verify-sepolia: check-env-sepolia
 		exit 1; \
 	fi
 	@echo "Verifying contracts on Sepolia..."
-	@forge script script/DeployContracts.s.sol --rpc-url $(SEPOLIA_RPC_URL) --verify --etherscan-api-key $(ETHERSCAN_API_KEY)
+	@echo "Reading deployment addresses from deployment-addresses/11155111-addresses.json"
+	@echo ""
+	@echo "Verifying DomainRegistration contract..."
+	@forge verify-contract \
+		--rpc-url $(SEPOLIA_RPC_URL) \
+		--etherscan-api-key $(ETHERSCAN_API_KEY) \
+		$$(cat deployment-addresses/11155111-addresses.json | jq -r '.addresses.domainRegistration') \
+		src/DomainRegistration.sol:DomainRegistration
+	@echo ""
+	@echo "Verifying NFTMinter contract..."
+	@forge verify-contract \
+		--rpc-url $(SEPOLIA_RPC_URL) \
+		--etherscan-api-key $(ETHERSCAN_API_KEY) \
+		$$(cat deployment-addresses/11155111-addresses.json | jq -r '.addresses.nftMinter') \
+		src/NFTMinter.sol:NFTMinter
+	@echo ""
+	@echo "Verifying TokenMinter contract..."
+	@forge verify-contract \
+		--rpc-url $(SEPOLIA_RPC_URL) \
+		--etherscan-api-key $(ETHERSCAN_API_KEY) \
+		$$(cat deployment-addresses/11155111-addresses.json | jq -r '.addresses.tokenMinter') \
+		src/TokenMinter.sol:TokenMinter
+	@echo ""
+	@echo "Verifying DensoFiLaunchpad contract..."
+	@forge verify-contract \
+		--rpc-url $(SEPOLIA_RPC_URL) \
+		--etherscan-api-key $(ETHERSCAN_API_KEY) \
+		$$(cat deployment-addresses/11155111-addresses.json | jq -r '.addresses.launchpad') \
+		src/DensofiLaunchpad.sol:DensoFiLaunchpad
+	@echo ""
+	@echo "All contracts verified on Sepolia!"
 
 # Verify contracts on Flow
 verify-flow: check-env-flow
