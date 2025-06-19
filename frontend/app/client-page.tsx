@@ -373,48 +373,48 @@ export default function ClientPage() {
                       <table className="w-full text-left table-auto border-collapse">
                         <thead>
                           <tr className="bg-white/5">
-                            <th className="p-4 text-white font-semibold rounded-tl-lg">Feature</th>
-                            <th className="p-4 text-white font-semibold">3DNS</th>
-                            <th className="p-4 text-white font-semibold">NameFi</th>
-                            <th className="p-4 text-white font-semibold rounded-tr-lg">Densofi</th>
+                            <th className="p-2 text-sm md:p-4 md:text-base text-white font-semibold rounded-tl-lg">Feature</th>
+                            <th className="p-2 text-sm md:p-4 md:text-base text-white font-semibold">3DNS</th>
+                            <th className="p-2 text-sm md:p-4 md:text-base text-white font-semibold">NameFi</th>
+                            <th className="p-2 text-sm md:p-4 md:text-base text-white font-semibold rounded-tr-lg">Densofi</th>
                           </tr>
                         </thead>
                         <tbody>
                           <tr className="border-t border-white/5 transition-colors duration-300">
-                            <td className="p-4 text-gray-300">NFT minting</td>
-                            <td className="p-4 text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.7)]">&#10003;</td>
-                            <td className="p-4 text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.7)]">&#10003;</td>
-                            <td className="p-4 text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.7)]">&#10003;</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-gray-300">NFT minting</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.7)]">&#10003;</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.7)]">&#10003;</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.7)]">&#10003;</td>
                           </tr>
                           <tr className="border-t border-white/5 transition-colors duration-300">
-                            <td className="p-4 text-gray-300">ERC20 fractional tokens</td>
-                            <td className="p-4 text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]">&#10006;</td>
-                            <td className="p-4 text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]">&#10006;</td>
-                            <td className="p-4 text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.7)]">&#10003;</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-gray-300">ERC20 fractional tokens</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]">&#10006;</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]">&#10006;</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.7)]">&#10003;</td>
                           </tr>
                           <tr className="border-t border-white/5  transition-colors duration-300">
-                            <td className="p-4 text-gray-300">Cross-chain support</td>
-                            <td className="p-4 text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]">&#10006;</td>
-                            <td className="p-4 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]">Partial</td>
-                            <td className="p-4 text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.7)]">&#10003;</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-gray-300">Cross-chain support</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]">&#10006;</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]">Partial</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.7)]">&#10003;</td>
                           </tr>
                           <tr className="border-t border-white/5  transition-colors duration-300">
-                            <td className="p-4 text-gray-300">DeFi integration</td>
-                            <td className="p-4 text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]">&#10006;</td>
-                            <td className="p-4 text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.7)]">&#10003;</td>
-                            <td className="p-4 text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.7)]">&#10003;</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-gray-300">DeFi integration</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]">&#10006;</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.7)]">&#10003;</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.7)]">&#10003;</td>
                           </tr>
                           <tr className="border-t border-white/5  transition-colors duration-300">
-                            <td className="p-4 text-gray-300">Subdomain monetization</td>
-                            <td className="p-4 text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]">&#10006;</td>
-                            <td className="p-4 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]">Limited</td>
-                            <td className="p-4 text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.7)]">&#10003;</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-gray-300">Subdomain monetization</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]">&#10006;</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.7)]">Limited</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.7)]">&#10003;</td>
                           </tr>
                           <tr className="border-t border-white/5  transition-colors duration-300">
-                            <td className="p-4 text-gray-300">Price discovery via LP</td>
-                            <td className="p-4 text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]">&#10006;</td>
-                            <td className="p-4 text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]">&#10006;</td>
-                            <td className="p-4 text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.7)]">&#10003;</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-gray-300">Price discovery via LP</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]">&#10006;</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]">&#10006;</td>
+                            <td className="p-2 text-sm md:p-4 md:text-base text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.7)]">&#10003;</td>
                           </tr>
                         </tbody>
                       </table>
@@ -428,10 +428,10 @@ export default function ClientPage() {
                     <div className="relative group">
                       <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-8 border border-slate-700/50 hover:border-blue-500/30 transition-all duration-500 backdrop-blur-sm hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-2">
                         {/* Background glow */}
-                        <div className="absolute rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                         
                         {/* Icon */}
-                        <div className="relative mb-6">
+                        <div className="relative mb-6 flex justify-center">
                           <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center group-hover:shadow-lg group-hover:shadow-blue-500/40 transition-all duration-300 group-hover:scale-110">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
@@ -441,11 +441,11 @@ export default function ClientPage() {
                         </div>
                         
                         {/* Content */}
-                        <div className="relative z-10">
+                        <div className="relative z-10 text-center">
                           <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-blue-300 transition-colors duration-300">
                             Fractional Ownership
                           </h3>
-                          <div className="w-12 h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 mb-4 opacity-50 group-hover:opacity-100 transition-opacity duration-300"></div>
+                          <div className="w-12 h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 mx-auto mb-4 opacity-50 group-hover:opacity-100 transition-opacity duration-300"></div>
                           <p className="text-gray-300 leading-relaxed group-hover:text-gray-200 transition-colors duration-300">
                             Convert domain names into fungible tokens that can be traded on open markets, unlocking value and liquidity.
                           </p>
@@ -463,7 +463,7 @@ export default function ClientPage() {
                         <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-emerald-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                         
                         {/* Icon */}
-                        <div className="relative mb-6">
+                        <div className="relative mb-6 flex justify-center">
                           <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center group-hover:shadow-lg group-hover:shadow-teal-500/40 transition-all duration-300 group-hover:scale-110">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -473,11 +473,11 @@ export default function ClientPage() {
                         </div>
                         
                         {/* Content */}
-                        <div className="relative z-10">
+                        <div className="relative z-10 text-center">
                           <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-teal-300 transition-colors duration-300">
                             Liquidity Pools
                           </h3>
-                          <div className="w-12 h-0.5 bg-gradient-to-r from-teal-400 to-emerald-400 mb-4 opacity-50 group-hover:opacity-100 transition-opacity duration-300"></div>
+                          <div className="w-12 h-0.5 bg-gradient-to-r from-teal-400 to-emerald-400 mx-auto mb-4 opacity-50 group-hover:opacity-100 transition-opacity duration-300"></div>
                           <p className="text-gray-300 leading-relaxed group-hover:text-gray-200 transition-colors duration-300">
                             Automatic market making ensures ongoing price discovery and instant liquidity for domain token traders.
                           </p>
@@ -495,7 +495,7 @@ export default function ClientPage() {
                         <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                         
                         {/* Icon */}
-                        <div className="relative mb-6">
+                        <div className="relative mb-6 flex justify-center">
                           <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center group-hover:shadow-lg group-hover:shadow-purple-500/40 transition-all duration-300 group-hover:scale-110">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -505,11 +505,11 @@ export default function ClientPage() {
                         </div>
                         
                         {/* Content */}
-                        <div className="relative z-10">
+                        <div className="relative z-10 text-center">
                           <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-purple-300 transition-colors duration-300">
                             Subdomain Utility
                           </h3>
-                          <div className="w-12 h-0.5 bg-gradient-to-r from-purple-400 to-pink-400 mb-4 opacity-50 group-hover:opacity-100 transition-opacity duration-300"></div>
+                          <div className="w-12 h-0.5 bg-gradient-to-r from-purple-400 to-pink-400 mx-auto mb-4 opacity-50 group-hover:opacity-100 transition-opacity duration-300"></div>
                           <p className="text-gray-300 leading-relaxed group-hover:text-gray-200 transition-colors duration-300">
                             Token holders can participate in governance, earning revenue from subdomain registrations and usage.
                           </p>
