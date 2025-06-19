@@ -127,6 +127,14 @@ export default function ClientPage() {
                           Get Started
                         </Button>
                       </Link>
+                      <Link href="/dino-game">
+                        <Button 
+                          size="lg" 
+                          className="bg-gradient-to-r from-green-500 to-emerald-600 hover:brightness-110 hover:shadow-lg hover:shadow-green-500/25 transition-all"
+                        >
+                          Play Dino Game
+                        </Button>
+                      </Link>
                       <Button 
                         size="lg" 
                         variant="outline" 
