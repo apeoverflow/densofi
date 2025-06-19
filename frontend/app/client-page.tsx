@@ -86,7 +86,7 @@ export default function ClientPage() {
                 {/* Hero Section */}
                 <section className="py-20 md:py-32 relative z-10">
                 <div className="container mx-auto px-4 grid md:grid-cols-2 gap-12 items-center">
-                  <div className="max-w-2xl">
+                  <div className="max-w-2xl mb-[-60px]">
                     <div className="relative flex justify-center">
                       {/* Static glow effects - no overflow, no animation */}
                       <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
@@ -104,7 +104,7 @@ export default function ClientPage() {
                         <div className="absolute inset-12 border border-purple-400/8 rounded-full opacity-20"></div>
                       </div>
                       
-                      <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight relative overflow-visible z-10">
+                      <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight relative overflow-visible z-10 text-center md:text-left">
                         <span className="relative z-10">Unlocking price discovery and liquidity for domain names</span>
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-500 to-teal-400 bg-clip-text text-transparent blur-sm opacity-30"></div>
                         <AnimatedHeadingGlow 
@@ -117,31 +117,31 @@ export default function ClientPage() {
                         />
                       </h1>
                     </div>
-                    <div className="text-lg text-gray-300 space-y-4 mb-8">
+                    <div className="text-lg text-gray-300 space-y-4 mb-8 text-center md:text-left">
                       <p>Fractional tokenization of domain names with launchpad mechanics and liquidity pools.</p>
                       <p>Enabling NFT to Cross Chain Superchain ERC20 support and subdomain registration for utility.</p>
                     </div>
-                    <div className="flex flex-wrap gap-4">
-                      <Link href="/walkthrough">
-                        <Button size="lg" className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:brightness-110 hover:shadow-lg hover:shadow-blue-500/25 transition-all">
-                          Get Started
+                    <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
+                      <Link href="/walkthrough" className="flex-1 sm:flex-none">
+                        <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-indigo-600 hover:brightness-110 hover:shadow-lg hover:shadow-blue-500/25 transition-all text-base font-semibold px-8 py-4">
+                          🚀 Get Started
                         </Button>
                       </Link>
-                      <Link href="/dino-game">
+                      <Link href="/dino-game" className="flex-1 sm:flex-none">
                         <Button 
                           size="lg" 
-                          className="bg-gradient-to-r from-green-500 to-emerald-600 hover:brightness-110 hover:shadow-lg hover:shadow-green-500/25 transition-all"
+                          className="w-full sm:w-auto bg-gradient-to-r from-green-500 to-emerald-600 hover:brightness-110 hover:shadow-lg hover:shadow-green-500/25 transition-all text-base font-semibold px-8 py-4"
                         >
-                          Play Dino Game
+                          🎮 Play Dino Game
                         </Button>
                       </Link>
                       <Button 
                         size="lg" 
                         variant="outline" 
-                        className="border-white/20 hover:bg-white/10 hover:border-white/30 hover:shadow-lg hover:shadow-white/10 transition-all"
+                        className="w-full sm:w-auto border-white/20 hover:bg-white/10 hover:border-white/30 hover:shadow-lg hover:shadow-white/10 transition-all text-base font-semibold px-8 py-4"
                         onClick={() => setIsTokenModalOpen(true)}
                       >
-                        View Launched Tokens
+                        💎 View Launched Tokens
                       </Button>
                     </div>
                   </div>
@@ -159,7 +159,9 @@ export default function ClientPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex justify-center mt-12">
+
+                {/* Desktop-only chevron */}
+                <div className="hidden md:flex justify-center mt-">
                   <button 
                     onClick={() => {
                       const target = document.getElementById('how-it-works');
@@ -182,9 +184,11 @@ export default function ClientPage() {
                   </button>
                 </div>
               </section>
+              {/* Animated Divider */}
+              <AnimatedDivider />
 
                 {/* How It Works Section */}
-                <section id="how-it-works" className="py-20 relative z-10">
+                <section id="how-it-works" className="py-2 relative z-10">
                   <div className="container mx-auto px-4 h-full">
                     <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 text-center relative z-10 overflow-visible min-h-[120px] flex items-center justify-center">
                     <span className="relative z-10">How It Works</span>
