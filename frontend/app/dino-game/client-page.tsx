@@ -39,7 +39,7 @@ const INITIAL_GAME_STATE: GameState = {
 const DINO_SIZE = 50;
 const OBSTACLE_WIDTH = 9;
 const OBSTACLE_HEIGHT = 50;
-const GAME_HEIGHT = 340;
+const GAME_HEIGHT = 350;
 const JUMP_FORCE = -17;
 const GRAVITY = 0.75;
 const OBSTACLE_SPEED = 6;
@@ -460,7 +460,7 @@ export default function DinoGameClient() {
       ctx.fillRect(15, 15, 150, 35);
       ctx.fillStyle = '#fff';
       ctx.font = 'bold 20px Arial';
-      ctx.fillText(`Score: ${gameState.score}`, 25, 38);
+      ctx.fillText(`Score: ${gameState.score}`, 80, 38);
     }
 
     // Draw countdown
@@ -472,9 +472,6 @@ export default function DinoGameClient() {
       ctx.font = 'bold 48px Arial';
       ctx.textAlign = 'center';
       ctx.fillText(gameStartCountdown.toString(), canvas.width / 2, canvas.height / 2);
-      ctx.font = 'bold 24px Arial';
-      ctx.fillText('Get Ready!', canvas.width / 2, canvas.height / 2 + 50);
-      ctx.textAlign = 'left';
     }
 
     // Draw game over screen
@@ -486,11 +483,6 @@ export default function DinoGameClient() {
       ctx.font = 'bold 36px Arial';
       ctx.textAlign = 'center';
       ctx.fillText('Game Over!', canvas.width / 2, canvas.height / 2 - 30);
-      ctx.font = 'bold 24px Arial';
-      ctx.fillText(`Final Score: ${gameState.score}`, canvas.width / 2, canvas.height / 2 + 10);
-      ctx.font = '18px Arial';
-      ctx.fillText('Click "Play Again" or "Claim XP" below', canvas.width / 2, canvas.height / 2 + 40);
-      ctx.textAlign = 'left';
     }
   }, [gameState, animationFrame, gameStartCountdown, backgroundOffset]);
 
@@ -560,7 +552,7 @@ export default function DinoGameClient() {
             </div>
             
             <div className="relative group">
-              <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 border border-slate-700/50 hover:border-purple-500/30 transition-all duration-300 backdrop-blur-sm">
+              <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 border border-slate-700/50 hover:border-purple-500/30 transition-all duration-300 backdrop-blur-sm min-h-[100%]">
                 <div className="relative z-10 text-center">
                   <p className="text-xs text-gray-400 mb-1">Wallet</p>
                   <p className="text-xs sm:text-sm md:text-base font-bold text-purple-400">{isConnected ? 'Connected' : 'Not Connected'}</p>
