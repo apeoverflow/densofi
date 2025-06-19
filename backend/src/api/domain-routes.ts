@@ -4,6 +4,9 @@ import { ConnectionManager } from '../services/connection-manager.js';
 import { domainEventListener } from '../services/domain-event-listener.js';
 import { nftMinterEventListener } from '../services/nft-minter-event-listener.js';
 import { logger } from '../utils/logger.js';
+import { requireApiKey, optionalApiKey, AuthenticatedRequest } from '../middleware/auth.js';
+import { walletAuthService } from '../services/wallet-auth-service.js';
+import { requireWalletAuth, optionalWalletAuth, WalletAuthenticatedRequest } from '../middleware/wallet-auth.js';
 
 const router = express.Router();
 
@@ -99,9 +102,171 @@ router.get('/status', (req, res) => {
 });
 
 /**
- * Trigger manual processing of pending events
+ * Check authentication status
+ * Uses optional authentication - will show if authenticated or not
  */
-router.post('/process-pending', async (req, res) => {
+router.get('/auth/status', optionalApiKey, (req: AuthenticatedRequest, res) => {
+  try {
+    res.json({
+      success: true,
+      data: {
+        authenticated: !!req.isAuthenticated,
+        message: req.isAuthenticated ? 'Valid API key provided' : 'No valid API key provided'
+      }
+    });
+  } catch (error) {
+    logger.error('Error checking auth status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to check authentication status'
+    });
+  }
+});
+
+/**
+ * Request message to sign for wallet authentication
+ */
+router.post('/auth/request-message', (req, res) => {
+  try {
+    const authData = walletAuthService.generateAuthMessage();
+    
+    res.json({
+      success: true,
+      data: authData
+    });
+  } catch (error) {
+    logger.error('Error generating auth message:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate authentication message'
+    });
+  }
+});
+
+/**
+ * Verify wallet signature and authenticate user
+ */
+router.post('/auth/verify-signature', async (req, res) => {
+  try {
+    const { nonce, signature, walletAddress } = req.body;
+    
+    if (!nonce || !signature || !walletAddress) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: nonce, signature, walletAddress'
+      });
+    }
+
+    const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+    const userAgent = req.get('User-Agent');
+
+    const authResult = await walletAuthService.verifySignature(
+      { nonce, signature, walletAddress },
+      ipAddress,
+      userAgent
+    );
+
+    res.json({
+      success: true,
+      message: 'Wallet authenticated successfully',
+      data: authResult
+    });
+  } catch (error) {
+    logger.error('Error verifying wallet signature:', error);
+    res.status(400).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to verify signature'
+    });
+  }
+});
+
+/**
+ * Get wallet authentication information
+ */
+router.get('/auth/wallet/:address', (req, res) => {
+  try {
+    const { address } = req.params;
+    const walletInfo = walletAuthService.getWalletInfo(address);
+    
+    if (!walletInfo) {
+      return res.status(404).json({
+        success: false,
+        error: 'Wallet not found or never authenticated'
+      });
+    }
+
+    // Convert Set to Array for JSON response
+    const responseData = {
+      ...walletInfo,
+      ipAddresses: Array.from(walletInfo.ipAddresses)
+    };
+
+    res.json({
+      success: true,
+      data: responseData
+    });
+  } catch (error) {
+    logger.error('Error fetching wallet info:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch wallet information'
+    });
+  }
+});
+
+/**
+ * Get wallets associated with an IP address
+ */
+router.get('/auth/ip/:ip/wallets', (req, res) => {
+  try {
+    const { ip } = req.params;
+    const wallets = walletAuthService.getWalletsForIP(ip);
+    
+    res.json({
+      success: true,
+      data: {
+        ipAddress: ip,
+        wallets,
+        count: wallets.length
+      }
+    });
+  } catch (error) {
+    logger.error('Error fetching IP wallet associations:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch IP wallet associations'
+    });
+  }
+});
+
+/**
+ * Get authentication statistics
+ */
+router.get('/auth/stats', (req, res) => {
+  try {
+    const stats = walletAuthService.getAuthStats();
+    
+    res.json({
+      success: true,
+      data: {
+        ...stats,
+        currentIP: req.ip || req.connection.remoteAddress || 'unknown'
+      }
+    });
+  } catch (error) {
+    logger.error('Error fetching auth stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch authentication statistics'
+    });
+  }
+});
+
+/**
+ * Trigger manual processing of pending events
+ * Requires API key authentication
+ */
+router.post('/process-pending', requireApiKey, async (req: AuthenticatedRequest, res) => {
   try {
     await DomainService.processPendingRegistrations();
     await DomainService.processPendingOwnershipUpdates();
@@ -121,17 +286,34 @@ router.post('/process-pending', async (req, res) => {
 
 /**
  * Verify domain ownership via DNS
+ * Requires wallet authentication - wallet must match the one in the URL
  */ 
-router.get('/domains/:name/:walletAddress/verify', async (req, res) => {
+router.get('/domains/:name/:walletAddress/verify', requireWalletAuth, async (req: WalletAuthenticatedRequest, res) => {
   try {
     const { name, walletAddress } = req.params;
+    
+    // If admin authenticated, allow access to any wallet verification
+    if (!req.isAdminAuthenticated) {
+      // For wallet auth, ensure the authenticated wallet matches the requested wallet
+      if (!req.wallet || req.wallet.walletAddress !== walletAddress.toLowerCase()) {
+        return res.status(403).json({
+          success: false,
+          error: 'Wallet address mismatch',
+          message: 'You can only verify domains for your authenticated wallet (or use admin API key)'
+        });
+      }
+    }
+    
     const isVerified = await DomainService.verifyDomainViaDns(name, walletAddress);
     res.status(200).json({
       success: true,
       data: {
         domainName: name,
         walletAddress,
-        isVerified
+        isVerified,
+        authenticatedWallet: req.wallet?.walletAddress || null,
+        authType: req.isAdminAuthenticated ? 'admin' : 'wallet',
+        adminOverride: !!req.isAdminAuthenticated
       }
     });
   } catch (error) {
@@ -145,8 +327,9 @@ router.get('/domains/:name/:walletAddress/verify', async (req, res) => {
 
 /**
  * Get detailed event listener status
+ * Requires API key authentication
  */
-router.get('/event-listeners/status', async (req, res) => {
+router.get('/event-listeners/status', requireApiKey, async (req: AuthenticatedRequest, res) => {
   try {
     const status = {
       domainEventListener: {
@@ -168,6 +351,91 @@ router.get('/event-listeners/status', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get event listener status'
+    });
+  }
+});
+
+/**
+ * Get wallet authentication statistics (Admin only)
+ * Requires API key authentication
+ */
+router.get('/admin/wallet-auth-stats', requireApiKey, (req: AuthenticatedRequest, res) => {
+  try {
+    const stats = walletAuthService.getAdminStats();
+    
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    logger.error('Error fetching admin wallet auth stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch wallet authentication statistics'
+    });
+  }
+});
+
+/**
+ * Get all verified wallets with pagination (Admin only)
+ * Requires API key authentication
+ */
+router.get('/admin/wallets', requireApiKey, (req: AuthenticatedRequest, res) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 50;
+    const sortBy = req.query.sortBy as string || 'lastSeen';
+    const order = (req.query.order as string) === 'asc' ? 'asc' : 'desc';
+
+    const result = walletAuthService.getPaginatedWallets(page, limit, sortBy, order);
+    
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    logger.error('Error fetching paginated wallets:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch wallet list'
+    });
+  }
+});
+
+/**
+ * Get detailed wallet information (Admin only)
+ * Requires API key authentication
+ */
+router.get('/admin/wallets/:address', requireApiKey, (req: AuthenticatedRequest, res) => {
+  try {
+    const { address } = req.params;
+    const walletInfo = walletAuthService.getWalletInfo(address);
+    
+    if (!walletInfo) {
+      return res.status(404).json({
+        success: false,
+        error: 'Wallet not found or never authenticated'
+      });
+    }
+
+    // Convert Set to Array and add additional admin info
+    const responseData = {
+      ...walletInfo,
+      ipAddresses: Array.from(walletInfo.ipAddresses),
+      ipCount: walletInfo.ipAddresses.size,
+      isRecent: new Date(Date.now() - 24 * 60 * 60 * 1000) < walletInfo.lastSeen,
+      hasSuspiciousActivity: !!(walletInfo.suspiciousActivity && walletInfo.suspiciousActivity.length > 0)
+    };
+
+    res.json({
+      success: true,
+      data: responseData
+    });
+  } catch (error) {
+    logger.error('Error fetching admin wallet details:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch wallet details'
     });
   }
 });

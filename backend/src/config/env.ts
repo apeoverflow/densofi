@@ -6,6 +6,9 @@ export const ENV = {
   PORT: parseInt(process.env.PORT || '3000', 10),
   NODE_ENV: process.env.NODE_ENV || 'development',
 
+  // Authentication
+  ADMIN_API_KEY: process.env.ADMIN_API_KEY,
+
   // MongoDB Configuration
   MONGO_URL: process.env.MONGO_URL,
   MONGO_DB: process.env.MONGO_DB || 'densofi_domains',
@@ -33,6 +36,12 @@ export const ENV = {
 // Validation
 if (!ENV.RPC_URL) {
   throw new Error('RPC_URL environment variable is required');
+}
+
+// Authentication validation
+if (!ENV.ADMIN_API_KEY) {
+  console.warn('⚠️  ADMIN_API_KEY not set. Some endpoints will be disabled for security.');
+  console.warn('   Set ADMIN_API_KEY in your .env file to enable protected endpoints.');
 }
 
 // MongoDB validation
