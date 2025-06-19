@@ -3,6 +3,7 @@ import { MongoService } from './mongo-service.js';
 import { DomainService } from './domain-service.js';
 import { domainEventListener } from './domain-event-listener.js';
 import { nftMinterEventListener } from './nft-minter-event-listener.js';
+import { ENV } from '../config/env.js';
 
 export interface RetryConfig {
   maxRetries: number;
@@ -21,6 +22,7 @@ export class ConnectionManager {
 
   private static isInitialized = false;
   private static reconnectTimeoutId: NodeJS.Timeout | null = null;
+  private static processingLoopId: NodeJS.Timeout | null = null;
 
   /**
    * Initialize all services with retry logic
@@ -53,18 +55,23 @@ export class ConnectionManager {
       await DomainService.initialize();
       logger.info('✅ Domain service initialized successfully');
       
-      // Start event listeners
-      logger.info('🎧 Starting domain event listener...');
-      await domainEventListener.startListening();
-      logger.info('✅ Domain event listener started successfully');
-      
-      logger.info('🎧 Starting NFT minter event listener...');
-      await nftMinterEventListener.startListening();
-      logger.info('✅ NFT minter event listener started successfully');
-      
-      // Start processing pending events
-      logger.info('⚙️ Starting processing loop...');
-      this.startProcessingLoop();
+      if (ENV.ENABLE_EVENT_LISTENERS) {
+        // Start event listeners
+        logger.info('🎧 Starting domain event listener...');
+        await domainEventListener.startListening();
+        logger.info('✅ Domain event listener started successfully');
+        
+        logger.info('🎧 Starting NFT minter event listener...');
+        await nftMinterEventListener.startListening();
+        logger.info('✅ NFT minter event listener started successfully');
+        
+        // Start processing pending events
+        logger.info('⚙️ Starting processing loop...');
+        this.startProcessingLoop();
+      } else {
+        logger.info('⏸️ Event listeners disabled by configuration (ENABLE_EVENT_LISTENERS=false)');
+        logger.info('⏸️ Processing loop disabled by configuration');
+      }
       
       logger.info('🚀 All services connected successfully');
       
@@ -171,9 +178,11 @@ export class ConnectionManager {
    */
   static async disconnect(): Promise<void> {
     try {
-      // Stop event listeners
-      domainEventListener.stopListening();
-      nftMinterEventListener.stopListening();
+      // Stop event listeners only if they were enabled
+      if (ENV.ENABLE_EVENT_LISTENERS) {
+        domainEventListener.stopListening();
+        nftMinterEventListener.stopListening();
+      }
       
       // Disconnect from MongoDB
       await MongoService.disconnect();
@@ -182,6 +191,12 @@ export class ConnectionManager {
       if (this.reconnectTimeoutId) {
         clearTimeout(this.reconnectTimeoutId);
         this.reconnectTimeoutId = null;
+      }
+      
+      // Clear processing loop
+      if (this.processingLoopId) {
+        clearInterval(this.processingLoopId);
+        this.processingLoopId = null;
       }
       
       this.isInitialized = false;
@@ -197,7 +212,7 @@ export class ConnectionManager {
   private static startProcessingLoop(): void {
     const processInterval = 30000; // Process every 30 seconds
     
-    setInterval(async () => {
+    this.processingLoopId = setInterval(async () => {
       try {
         await DomainService.processPendingRegistrations();
         await DomainService.processPendingOwnershipUpdates();
@@ -213,13 +228,22 @@ export class ConnectionManager {
   /**
    * Get connection status
    */
-  static getStatus(): { initialized: boolean; mongodb: boolean; domainEventListener: boolean; nftMinterEventListener: boolean } {
-    return {
-      initialized: this.isInitialized,
-      mongodb: MongoService.getDb() !== null,
-      domainEventListener: domainEventListener.getStatus(),
-      nftMinterEventListener: nftMinterEventListener.getStatus()
-    };
+  static getStatus(): { 
+    initialized: boolean; 
+    mongodb: boolean; 
+    domainEventListener: boolean; 
+    nftMinterEventListener: boolean;
+    eventListenersEnabled: boolean;
+    processingLoopEnabled: boolean;
+  } {
+          return {
+        initialized: this.isInitialized,
+        mongodb: MongoService.getDb() !== null,
+        domainEventListener: ENV.ENABLE_EVENT_LISTENERS ? domainEventListener.getStatus() : false,
+        nftMinterEventListener: ENV.ENABLE_EVENT_LISTENERS ? nftMinterEventListener.getStatus() : false,
+        eventListenersEnabled: ENV.ENABLE_EVENT_LISTENERS,
+        processingLoopEnabled: ENV.ENABLE_EVENT_LISTENERS && this.processingLoopId !== null
+      };
   }
 
   /**

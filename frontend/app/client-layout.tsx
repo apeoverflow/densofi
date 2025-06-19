@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { WalletProvider } from '@/components/WalletProvider';
+import { WalletAuthProvider } from '@/components/WalletAuthProvider';
 import Layout from '@/components/Layout';
 import MiniKitProvider from '@/components/minikit-provider';
 
@@ -26,9 +27,11 @@ export default function ClientLayout({
   return (
     <MiniKitProvider>
       <WalletProvider>
-        <Layout>
-          {children}
-        </Layout>
+        <WalletAuthProvider>
+          <Layout>
+            {children}
+          </Layout>
+        </WalletAuthProvider>
       </WalletProvider>
     </MiniKitProvider>
   );

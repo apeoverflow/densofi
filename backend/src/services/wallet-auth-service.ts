@@ -32,6 +32,9 @@ export interface AuthResult {
   firstSeen: Date;
   lastSeen: Date;
   suspiciousActivity: string[] | null;
+  isVerified: boolean;
+  sessionId: string;
+  expiresAt: string;
 }
 
 class WalletAuthService {
@@ -176,6 +179,10 @@ Valid until: ${expiresAt.toISOString()}`;
       signInCount: walletData.signInCount
     });
 
+    // Generate session ID and expiration
+    const sessionId = this.generateSessionId();
+    const sessionExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
     return {
       walletAddress: normalizedAddress,
       ipAddress,
@@ -183,7 +190,11 @@ Valid until: ${expiresAt.toISOString()}`;
       signInCount: walletData.signInCount,
       firstSeen: walletData.firstSeen,
       lastSeen: walletData.lastSeen,
-      suspiciousActivity: walletData.suspiciousActivity
+      suspiciousActivity: walletData.suspiciousActivity,
+      // Required for frontend authentication
+      isVerified: true,
+      sessionId: sessionId,
+      expiresAt: sessionExpiresAt.toISOString()
     };
   }
 
@@ -324,6 +335,15 @@ Valid until: ${expiresAt.toISOString()}`;
     return Math.random().toString(36).substring(2, 15) + 
            Math.random().toString(36).substring(2, 15) + 
            Date.now().toString(36);
+  }
+
+  private generateSessionId(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < 32; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
   }
 
   private cleanupExpiredNonces(): void {

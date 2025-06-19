@@ -7,6 +7,7 @@ import { logger } from '../utils/logger.js';
 import { requireApiKey, optionalApiKey, AuthenticatedRequest } from '../middleware/auth.js';
 import { walletAuthService } from '../services/wallet-auth-service.js';
 import { requireWalletAuth, optionalWalletAuth, WalletAuthenticatedRequest } from '../middleware/wallet-auth.js';
+import { ENV } from '../config/env.js';
 
 const router = express.Router();
 
@@ -271,9 +272,14 @@ router.post('/process-pending', requireApiKey, async (req: AuthenticatedRequest,
     await DomainService.processPendingRegistrations();
     await DomainService.processPendingOwnershipUpdates();
     
+    const responseMessage = ENV.ENABLE_EVENT_LISTENERS 
+      ? 'Pending events processed successfully'
+      : 'Pending events processed successfully (Note: Event listeners are disabled - events must be processed manually)';
+    
     res.json({
       success: true,
-      message: 'Pending events processed successfully'
+      message: responseMessage,
+      eventListenersEnabled: ENV.ENABLE_EVENT_LISTENERS
     });
   } catch (error) {
     logger.error('Error processing pending events:', error);
@@ -440,5 +446,74 @@ router.get('/admin/wallets/:address', requireApiKey, (req: AuthenticatedRequest,
   }
 });
 
+/**
+ * Debug endpoint to check wallet authentication status
+ * Requires wallet address in X-Wallet-Address header
+ */
+router.get('/debug/wallet-auth', (req, res) => {
+  try {
+    const walletAddress = req.headers['x-wallet-address'] as string;
+    const authHeader = req.headers.authorization;
+    
+    const debugInfo = {
+      providedWalletAddress: walletAddress,
+      normalizedWalletAddress: walletAddress ? walletAddress.toLowerCase() : null,
+      authorizationHeader: authHeader ? authHeader.substring(0, 20) + '...' : null,
+      ipAddress: req.ip || req.connection.remoteAddress || 'unknown'
+    };
+
+    if (!walletAddress) {
+      return res.json({
+        success: false,
+        debug: debugInfo,
+        error: 'No X-Wallet-Address header provided'
+      });
+    }
+
+    const walletInfo = walletAuthService.getWalletInfo(walletAddress);
+    
+    if (!walletInfo) {
+      // Let's also check all stored wallets for debugging
+      const allStats = walletAuthService.getAdminStats();
+      return res.json({
+        success: false,
+        debug: {
+          ...debugInfo,
+          walletNotFound: true,
+          totalStoredWallets: allStats.totalWallets,
+          storedWalletsPreview: allStats.topWallets.slice(0, 3).map(w => ({
+            address: w.walletAddress,
+            lastSeen: w.lastSeen
+          }))
+        },
+        error: 'Wallet not found in authenticated registry'
+      });
+    }
+
+    // Check authentication freshness
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const isAuthValid = walletInfo.lastSeen >= twentyFourHoursAgo;
+
+    return res.json({
+      success: true,
+      debug: debugInfo,
+      walletInfo: {
+        walletAddress: walletInfo.walletAddress,
+        lastSeen: walletInfo.lastSeen,
+        firstSeen: walletInfo.firstSeen,
+        signInCount: walletInfo.signInCount,
+        ipCount: walletInfo.ipAddresses.size,
+        isAuthValid,
+        timeSinceLastSeen: Date.now() - walletInfo.lastSeen.getTime()
+      }
+    });
+  } catch (error) {
+    logger.error('Debug wallet auth error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Debug endpoint error'
+    });
+  }
+});
 
 export { router as domainRoutes }; 

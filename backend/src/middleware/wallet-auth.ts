@@ -53,6 +53,13 @@ export function requireWalletAuth(req: WalletAuthenticatedRequest, res: Response
 
     const walletAddress = req.headers['x-wallet-address'] as string;
     
+    // Debug logging
+    logger.info('Wallet auth attempt', {
+      walletAddress,
+      headers: req.headers,
+      path: req.path
+    });
+    
     if (!walletAddress) {
       return res.status(401).json({
         success: false,
@@ -63,6 +70,16 @@ export function requireWalletAuth(req: WalletAuthenticatedRequest, res: Response
 
     // Check if wallet is authenticated
     const walletInfo = walletAuthService.getWalletInfo(walletAddress);
+    
+    // Debug logging
+    logger.info('Wallet lookup result', {
+      walletAddress,
+      found: !!walletInfo,
+      info: walletInfo ? {
+        lastSeen: walletInfo.lastSeen,
+        signInCount: walletInfo.signInCount
+      } : null
+    });
     
     if (!walletInfo) {
       return res.status(401).json({

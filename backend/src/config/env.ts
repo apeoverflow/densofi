@@ -3,7 +3,7 @@ config();
 
 export const ENV = {
   // Server Configuration
-  PORT: parseInt(process.env.PORT || '3000', 10),
+  PORT: parseInt(process.env.PORT || '8000', 10),
   NODE_ENV: process.env.NODE_ENV || 'development',
 
   // Authentication
@@ -26,6 +26,7 @@ export const ENV = {
   DOMAIN_REGISTRATION_CONTRACT: process.env.DOMAIN_REGISTRATION_CONTRACT || '0x640b66a1cd9D2e3c4F118B9Bb58479c0Ca439f42',
   
   // Event Listening Configuration
+  ENABLE_EVENT_LISTENERS: process.env.ENABLE_EVENT_LISTENERS !== 'false',
   POLLING_INTERVAL: parseInt(process.env.POLLING_INTERVAL || '60000', 10),
   EVENT_BATCH_SIZE: parseInt(process.env.EVENT_BATCH_SIZE || '200', 10),
   
@@ -42,6 +43,13 @@ if (!ENV.RPC_URL) {
 if (!ENV.ADMIN_API_KEY) {
   console.warn('⚠️  ADMIN_API_KEY not set. Some endpoints will be disabled for security.');
   console.warn('   Set ADMIN_API_KEY in your .env file to enable protected endpoints.');
+}
+
+// Event listeners validation
+if (!ENV.ENABLE_EVENT_LISTENERS) {
+  console.warn('⚠️  Event listeners are DISABLED (ENABLE_EVENT_LISTENERS=false)');
+  console.warn('   Domain and NFT event listeners will not start');
+  console.warn('   Processing loop will not run');
 }
 
 // MongoDB validation
