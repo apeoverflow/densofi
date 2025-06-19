@@ -188,7 +188,7 @@ export default function ClientPage() {
               <AnimatedDivider />
 
                 {/* How It Works Section */}
-                <section id="how-it-works" className="py-2 relative z-10">
+                <section id="how-it-works" className="relative z-10">
                   <div className="container mx-auto px-4 h-full">
                     <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 text-center relative z-10 overflow-visible min-h-[120px] flex items-center justify-center">
                     <span className="relative z-10">How It Works</span>
@@ -310,7 +310,6 @@ export default function ClientPage() {
                 </section>
               </div>
 
-              {/* Animated Divider */}
               <AnimatedDivider />
               
               {/* Unified Background Glow Container for Both Sections */}
@@ -350,9 +349,9 @@ export default function ClientPage() {
                 </div>
                 
                 {/* Why Choose Densofi Section */}
-                <section className="py-20 relative z-10">
+                <section className="relative z-10">
                   <div className="container mx-auto px-4">
-                  <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-12 text-center relative z-10 overflow-visible min-h-[200px] flex items-center justify-center">
+                  <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white  text-center relative z-10 overflow-visible min-h-[200px] flex items-center justify-center">
                     <span className="relative z-10">Why Choose Densofi</span>
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-500 to-teal-400 bg-clip-text text-transparent blur-md opacity-70"></div>
                     <AnimatedHeadingGlow 
@@ -364,7 +363,7 @@ export default function ClientPage() {
                       randomSeed={0.8}
                     />
                   </h2>
-                  <p className="text-lg text-gray-300 text-center mb-12">See how we compare to the competition with superior DeFi integration</p>
+                  <p className="text-lg text-gray-300 text-center mt-[-20px] mb-12">See how we compare to the competition with superior DeFi integration</p>
                   <GlassCard className="p-6 relative overflow-hidden">
                     <div className="absolute inset-0 z-0 opacity-30">
                       <LightningCanvas />
@@ -524,8 +523,10 @@ export default function ClientPage() {
 
                 </section>
 
+                <AnimatedDivider />
+
                 {/* Featured Tokens Section */}
-                <section className="py-20 relative z-10">
+                <section className="relative z-10">
                   <div className="container mx-auto px-4">
                   <div className="flex justify-between items-center mb-12">
                     <h2 className="text-3xl md:text-4xl font-bold text-white relative overflow-visible min-h-[120px] flex items-center justify-center">
