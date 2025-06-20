@@ -293,6 +293,10 @@ export function useWalletAuth() {
                 walletAddress: parsed.walletAddress,
                 expiresAt: parsed.expiresAt,
               });
+              
+              // Trigger page refresh after successful authentication
+              console.log('Authentication successful - refreshing page...');
+              window.location.reload();
             }
           } catch (error) {
             console.error('Error in auto-refresh:', error);
