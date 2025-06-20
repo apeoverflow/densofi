@@ -5,7 +5,9 @@
     "scripts": {
         "dev": "next dev --turbopack",
         "build": "next build",
+        "build:production": "NODE_ENV=production next build",
         "start": "next start",
+        "start:production": "NODE_ENV=production next start",
         "lint": "next lint"
     },
     "dependencies": {

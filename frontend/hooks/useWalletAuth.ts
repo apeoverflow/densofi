@@ -1,7 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useAccount, useSignMessage } from 'wagmi';
 
-const BACKEND_SERVICE_URL = process.env.NEXT_PUBLIC_BACKEND_SERVICE_URL || 'http://localhost:8000';
+import config from '@/lib/config';
+
+const BACKEND_SERVICE_URL = config.apiBaseUrl;
 
 interface AuthMessage {
   message: string;

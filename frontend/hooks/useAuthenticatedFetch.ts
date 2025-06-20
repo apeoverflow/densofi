@@ -2,7 +2,9 @@ import { useCallback } from 'react';
 import { useWalletAuth } from './useWalletAuth';
 import { useAccount } from 'wagmi';
 
-const BACKEND_SERVICE_URL = process.env.NEXT_PUBLIC_BACKEND_SERVICE_URL || 'http://localhost:8000';
+import config from '@/lib/config';
+
+const BACKEND_SERVICE_URL = config.apiBaseUrl;
 
 interface FetchOptions extends RequestInit {
   requireAuth?: boolean;

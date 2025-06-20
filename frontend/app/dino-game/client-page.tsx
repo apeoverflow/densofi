@@ -9,6 +9,7 @@ import { WalletAuthButton } from "@/components/WalletAuthButton";
 import { useWalletAuth } from "@/hooks/useWalletAuth";
 import { useAuthenticatedFetch } from "@/hooks/useAuthenticatedFetch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import config from '@/lib/config';
 
 interface Obstacle {
   x: number;
@@ -86,7 +87,7 @@ export default function DinoGameClient() {
     const loadPlayerStats = async () => {
       if (isAuthenticated && address && authenticatedFetch) {
         try {
-          const response = await authenticatedFetch(`http://localhost:8000/api/game/stats/${address}`, {
+          const response = await authenticatedFetch(`${config.apiUrl}/game/stats/${address}`, {
             method: 'GET',
             requireAuth: false // Try without strict auth requirement
           });
@@ -138,7 +139,7 @@ export default function DinoGameClient() {
       // Load overall game statistics (public endpoint)
       try {
         console.log('Loading overall stats...');
-        const overallStatsResponse = await fetch('http://localhost:8000/api/game/stats');
+        const overallStatsResponse = await fetch(`${config.apiUrl}/game/stats`);
         console.log('Overall stats response status:', overallStatsResponse.status);
         
         if (overallStatsResponse.ok) {
@@ -162,7 +163,7 @@ export default function DinoGameClient() {
       // Load leaderboard (public endpoint)
       try {
         console.log('Loading leaderboard...');
-        const leaderboardResponse = await fetch('http://localhost:8000/api/game/leaderboard?limit=10');
+        const leaderboardResponse = await fetch(`${config.apiUrl}/game/leaderboard?limit=10`);
         console.log('Leaderboard response status:', leaderboardResponse.status);
         
         if (leaderboardResponse.ok) {
@@ -190,7 +191,7 @@ export default function DinoGameClient() {
       // Load player history only if authenticated and address exists
       if (isAuthenticated && address && authenticatedFetch) {
         try {
-                      const historyResponse = await authenticatedFetch(`http://localhost:8000/api/game/history/${address}?limit=10`, {
+                      const historyResponse = await authenticatedFetch(`${config.apiUrl}/game/history/${address}?limit=10`, {
               method: 'GET',
               requireAuth: false // Try without strict auth requirement first
             });
@@ -690,7 +691,7 @@ export default function DinoGameClient() {
         // Refresh player stats to get updated rank
         if (address && authenticatedFetch) {
           try {
-            const statsResponse = await authenticatedFetch(`http://localhost:8000/api/game/stats/${address}`, {
+            const statsResponse = await authenticatedFetch(`${config.apiUrl}/game/stats/${address}`, {
               method: 'GET',
               requireAuth: false
             });
