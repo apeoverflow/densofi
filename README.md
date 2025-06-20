@@ -27,19 +27,19 @@ Domain names are a growing $2.4 Billion dollar RWA (Real World Asset) market, bu
 ### Smart Contract Architecture
 
 ```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│ DomainRegistration │──→│   NFTMinter      │──→│  TokenMinter    │
+┌────────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│ DomainRegistration │──→ │   NFTMinter      │──→ │  TokenMinter    │
 │  - Fee collection  │    │  - ERC1155 NFTs  │    │ - Superchain    │
 │  - Admin controls  │    │  - Domain mapping│    │   ERC20 tokens  │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
+└────────────────────┘    └──────────────────┘    └─────────────────┘
                                                           │
                                                           ▼
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│ DensoFiUniV3Vault│◄───│ DensoFiLaunchpad │◄───│                 │
-│ - Fee collection │    │ - Bonding curve  │    │                 │
-│ - Ownership mgmt │    │ - Market cap     │    │                 │
-└─────────────────┘    │ - Uniswap launch │    │                 │
-                       └──────────────────┘    └─────────────────┘
+                        ┌───────────────────┐    ┌──────────────────┐ 
+                        │ DensoFiUniV3Vault │◄── │ DensoFiLaunchpad │
+                        │ - Fee collection  │    │ - Bonding curve  │
+                        │ - Ownership mgmt  │    │ - Market cap     │
+                        └───────────────────┘    │ - Uniswap launch │ 
+                                                 └──────────────────┘ 
 ```
 
 ## Deployments
@@ -50,7 +50,7 @@ Domain names are a growing $2.4 Billion dollar RWA (Real World Asset) market, bu
 |---------|----------|--------|----------|
 | **Flow Mainnet** | 747 | ✅ Live | [flowscan.io](https://flowscan.io) |
 | **Ethereum Sepolia** | 11155111 | ✅ Live | [sepolia.etherscan.io](https://sepolia.etherscan.io) |
-| **World Chain Sepolia** | - | ✅ Live | [worldchain-sepolia.g.alchemy.com](https://worldchain-sepolia.g.alchemy.com) |
+
 
 ### Contract Addresses
 
