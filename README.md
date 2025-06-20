@@ -1,6 +1,6 @@
 # Densofi 
 
-🌐 **Live Demo:** https://densofi.vercel.app/
+🌐 **Live Demo:** https://densofi.com
 
 ## Overview
 
