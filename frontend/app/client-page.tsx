@@ -276,7 +276,7 @@ export default function ClientPage() {
 
                       {/* Step 3 */}
                       <div className="relative group">
-                        <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-8 border border-slate-700/50 hover:border-purple-500/30 transition-all duration-500 backdrop-blur-sm hover:shadow-xl hover:shadow-purple-500/10 hover:-translate-y-2">
+                        <div className="relative h-full bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-8 border border-slate-700/50 hover:border-purple-500/30 transition-all duration-500 backdrop-blur-sm hover:shadow-xl hover:shadow-purple-500/10 hover:-translate-y-2">
                           {/* Background glow */}
                           <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                           
@@ -526,9 +526,9 @@ export default function ClientPage() {
                 <AnimatedDivider />
 
                 {/* Featured Tokens Section */}
-                <section className="relative z-10">
+                <section className="relative z-10 mb-12">
                   <div className="container mx-auto px-4">
-                  <div className="flex justify-between items-center mb-12">
+                  <div className="flex justify-center items-center mb-6">
                     <h2 className="text-3xl md:text-4xl font-bold text-white relative overflow-visible min-h-[120px] flex items-center justify-center">
                       <span className="relative z-10">Featured Tokens</span>
                       <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-500 to-teal-400 bg-clip-text text-transparent blur-sm opacity-30"></div>
@@ -541,13 +541,6 @@ export default function ClientPage() {
                         randomSeed={0.3}
                       />
                     </h2>
-                    <Button 
-                      variant="outline" 
-                      className="border-white/20 hover:border-white/30 hover:bg-white/10 hover:shadow-lg hover:shadow-white/10 transition-all"
-                      onClick={() => setIsTokenModalOpen(true)}
-                    >
-                      View All Tokens
-                    </Button>
                   </div>
                   <div className="grid md:grid-cols-3 gap-6">
                     {mockTokens.map((token) => (
@@ -580,7 +573,15 @@ export default function ClientPage() {
                     ))}
                   </div>
 
-
+                    <Link href={`/tokens`}>
+                      <Button 
+                        variant="outline" 
+                        className="float-right mt-6 mb-10 border-white/20 hover:border-white/30 hover:bg-white/10 hover:shadow-lg hover:shadow-white/10 transition-all"
+                        onClick={() => setIsTokenModalOpen(true)}
+                      >
+                        View All Tokens
+                      </Button>
+                    </Link>
                 </div>
                 
                 {/* Coming Soon Modal */}
