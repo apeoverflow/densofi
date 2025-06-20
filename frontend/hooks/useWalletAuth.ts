@@ -296,6 +296,7 @@ export function useWalletAuth() {
               
               // Trigger page refresh after successful authentication
               console.log('Authentication successful - refreshing page...');
+              console.log('test');
               window.location.reload();
             }
           } catch (error) {
