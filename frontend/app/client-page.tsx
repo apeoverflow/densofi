@@ -135,6 +135,7 @@ export default function ClientPage() {
                           🎮 Play Dino Game
                         </Button>
                       </Link>
+                      <Link href="/tokens" className="flex-1 sm:flex-none">
                       <Button 
                         size="lg" 
                         variant="outline" 
@@ -143,6 +144,7 @@ export default function ClientPage() {
                       >
                         💎 View Launched Tokens
                       </Button>
+                      </Link>
                     </div>
                   </div>
                   <div className="flex justify-center hidden md:flex">
