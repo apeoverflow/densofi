@@ -51,14 +51,14 @@ export default function Navbar() {
         </div>
         
         <div className="relative container mx-auto px-4 py-2.5 flex items-center justify-center">
-          <div className="flex items-center py-1 px-3 md:px-9 rounded-lg gap-2 md:gap-3 group bg-white text-black text-center">
+          <div className="flex items-center mt-[-15px] py-1 px-3 md:px-9 rounded-lg gap-2 md:gap-3 group bg-white text-black text-center">
             <div className="relative">
               <Image 
                 src="/full-flow-logo.webp" 
                 alt="Flow Network Logo" 
                 width={60} 
                 height={32}
-                className=" mr-2  py-1 rounded-md opacity-90 bg-white group-hover:opacity-100 transition-opacity duration-300"
+                className=" mr-2  py-0 rounded-md opacity-90 bg-white group-hover:opacity-100 transition-opacity duration-300"
                 priority
               />
               {/* Subtle glow behind logo */}
