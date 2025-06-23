@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 
 export default function Footer() {
   const pathname = usePathname();
-  const isWalkthroughPage = pathname === '/walkthrough';
+  const isWalkthroughPage = pathname === '/create-token';
 
   return (
     <>
@@ -20,13 +20,13 @@ export default function Footer() {
                 <h4 className="font-medium text-white mb-4">Quick Links</h4>
                 <div className="space-y-2">
                   <Link href="/tokens" className="block text-gray-400 hover:text-white">Explore Tokens</Link>
-                  <Link href="/walkthrough" className="block text-gray-400 hover:text-white">Get Started</Link>
+                  <Link href="/create-token" className="block text-gray-400 hover:text-white">Create Token</Link>
                 </div>
               </div>
               <div>
                 <h4 className="font-medium text-white mb-4">Connect</h4>
                 <div className="space-y-2">
-                  <a href="#" className="block text-gray-400 hover:text-white">Discord</a>
+                  <a href="#" className="block text-gray-400 hover:text-white">Telegram</a>
                   <a href="#" className="block text-gray-400 hover:text-white">Twitter</a>
                 </div>
               </div>

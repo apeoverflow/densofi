@@ -3,6 +3,7 @@ import { DomainService } from '../services/domain-service.js';
 import { ConnectionManager } from '../services/connection-manager.js';
 import { domainEventListener } from '../services/domain-event-listener.js';
 import { nftMinterEventListener } from '../services/nft-minter-event-listener.js';
+import { NFTMinterService } from '../services/nft-minter-service.js';
 import { logger } from '../utils/logger.js';
 import { requireApiKey, optionalApiKey, AuthenticatedRequest } from '../middleware/auth.js';
 import { walletAuthService } from '../services/wallet-auth-service.js';
@@ -79,6 +80,40 @@ router.get('/domains/:name/status', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to check domain status'
+    });
+  }
+});
+
+/**
+ * Get NFTs owned by an address
+ */
+router.get('/nfts/:address', async (req, res) => {
+  try {
+    const { address } = req.params;
+    
+    // Validate address format
+    if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid Ethereum address format'
+      });
+    }
+
+    const nfts = await NFTMinterService.getNFTsForOwner(address as `0x${string}`);
+    
+    res.json({
+      success: true,
+      data: {
+        address,
+        nfts,
+        count: nfts.length
+      }
+    });
+  } catch (error) {
+    logger.error('Error fetching NFTs for address:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch NFTs'
     });
   }
 });

@@ -2,6 +2,7 @@ import { logger } from '../utils/logger.js';
 import { MongoService } from './mongo-service.js';
 import { DomainService } from './domain-service.js';
 import { GameService } from './game-service.js';
+import { NFTMinterService } from './nft-minter-service.js';
 import { domainEventListener } from './domain-event-listener.js';
 import { nftMinterEventListener } from './nft-minter-event-listener.js';
 import { ENV } from '../config/env.js';
@@ -60,6 +61,11 @@ export class ConnectionManager {
       logger.info('🎮 Initializing game service...');
       await GameService.initialize();
       logger.info('✅ Game service initialized successfully');
+      
+      // Initialize NFT minter service
+      logger.info('🎨 Initializing NFT minter service...');
+      await NFTMinterService.initialize();
+      logger.info('✅ NFT minter service initialized successfully');
       
       if (ENV.ENABLE_EVENT_LISTENERS) {
         // Start event listeners

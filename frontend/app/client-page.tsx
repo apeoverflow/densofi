@@ -122,9 +122,9 @@ export default function ClientPage() {
                       <p>Enabling NFT to Cross Chain Superchain ERC20 support and subdomain registration for utility.</p>
                     </div>
                     <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
-                      <Link href="/walkthrough" className="flex-1 sm:flex-none">
+                      <Link href="/create-token" className="flex-1 sm:flex-none">
                         <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-indigo-600 hover:brightness-110 hover:shadow-lg hover:shadow-blue-500/25 transition-all text-base font-semibold px-8 py-4">
-                          🚀 Get Started
+                          🚀 Create Token
                         </Button>
                       </Link>
                       <Link href="/dino-game" className="flex-1 sm:flex-none">

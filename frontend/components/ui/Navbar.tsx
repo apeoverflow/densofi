@@ -13,12 +13,10 @@ type NavLink = {
 };
 
 const navLinks: NavLink[] = [
-  { label: 'Tokens', href: '/tokens', showOn: ['/', '/walkthrough', '/mint-nft', '/create-token', '/dino-game'] },
+  { label: 'Tokens', href: '/tokens', showOn: ['/', '/create-token', '/dino-game'] },
   { label: 'All Tokens', href: '/tokens', showOn: ['/tokens/[id]'] },
-  { label: 'Dino Game', href: '/dino-game', showOn: ['/', '/tokens', '/tokens/[id]', '/mint-nft', '/create-token', '/walkthrough'] },
-  // { label: 'Mint NFT', href: '/mint-nft', showOn: ['/', '/tokens', '/tokens/[id]', '/create-token', '/walkthrough'] },
-  // { label: 'Create Token', href: '/create-token', showOn: ['/', '/tokens', '/tokens/[id]', '/mint-nft', '/walkthrough'] },
-  { label: 'Walkthrough', href: '/walkthrough', showOn: ['/', '/tokens', '/tokens/[id]', '/mint-nft', '/create-token', '/dino-game'] },
+  { label: 'Dino Game', href: '/dino-game', showOn: ['/', '/tokens', '/tokens/[id]', '/create-token', '/dino-game'] },
+  { label: 'Create Token', href: '/create-token', showOn: ['/', '/tokens', '/tokens/[id]', '/dino-game'] },
 ];
 
 export default function Navbar() {

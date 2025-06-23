@@ -29,6 +29,7 @@ async function main() {
     logger.info('  GET  /api/domains - Get all registered domains');
     logger.info('  GET  /api/domains/:name - Get specific domain');
     logger.info('  GET  /api/domains/:name/status - Check domain registration status');
+    logger.info('  GET  /api/nfts/:address - Get NFTs owned by address');
     logger.info('  POST /api/process-pending - Manually process pending events');
     logger.info('  GET  /api/domains/:name/:walletAddress/verify - Verify domain ownership via DNS');
     logger.info('  GET  /api/event-listeners/status - Get event listener status');

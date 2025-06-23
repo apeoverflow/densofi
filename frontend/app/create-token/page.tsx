@@ -15,41 +15,86 @@ import { useWalletAuth } from "@/hooks/useWalletAuth";
 import { useAuthenticatedFetch } from "@/hooks/useAuthenticatedFetch";
 import { useDomainRegistrationEvents, useNFTMintingEvents, useDomainMintableStatus } from "@/hooks/useDomainEvents";
 import { useNFTMinting } from "@/hooks/useNFTMinting";
+import { useDomainVerification } from "@/hooks/useDomainVerification";
 import { formatEther, parseEther } from 'viem';
+import React from 'react';
+import { Alchemy, Network } from "alchemy-sdk";
+import {NFT_MINTER_SEPOLIA_ADDRESS as CONTRACT_ADDRESS} from "../../constants/contract";
+import { InteractiveBackground } from "@/components/ui/InteractiveBackground";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { AnimatedHeadingGlow } from "@/components/ui/AnimatedHeadingGlow";
 
 // Environment variable for backend service URL
 import config from '@/lib/config';
 
 const BACKEND_SERVICE_URL = config.apiBaseUrl;
 
+// Alchemy configuration
+const apiKey = "rpHRPKA38BMxeGGjtjkGTEAZc0nRtb9D";
+const alchemySettings = {
+  apiKey: apiKey,
+  network: Network.ETH_SEPOLIA,
+};
+const alchemy = new Alchemy(alchemySettings);
+
+// NFT interface
+interface NFT {
+  id: {
+    tokenId: string;
+  };
+  title: string;
+  description: string;
+  media: Array<{
+    gateway: string;
+  }>;
+  contract: {
+    address: string;
+  };
+}
+
 // Step component props interface
 interface StepProps {
-  number: number;
   title: string;
   completed: boolean;
   active: boolean;
   children: ReactNode;
 }
 
-// Step component to show completed/pending steps
-const Step = ({ number, title, completed, active, children }: StepProps) => {
+// Step component to show completed/pending steps with glass card styling
+const Step = ({ title, completed, active, children }: StepProps) => {
   return (
-    <div className={`mb-8 border ${active ? 'border-blue-500' : completed ? 'border-green-500' : 'border-white/10'} rounded-lg p-6 transition-all ${active ? 'bg-slate-800/70' : 'bg-slate-800/30'}`}>
-      <div className="flex items-center mb-4">
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-4 ${completed ? 'bg-green-500' : active ? 'bg-blue-500' : 'bg-slate-700'}`}>
-          {completed ? (
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          ) : (
-            <span className="text-white font-bold">{number}</span>
-          )}
+    <div className="mb-8 relative group">
+      <GlassCard className={`relative transition-all duration-500 ${active ? 'shadow-xl shadow-blue-500/20 border-blue-500/30' : completed ? 'shadow-lg shadow-green-500/10 border-green-500/20' : 'border-white/5'} ${active ? 'hover:shadow-2xl hover:shadow-blue-500/30' : ''}`}>
+        {/* Background glow effect */}
+        <div className={`absolute inset-0 rounded-xl opacity-0 transition-opacity duration-500 ${active ? 'group-hover:opacity-100 bg-gradient-to-br from-blue-500/5 to-indigo-500/5' : completed ? 'bg-gradient-to-br from-green-500/3 to-emerald-500/3' : ''}`}></div>
+        
+        <div className="relative z-10 p-6">
+          <div className="flex items-center mb-6">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 transition-all duration-300 ${completed ? 'bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/40' : active ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/40' : 'bg-slate-700/50'} ${active ? 'group-hover:scale-110' : ''}`}>
+              {completed ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <div className={`w-3 h-3 rounded-full transition-all duration-300 ${active ? 'bg-blue-200 group-hover:bg-white' : 'bg-gray-400'}`} />
+              )}
+            </div>
+            <div className="flex-1">
+              <h3 className={`text-xl font-bold transition-colors duration-300 ${completed ? 'text-green-400' : active ? 'text-white group-hover:text-blue-300' : 'text-gray-400'}`}>
+                {title}
+              </h3>
+              <div className={`w-16 h-0.5 mt-2 transition-all duration-300 ${completed ? 'bg-gradient-to-r from-green-400 to-emerald-400' : active ? 'bg-gradient-to-r from-blue-400 to-indigo-400 group-hover:w-24' : 'bg-gray-600'}`}></div>
+            </div>
+          </div>
+          
+          <div className="ml-16">
+            {children}
+          </div>
         </div>
-        <h3 className={`text-xl font-bold ${completed ? 'text-green-400' : active ? 'text-white' : 'text-gray-400'}`}>{title}</h3>
-      </div>
-      <div className="ml-14">
-        {children}
-      </div>
+        
+        {/* Corner accent */}
+        <div className={`absolute top-4 right-4 w-2 h-2 rounded-full transition-colors duration-300 ${completed ? 'bg-green-400/60' : active ? 'bg-blue-400/30 group-hover:bg-blue-400/60' : 'bg-gray-600/30'}`}></div>
+      </GlassCard>
     </div>
   );
 };
@@ -215,12 +260,484 @@ const BackendValidationStep = ({ onComplete }: { onComplete: () => void }) => {
   );
 };
 
-// Domain Registration Component
-const DomainRegistrationStep = ({ onComplete }: { onComplete: (domain: string) => void }) => {
+// Safe wrapper for domain verification to prevent hook errors from crashing the page
+const SafeDomainVerificationWrapper = ({ onComplete }: { onComplete: (domain: string) => void }) => {
+  const [wrapperError, setWrapperError] = useState<string | null>(null);
+
+  if (wrapperError) {
+    return (
+      <div className="bg-red-900/30 border border-red-700/50 p-4 rounded-md">
+        <h4 className="text-red-400 font-bold mb-2">Service Unavailable</h4>
+        <p className="text-gray-300 text-sm mb-4">
+          The domain verification service is currently unavailable. This may be due to a network issue or service maintenance.
+        </p>
+        <p className="text-xs text-gray-400 mb-4">
+          Error: {wrapperError}
+        </p>
+        <div className="space-y-2">
+          <button
+            onClick={() => setWrapperError(null)}
+            className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm"
+          >
+            Try Again
+          </button>
+          <p className="text-xs text-gray-400 text-center">
+            If the problem persists, please try refreshing the page or contact support.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  try {
+    return <DomainVerificationStep onComplete={onComplete} />;
+  } catch (error) {
+    console.error('Domain verification component error:', error);
+    setWrapperError(error instanceof Error ? error.message : 'Component initialization failed');
+    return null;
+  }
+};
+
+// Domain Verification Component with Error Safety
+const DomainVerificationStep = ({ onComplete }: { onComplete: (domain: string) => void }) => {
   const [domainName, setDomainName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [verificationComplete, setVerificationComplete] = useState(false);
+  const [verifiedDomain, setVerifiedDomain] = useState('');
+  const [verificationResult, setVerificationResult] = useState<any>(null);
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [customError, setCustomError] = useState<string | null>(null);
+  const [hookError, setHookError] = useState<string | null>(null);
+  const [isTestingBackend, setIsTestingBackend] = useState(false);
+  const [backendTestResult, setBackendTestResult] = useState<string | null>(null);
+  const [isBackendAuthenticated, setIsBackendAuthenticated] = useState<boolean | null>(null);
+  const [isCheckingBackendAuth, setIsCheckingBackendAuth] = useState(false);
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
+
+  // Safely use the domain verification hook with error boundary
+  let verifyDomain: any = null;
+  let isVerifying = false;
+  let verificationError: string | null = null;
+  let canVerify = false;
+
+  try {
+    const hookResult = useDomainVerification();
+    verifyDomain = hookResult.verifyDomain;
+    isVerifying = hookResult.isVerifying;
+    verificationError = hookResult.error;
+    canVerify = hookResult.canVerify;
+  } catch (error) {
+    console.error('Error initializing domain verification hook:', error);
+    setHookError(error instanceof Error ? error.message : 'Hook initialization failed');
+  }
+
+  const { address } = useWalletConnection();
+  const { isAuthenticated } = useWalletAuth();
+
+  // Function to check backend authentication
+  const checkBackendAuthentication = async () => {
+    if (!address) return false;
+    
+    setIsCheckingBackendAuth(true);
+    try {
+      const response = await fetch(`${BACKEND_SERVICE_URL}/api/debug/wallet-auth`, {
+        headers: {
+          'X-Wallet-Address': address,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      const isBackendAuth = data.success && !data.debug?.walletNotFound;
+      setIsBackendAuthenticated(isBackendAuth);
+      return isBackendAuth;
+    } catch (error) {
+      console.error('Failed to check backend auth:', error);
+      setIsBackendAuthenticated(false);
+      return false;
+    } finally {
+      setIsCheckingBackendAuth(false);
+    }
+  };
+
+  // Check backend authentication when component mounts or address changes
+  useEffect(() => {
+    if (address && isAuthenticated) {
+      checkBackendAuthentication();
+    }
+  }, [address, isAuthenticated]);
+
+  const handleVerifyDomain = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!domainName.trim() || !address) return;
+
+    // Clear previous errors
+    setCustomError(null);
+    setHookError(null);
+
+    // Check if hook failed to initialize
+    if (!verifyDomain) {
+      setCustomError('Domain verification service is currently unavailable. Please try refreshing the page.');
+      return;
+    }
+
+    // Check authentication before proceeding
+    if (!isAuthenticated) {
+      setCustomError('Wallet authentication required. Please complete the backend validation step first.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      console.log('🔍 Verifying domain ownership for:', domainName.trim());
+      console.log('🔍 Using wallet address:', address);
+      console.log('🔍 Backend service URL:', BACKEND_SERVICE_URL);
+      
+      // Add an additional safety wrapper around the hook call
+      let result;
+      try {
+        result = await verifyDomain(domainName.trim(), address);
+      } catch (hookCallError: any) {
+        // If the hook call itself fails, handle it gracefully
+        console.error('Hook call failed:', hookCallError);
+        console.error('Hook call error details:', {
+          message: hookCallError?.message,
+          status: hookCallError?.status,
+          response: hookCallError?.response
+        });
+        
+        // Provide more specific error information
+        if (hookCallError?.message?.includes('404')) {
+          throw new Error(`Verification endpoint not found. Please check backend service configuration.`);
+        } else if (hookCallError?.message?.includes('500')) {
+          throw new Error(`Backend server error. Please try again in a moment.`);
+        } else if (hookCallError?.message?.includes('Network')) {
+          throw new Error(`Network error: Cannot connect to verification service at ${BACKEND_SERVICE_URL}`);
+        } else {
+          throw new Error(`Domain verification service error: ${hookCallError?.message || 'Unknown error'}`);
+        }
+      }
+      
+      console.log('✅ Domain verification result:', result);
+      
+      if (result && result.isVerified) {
+        setVerificationResult(result);
+        setVerifiedDomain(domainName.trim());
+        setVerificationComplete(true);
+        setCustomError(null);
+        onComplete(domainName.trim());
+      } else {
+        console.warn('Domain verification returned false:', result);
+        setCustomError(`Domain ownership verification failed. Expected wallet: ${address}, Domain: ${domainName.trim()}. Please ensure your DNS TXT record is set up correctly.`);
+      }
+    } catch (error: any) {
+      console.error('Error verifying domain:', error);
+      
+      // Prevent the error from propagating and crashing the page
+      let errorMessage = 'Unknown error occurred';
+      
+      try {
+        errorMessage = error instanceof Error ? error.message : String(error);
+      } catch (parseError) {
+        console.warn('Could not parse error message:', parseError);
+      }
+      
+      // Handle specific authentication errors
+      if (errorMessage.toLowerCase().includes('wallet not authenticated') || 
+          errorMessage.toLowerCase().includes('authentication required') ||
+          errorMessage.toLowerCase().includes('authentication expired')) {
+        setCustomError(`Authentication Error: ${errorMessage}. Please complete the backend validation step again.`);
+      } else if (errorMessage.toLowerCase().includes('endpoint not found')) {
+        setCustomError(`Service Configuration Error: ${errorMessage}. Please contact support.`);
+      } else if (errorMessage.toLowerCase().includes('network error')) {
+        setCustomError(`${errorMessage}. Please check your internet connection and verify the backend service is running.`);
+      } else if (errorMessage.toLowerCase().includes('dns') || 
+                 errorMessage.toLowerCase().includes('txt record')) {
+        setCustomError(`DNS Error: ${errorMessage}. Please ensure your DNS TXT record is set up correctly and has propagated.`);
+      } else if (errorMessage.toLowerCase().includes('domain') && 
+                 errorMessage.toLowerCase().includes('not found')) {
+        setCustomError(`Domain Error: ${errorMessage}. Please check that your domain exists and is reachable.`);
+      } else if (errorMessage.toLowerCase().includes('server error')) {
+        setCustomError(`Backend Server Error: ${errorMessage}. The backend service may be experiencing issues.`);
+      } else if (errorMessage.toLowerCase().includes('service error')) {
+        setCustomError(`Service Error: ${errorMessage}. The verification service may be temporarily unavailable.`);
+      } else {
+        setCustomError(`Verification Error: ${errorMessage}`);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (verificationComplete) {
+    return (
+      <div className="text-center">
+        <div className="mb-4 text-green-400 text-5xl">✅</div>
+        <h3 className="text-xl font-bold mb-2">Domain Ownership Verified!</h3>
+        <p className="mb-4 text-gray-300">
+          Your ownership of <span className="font-bold text-blue-400">{verifiedDomain}</span> has been confirmed.
+        </p>
+        {verificationResult && (
+          <div className="bg-green-900/30 border border-green-700/50 p-4 rounded-md">
+            <p className="text-sm text-gray-300 mb-2">
+              <strong>Verification Details:</strong>
+            </p>
+            <div className="text-xs text-gray-400 space-y-1">
+              <p>Domain: <span className="font-mono text-green-400">{verificationResult.domainName}</span></p>
+              <p>Wallet: <span className="font-mono text-blue-400">{verificationResult.walletAddress}</span></p>
+              <p>Auth Type: <span className="text-purple-400">{verificationResult.authType}</span></p>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleVerifyDomain} className="space-y-4">
+      <div>
+        <label htmlFor="verifyDomainName" className="block text-sm font-medium mb-2">
+          Domain Name to Verify
+        </label>
+        <input
+          id="verifyDomainName"
+          type="text"
+          value={domainName}
+          onChange={(e) => setDomainName(e.target.value)}
+          className="w-full p-3 bg-gray-700/50 rounded-md border border-gray-600 focus:border-blue-500 focus:outline-none"
+          placeholder="example.com"
+          required
+          disabled={isVerifying || isSubmitting}
+        />
+      </div>
+
+              <div className="bg-blue-900/30 border border-blue-700/50 p-4 rounded-md">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-blue-400 font-bold">Domain Ownership Verification</h4>
+            <button
+              onClick={() => setShowDebugInfo(!showDebugInfo)}
+              className="px-2 py-1 text-xs text-gray-400 hover:text-gray-300 border border-gray-600 hover:border-gray-500 rounded transition-colors"
+              title="Toggle debug information"
+            >
+              {showDebugInfo ? 'Hide Debug' : 'Debug'}
+            </button>
+          </div>
+          <p className="text-gray-300 text-sm mb-3">
+            To verify domain ownership, you need to add a DNS TXT record to your domain.
+          </p>
+          
+          {/* Authentication prompt when needed */}
+          {isAuthenticated && isBackendAuthenticated === false && (
+            <div className="mb-4 p-3 bg-yellow-900/20 border border-yellow-700/50 rounded-md">
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <p className="text-yellow-400 text-sm font-medium mb-1">Authentication Required</p>
+                  <p className="text-gray-300 text-xs">You need to authenticate with our backend service to verify domain ownership.</p>
+                </div>
+                <WalletAuthButton 
+                  onAuthSuccess={() => {
+                    checkBackendAuthentication();
+                    setCustomError(null);
+                  }}
+                  onAuthError={(error) => {
+                    setCustomError(`Authentication failed: ${error}`);
+                  }}
+                  className="px-3 py-2 text-sm bg-yellow-600 hover:bg-yellow-700 whitespace-nowrap"
+                />
+              </div>
+            </div>
+          )}
+          
+          {/* Debug Information - Only shown when showDebugInfo is true */}
+          {showDebugInfo && (
+            <div className="mb-4 p-3 bg-slate-800/50 rounded-md border border-slate-600">
+              <div className="flex items-center justify-between mb-3">
+                <h5 className="text-slate-300 font-medium text-sm">System Status</h5>
+                {isCheckingBackendAuth && (
+                  <div className="flex items-center gap-1">
+                    <div className="animate-spin rounded-full h-3 w-3 border-t border-blue-400"></div>
+                    <span className="text-xs text-blue-400">Checking...</span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3 text-xs mb-3">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">Wallet:</span>
+                    <span className={address ? 'text-green-400' : 'text-red-400'}>
+                      {address ? '✓ Connected' : '✗ Not connected'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">Frontend Auth:</span>
+                    <span className={isAuthenticated ? 'text-green-400' : 'text-red-400'}>
+                      {isAuthenticated ? '✓ Authenticated' : '✗ Not authenticated'}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">Backend Auth:</span>
+                    <span className={
+                      isBackendAuthenticated === null ? 'text-gray-400' :
+                      isBackendAuthenticated ? 'text-green-400' : 'text-red-400'
+                    }>
+                      {isBackendAuthenticated === null ? '⏳ Checking...' :
+                       isBackendAuthenticated ? '✓ Verified' : '✗ Required'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">Can Verify:</span>
+                    <span className={canVerify && isBackendAuthenticated ? 'text-green-400' : 'text-red-400'}>
+                      {canVerify && isBackendAuthenticated ? '✓ Ready' : '✗ Not ready'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="pt-2 border-t border-gray-600">
+                <button
+                  onClick={async () => {
+                    setIsTestingBackend(true);
+                    setBackendTestResult(null);
+                    try {
+                      const response = await fetch(`${BACKEND_SERVICE_URL}/api/debug/wallet-auth`, {
+                        headers: {
+                          'X-Wallet-Address': address || '',
+                          'Content-Type': 'application/json'
+                        }
+                      });
+                      const data = await response.json();
+                      setBackendTestResult(`Backend Auth Test: ${JSON.stringify(data, null, 2)}`);
+                    } catch (error) {
+                      setBackendTestResult(`Backend Auth Test Failed: ${error instanceof Error ? error.message : String(error)}`);
+                    } finally {
+                      setIsTestingBackend(false);
+                    }
+                  }}
+                  disabled={isTestingBackend || !address}
+                  className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-xs"
+                >
+                  {isTestingBackend ? 'Testing...' : 'Test Backend Auth'}
+                </button>
+              </div>
+              
+              {backendTestResult && (
+                <div className="mt-2 p-2 bg-gray-900 rounded">
+                  <pre className="text-xs text-gray-300 whitespace-pre-wrap overflow-x-auto">
+                    {backendTestResult}
+                  </pre>
+                </div>
+              )}
+            </div>
+          )}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setShowInstructions(!showInstructions)}
+          className="text-blue-400 border-blue-400 hover:bg-blue-400/10 mb-3"
+        >
+          {showInstructions ? 'Hide' : 'Show'} DNS Setup Instructions
+        </Button>
+        
+        {showInstructions && (
+          <div className="bg-slate-800/50 p-4 rounded-md">
+            <h5 className="text-sm font-bold text-yellow-400 mb-2">DNS TXT Record Setup:</h5>
+            <div className="text-xs text-gray-300 space-y-2">
+              <p><strong>1.</strong> Go to your domain's DNS settings</p>
+              <p><strong>2.</strong> Add a new TXT record with:</p>
+              <div className="bg-slate-900 p-2 rounded border-l-4 border-blue-500 ml-4">
+                <p><strong>Name/Host:</strong> <code className="text-blue-400">_densofi</code></p>
+                <p><strong>Value:</strong> <code className="text-green-400">a={address}</code></p>
+                <p><strong>TTL:</strong> <code className="text-gray-400">300</code> (or default)</p>
+              </div>
+              <p><strong>3.</strong> Wait a few minutes for DNS propagation</p>
+              <p><strong>4.</strong> Click "Verify Domain Ownership" below</p>
+            </div>
+            <div className="mt-3 p-2 bg-yellow-900/20 border border-yellow-700/50 rounded">
+              <p className="text-xs text-yellow-300">
+                <strong>Note:</strong> DNS changes can take up to 24 hours to propagate fully, but usually work within minutes.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <Button
+        type="submit"
+        disabled={isVerifying || isSubmitting || !domainName.trim() || !canVerify || !isAuthenticated || !verifyDomain || !!hookError || isBackendAuthenticated === false || isCheckingBackendAuth}
+        className="w-full"
+      >
+        {hookError ? 'Verification Service Unavailable' : 
+         isCheckingBackendAuth ? 'Checking Authentication...' :
+         isBackendAuthenticated === false ? 'Backend Authentication Required' :
+         isVerifying || isSubmitting ? 'Verifying Domain...' : 
+         'Verify Domain Ownership'}
+      </Button>
+
+
+
+      {(!canVerify && isAuthenticated) && (
+        <div className="bg-yellow-900/30 border border-yellow-700/50 p-4 rounded-md">
+          <h4 className="text-yellow-400 font-bold mb-2">Verification Not Available</h4>
+          <p className="text-gray-300 text-sm">
+            Please ensure your wallet is connected and authenticated to verify domain ownership.
+          </p>
+        </div>
+      )}
+
+      {(customError || verificationError || hookError) && (
+        <div className="bg-red-900/30 border border-red-700/50 p-4 rounded-md">
+          <h4 className="text-red-400 font-bold mb-2">Verification Failed</h4>
+          <p className="text-gray-300 text-sm mb-4">
+            {customError || verificationError || hookError || 'Unable to verify domain ownership'}
+          </p>
+          
+          {!customError?.toLowerCase().includes('authentication') && (
+            <div className="text-xs text-gray-400">
+              <p>Common issues:</p>
+              <ul className="list-disc list-inside ml-2 mt-1">
+                <li>DNS TXT record not set up correctly</li>
+                <li>DNS propagation still in progress</li>
+                <li>Wallet address in TXT record doesn't match connected wallet</li>
+                <li>Domain doesn't exist or isn't accessible</li>
+              </ul>
+            </div>
+          )}
+          
+          {customError?.toLowerCase().includes('authentication') && (
+            <div className="mt-3">
+              <Button
+                onClick={() => {
+                  setCustomError(null);
+                  // You might want to trigger a re-authentication here
+                }}
+                variant="outline"
+                className="text-yellow-400 border-yellow-400 hover:bg-yellow-400/10"
+              >
+                Clear Error & Retry
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {isSubmitting && !verificationError && (
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-500 mx-auto mb-2"></div>
+          <p className="text-gray-300 text-sm">Checking DNS records for domain ownership...</p>
+        </div>
+      )}
+    </form>
+  );
+};
+
+// Domain Registration Component - Updated to use pre-verified domain
+const DomainRegistrationStep = ({ domain, onComplete }: { domain: string; onComplete: (domain: string) => void }) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
-  const [registeredDomain, setRegisteredDomain] = useState('');
   const [isListeningForEvents, setIsListeningForEvents] = useState(false);
 
   const { 
@@ -242,49 +759,46 @@ const DomainRegistrationStep = ({ onComplete }: { onComplete: (domain: string) =
     latestEvent: registrationEvent, 
     clearEvents: clearRegistrationEvents,
     isListening: isEventListenerActive
-  } = useDomainRegistrationEvents(registeredDomain);
+  } = useDomainRegistrationEvents(domain);
 
   // Handle successful domain registration event
   useEffect(() => {
-    if (registrationEvent && registeredDomain && !registrationComplete) {
+    if (registrationEvent && domain && !registrationComplete) {
       console.log('🎉 Domain registration event received!', registrationEvent);
       setRegistrationComplete(true);
       setIsListeningForEvents(false);
-      onComplete(registeredDomain);
+      onComplete(domain);
     }
-  }, [registrationEvent, registeredDomain, registrationComplete, onComplete]);
+  }, [registrationEvent, domain, registrationComplete, onComplete]);
 
   // Fallback: if transaction is confirmed but no event received within 30 seconds
   useEffect(() => {
-    if (isConfirmed && registeredDomain && !registrationComplete) {
+    if (isConfirmed && domain && !registrationComplete) {
       const timer = setTimeout(() => {
         console.log('⏰ Fallback: Transaction confirmed, assuming registration successful');
         setRegistrationComplete(true);
         setIsListeningForEvents(false);
-        onComplete(registeredDomain);
+        onComplete(domain);
       }, 30000); // 30 second fallback
 
       return () => clearTimeout(timer);
     }
-  }, [isConfirmed, registeredDomain, registrationComplete, onComplete]);
+  }, [isConfirmed, domain, registrationComplete, onComplete]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!domainName.trim()) return;
 
     setIsSubmitting(true);
-    setRegisteredDomain(domainName.trim());
     setIsListeningForEvents(true);
     clearRegistrationEvents(); // Clear any previous events
     
     try {
-      console.log('🚀 Submitting domain registration for:', domainName.trim());
-      await requestRegistration(domainName.trim());
+      console.log('🚀 Submitting domain registration for:', domain);
+      await requestRegistration(domain);
       console.log('📡 Now listening for registration events...');
     } catch (error) {
       console.error('Error registering domain:', error);
       setIsSubmitting(false);
-      setRegisteredDomain('');
       setIsListeningForEvents(false);
     }
   };
@@ -295,7 +809,7 @@ const DomainRegistrationStep = ({ onComplete }: { onComplete: (domain: string) =
         <div className="mb-4 text-green-400 text-5xl">✅</div>
         <h3 className="text-xl font-bold mb-2">Domain Registration Complete!</h3>
         <p className="mb-4 text-gray-300">
-          Your domain <span className="font-bold text-blue-400">{registeredDomain}</span> has been registered.
+          Your domain <span className="font-bold text-blue-400">{domain}</span> has been registered.
         </p>
         {transactionHash && (
           <p className="text-sm text-gray-400">
@@ -361,39 +875,34 @@ const DomainRegistrationStep = ({ onComplete }: { onComplete: (domain: string) =
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label htmlFor="domainName" className="block text-sm font-medium mb-2">
-          Domain Name
-        </label>
-        <input
-          id="domainName"
-          type="text"
-          value={domainName}
-          onChange={(e) => setDomainName(e.target.value)}
-          className="w-full p-3 bg-gray-700/50 rounded-md border border-gray-600 focus:border-blue-500 focus:outline-none"
-          placeholder="mydomain.eth"
-          required
-          disabled={isProcessing || isSubmitting}
-        />
+      <div className="bg-green-900/30 border border-green-700/50 p-4 rounded-md">
+        <h4 className="text-green-400 font-bold mb-2">✅ Domain Verified & Ready for Registration</h4>
+        <p className="text-gray-300 text-sm mb-2">
+          Domain ownership has been verified for: <span className="font-bold text-blue-400">{domain}</span>
+        </p>
+        <p className="text-gray-400 text-xs">
+          You can now proceed with blockchain registration to secure your domain.
+        </p>
       </div>
 
       <div className="bg-blue-900/30 border border-blue-700/50 p-4 rounded-md">
         <h4 className="text-blue-400 font-bold mb-2">Registration Details</h4>
         <div className="text-gray-300 text-sm space-y-1">
+          <p>Domain: <span className="font-mono text-blue-400">{domain}</span></p>
           <p>Network: {chainName}</p>
           <p><strong>Registration Fee:</strong> {registrationFee ? formatEther(registrationFee as bigint) : '...'} ETH</p>
         </div>
         <p className="text-xs text-gray-400 mt-2">
-          This fee is required to process your domain registration request.
+          This fee is required to process your domain registration request on the blockchain.
         </p>
       </div>
 
       <Button
         type="submit"
-        disabled={isProcessing || isSubmitting || !domainName.trim() || !registrationFee}
+        disabled={isProcessing || isSubmitting || !registrationFee}
         className="w-full"
       >
-        {isProcessing || isSubmitting ? 'Processing...' : 'Register Domain'}
+        {isProcessing || isSubmitting ? 'Processing...' : 'Register Domain on Blockchain'}
       </Button>
 
       {/* Transaction Status */}
@@ -436,6 +945,8 @@ const NFTMintingStep = ({ domain, onComplete }: { domain: string; onComplete: (n
   const [mintingComplete, setMintingComplete] = useState(false);
   const [mintedNftId, setMintedNftId] = useState<number | null>(null);
   const [waitingForMintable, setWaitingForMintable] = useState(true);
+  const [isSearchingForNFT, setIsSearchingForNFT] = useState(false);
+  const [searchAttempts, setSearchAttempts] = useState(0);
 
   // Use the new NFT minting hook
   const { 
@@ -470,6 +981,115 @@ const NFTMintingStep = ({ domain, onComplete }: { domain: string; onComplete: (n
 
   const { address } = useAccount();
 
+  // Function to search for newly minted NFT using Alchemy API
+  const searchForNewNFT = async (attemptNumber: number = 1) => {
+    if (!address || mintingComplete) return;
+    
+    setIsSearchingForNFT(true);
+    console.log(`🔍 Searching for newly minted NFT (attempt ${attemptNumber})...`);
+    
+    try {
+      let foundNfts: NFT[] = [];
+      
+      // Method 1: Try backend API first
+      try {
+        console.log("🔄 Method 1: Checking backend API for new NFT...");
+        const backendResponse = await fetch(`${BACKEND_SERVICE_URL}/api/nfts/${address}`, {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (backendResponse.ok) {
+          const backendData = await backendResponse.json();
+          console.log('📋 Backend NFT response:', backendData);
+          
+          if (backendData.nfts && Array.isArray(backendData.nfts)) {
+            foundNfts = backendData.nfts.map((nft: any) => ({
+              id: {
+                tokenId: nft.tokenId.toString()
+              },
+              title: nft.title || `Domain NFT #${nft.tokenId}`,
+              description: nft.description || "",
+              media: [{
+                gateway: nft.image || ""
+              }],
+              contract: {
+                address: CONTRACT_ADDRESS
+              }
+            }));
+          }
+        }
+      } catch (backendError) {
+        console.warn("⚠️ Backend API not available:", backendError);
+      }
+      
+      // Method 2: Fallback to Alchemy
+      if (foundNfts.length === 0) {
+        try {
+          console.log("🔄 Method 2: Trying Alchemy as fallback...");
+          const response = await alchemy.nft.getNftsForOwner(address, {
+            contractAddresses: [CONTRACT_ADDRESS]
+          });
+          
+          foundNfts = response.ownedNfts.map((nft: any) => ({
+            id: {
+              tokenId: nft.tokenId
+            },
+            title: nft.title || `Domain NFT #${nft.tokenId}`,
+            description: nft.description || "",
+            media: [{
+              gateway: nft.media?.[0]?.gateway || ""
+            }],
+            contract: {
+              address: nft.contract.address
+            }
+          }));
+        } catch (alchemyError) {
+          console.warn("⚠️ Alchemy also failed:", alchemyError);
+        }
+      }
+
+      console.log('📋 Found NFTs:', foundNfts.length);
+      
+      // Look for the newest NFT (highest token ID)
+      if (foundNfts.length > 0) {
+        const sortedNfts = foundNfts.sort((a, b) => {
+          const tokenIdA = parseInt(a.id.tokenId, 10);
+          const tokenIdB = parseInt(b.id.tokenId, 10);
+          return tokenIdB - tokenIdA;
+        });
+        
+        const newestNft = sortedNfts[0];
+        const tokenId = parseInt(newestNft.id.tokenId, 10);
+        
+        console.log(`🎉 Found newest NFT with token ID: ${tokenId}`);
+        setMintedNftId(tokenId);
+        setMintingComplete(true);
+        setWaitingForMintable(false);
+        setIsSearchingForNFT(false);
+        onComplete(tokenId);
+        return;
+      }
+      
+      // If no NFTs found and we haven't exceeded max attempts, try again
+      if (attemptNumber < 10) {
+        const delay = Math.min(2000 + (attemptNumber * 1000), 8000); // Increasing delay, max 8s
+        console.log(`⏳ No NFTs found, retrying in ${delay}ms...`);
+        setTimeout(() => {
+          setSearchAttempts(attemptNumber);
+          searchForNewNFT(attemptNumber + 1);
+        }, delay);
+      } else {
+        console.warn('⚠️ Max search attempts reached, stopping NFT search');
+        setIsSearchingForNFT(false);
+      }
+    } catch (error) {
+      console.error('❌ Error searching for NFT:', error);
+      setIsSearchingForNFT(false);
+    }
+  };
+
   // Check if NFT already exists for this domain
   useEffect(() => {
     if (existingTokenId && Number(existingTokenId) > 0) {
@@ -480,9 +1100,9 @@ const NFTMintingStep = ({ domain, onComplete }: { domain: string; onComplete: (n
     }
   }, [existingTokenId, onComplete]);
 
-  // Handle successful NFT minting event
+  // Handle successful NFT minting event (backup method)
   useEffect(() => {
-    if (mintingEvent && !mintingComplete) {
+    if (mintingEvent && !mintingComplete && !isSearchingForNFT) {
       console.log('🎉 NFT minting event received!', mintingEvent);
       const tokenId = Number(mintingEvent.tokenId);
       setMintedNftId(tokenId);
@@ -490,16 +1110,16 @@ const NFTMintingStep = ({ domain, onComplete }: { domain: string; onComplete: (n
       setWaitingForMintable(false);
       onComplete(tokenId);
     }
-  }, [mintingEvent, mintingComplete, onComplete]);
+  }, [mintingEvent, mintingComplete, onComplete, isSearchingForNFT]);
 
-  // Handle successful minting from the new hook
+  // Handle successful minting from the new hook - start NFT search
   useEffect(() => {
-    if (mintingSuccess && isConfirmed && !mintingComplete) {
-      console.log('🎉 NFT minting transaction confirmed!');
-      // Poll for the token ID
-      pollContractState();
+    if (mintingSuccess && isConfirmed && !mintingComplete && !isSearchingForNFT) {
+      console.log('🎉 NFT minting transaction confirmed! Starting NFT search...');
+      // Start searching for the NFT using Alchemy API
+      searchForNewNFT(1);
     }
-  }, [mintingSuccess, isConfirmed, mintingComplete, pollContractState]);
+  }, [mintingSuccess, isConfirmed, mintingComplete, isSearchingForNFT]);
 
   // Monitor when domain becomes mintable
   useEffect(() => {
@@ -621,23 +1241,36 @@ const NFTMintingStep = ({ domain, onComplete }: { domain: string; onComplete: (n
           <p className="text-gray-300 text-sm mb-2">
             Transaction Hash: <code className="bg-slate-800 px-2 py-1 rounded text-xs">{txHash}</code>
           </p>
-          {isEventListenerActive && (
+          {isConfirming && (
+            <p className="text-yellow-400 text-sm mt-2">
+              ⏳ Transaction confirming...
+            </p>
+          )}
+          {isConfirmed && !isSearchingForNFT && (
+            <p className="text-yellow-400 text-sm mt-2">
+              ⏳ Transaction confirmed, waiting for NFT minting event...
+            </p>
+          )}
+          {isSearchingForNFT && (
+            <div className="mt-3">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                <p className="text-blue-400 text-sm">
+                  🔍 Searching for your newly minted NFT... (attempt {searchAttempts}/10)
+                </p>
+              </div>
+              <p className="text-xs text-gray-400">
+                Using Alchemy API to find your NFT. This may take a few moments.
+              </p>
+            </div>
+          )}
+          {isEventListenerActive && !isSearchingForNFT && (
             <div className="flex items-center gap-2 mt-3">
               <div className="animate-pulse w-2 h-2 bg-green-500 rounded-full"></div>
               <p className="text-green-400 text-sm">
                 📡 Listening for NFT minting events...
               </p>
             </div>
-          )}
-          {isConfirming && (
-            <p className="text-yellow-400 text-sm mt-2">
-              ⏳ Transaction confirming...
-            </p>
-          )}
-          {isConfirmed && (
-            <p className="text-yellow-400 text-sm mt-2">
-              ⏳ Transaction confirmed, waiting for NFT minting event...
-            </p>
           )}
         </div>
       )}
@@ -656,6 +1289,359 @@ const NFTMintingStep = ({ domain, onComplete }: { domain: string; onComplete: (n
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-purple-500 mx-auto"></div>
           <p className="text-gray-300 text-sm mt-2">Minting your domain NFT...</p>
         </div>
+      )}
+    </div>
+  );
+};
+
+// Helper function to safely format fee
+const formatFeeHelper = (fee: unknown): React.ReactNode => {
+  try {
+    if (typeof fee === 'bigint') {
+      return formatEther(fee);
+    } else if (fee && typeof fee === 'object' && 'toString' in fee) {
+      return formatEther(BigInt(fee.toString()));
+    } else if (typeof fee === 'string' || typeof fee === 'number') {
+      return formatEther(BigInt(fee.toString()));
+    }
+    return '...';
+  } catch {
+    return '...';
+  }
+};
+
+// Modal component
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  children: ReactNode;
+}
+
+const Modal = ({ isOpen, onClose, children }: ModalProps) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop with enhanced blur */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
+      
+      {/* Modal container with glass effect */}
+      <div className="relative max-w-5xl w-full mx-4 max-h-[95vh] overflow-hidden">
+        <GlassCard className="relative overflow-hidden shadow-2xl shadow-blue-500/20">
+          {/* Animated background glow inside modal */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-10 left-1/4 w-64 h-64 bg-gradient-to-r from-blue-900/30 via-indigo-800/40 to-purple-900/35 rounded-full blur-3xl animate-pulse opacity-40" style={{ animationDuration: '6s' }}></div>
+            <div className="absolute bottom-10 right-1/4 w-56 h-56 bg-gradient-to-l from-teal-900/25 via-cyan-800/35 to-blue-900/30 rounded-full blur-2xl animate-pulse opacity-35" style={{ animationDuration: '8s', animationDelay: '2s' }}></div>
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-gradient-to-br from-purple-900/25 via-blue-800/35 to-indigo-900/30 rounded-full blur-3xl animate-pulse opacity-30" style={{ animationDuration: '10s', animationDelay: '1s' }}></div>
+          </div>
+          
+          {/* Header */}
+          <div className="sticky top-0 bg-slate-900/90 backdrop-blur-xl border-b border-white/10 p-6 flex justify-between items-center relative z-10">
+            <div className="relative">
+              <h2 className="text-3xl font-bold text-white relative">
+                Create Domain Token
+                <AnimatedHeadingGlow 
+                  color="#60A5FA" 
+                  intensity={0.15} 
+                  speed={0.8} 
+                  distortionAmount={0.5}
+                  size={0.6}
+                  randomSeed={1}
+                />
+              </h2>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-white transition-all duration-300 p-3 rounded-full hover:bg-white/10 group"
+            >
+              <svg className="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          {/* Content */}
+          <div className="p-8 overflow-y-auto max-h-[calc(95vh-120px)] relative z-10">
+            {children}
+          </div>
+        </GlassCard>
+      </div>
+    </div>
+  );
+};
+
+// NFT Selection Component for existing NFTs
+const NFTSelectionStep = ({ onComplete }: { onComplete: (nftId: number, domain: string) => void }) => {
+  const { address } = useAccount();
+  const [nfts, setNfts] = useState<NFT[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedNft, setSelectedNft] = useState<string>("");
+  const [error, setError] = useState<string>("");
+  const [debugInfo, setDebugInfo] = useState<any>(null);
+
+  // Fetch NFTs when address changes
+  useEffect(() => {
+    if (address) {
+      fetchNFTs(address);
+    }
+  }, [address]);
+
+  const fetchNFTs = async (owner: string) => {
+    try {
+      setLoading(true);
+      setError("");
+      console.log("🔍 Fetching NFTs for address:", owner);
+      console.log("🔍 Contract address:", CONTRACT_ADDRESS);
+      
+      let formattedNfts: NFT[] = [];
+      const methods = [];
+      
+      // Method 1: Try backend API first
+      try {
+        console.log("🔄 Method 1: Trying backend API...");
+        const backendResponse = await fetch(`${BACKEND_SERVICE_URL}/api/nfts/${owner}`, {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (backendResponse.ok) {
+          const backendData = await backendResponse.json();
+          console.log("📋 Backend NFT response:", backendData);
+          
+          if (backendData.nfts && Array.isArray(backendData.nfts)) {
+            formattedNfts = backendData.nfts.map((nft: any) => ({
+              id: {
+                tokenId: nft.tokenId
+              },
+              title: nft.title || `Domain NFT #${nft.tokenId}`,
+              description: nft.description || "",
+              media: [{
+                gateway: nft.image || ""
+              }],
+              contract: {
+                address: CONTRACT_ADDRESS
+              }
+            }));
+            methods.push('Backend API');
+          }
+        }
+      } catch (backendError) {
+        console.warn("⚠️ Backend API not available:", backendError);
+        methods.push('Backend API (failed)');
+      }
+      
+      // Method 2: Try Alchemy as fallback
+      if (formattedNfts.length === 0) {
+        try {
+          console.log("🔄 Method 2: Trying Alchemy API fallback...");
+          const response = await alchemy.nft.getNftsForOwner(owner, {
+            contractAddresses: [CONTRACT_ADDRESS]
+          });
+
+          console.log("📋 Raw Alchemy response:", response);
+          
+          formattedNfts = response.ownedNfts.map((nft: any, index: number) => {
+            console.log(`📋 Processing NFT ${index + 1}:`, nft);
+            
+            return {
+              id: {
+                tokenId: nft.tokenId
+              },
+              title: nft.title || nft.rawMetadata?.name || `Domain NFT #${nft.tokenId}`,
+              description: nft.description || nft.rawMetadata?.description || "",
+              media: [{
+                gateway: nft.media?.[0]?.gateway || ""
+              }],
+              contract: {
+                address: nft.contract.address
+              }
+            };
+          });
+          methods.push('Alchemy Fallback');
+          
+          // Try getting all NFTs and filtering if no results
+          if (formattedNfts.length === 0) {
+            console.log("🔄 Trying Alchemy with all NFTs filter...");
+            const allNftsResponse = await alchemy.nft.getNftsForOwner(owner);
+            
+            const filteredNfts = allNftsResponse.ownedNfts.filter(nft => 
+              nft.contract.address.toLowerCase() === CONTRACT_ADDRESS.toLowerCase()
+            );
+            
+            if (filteredNfts.length > 0) {
+              formattedNfts = filteredNfts.map((nft: any) => ({
+                id: {
+                  tokenId: nft.tokenId
+                },
+                title: nft.title || nft.rawMetadata?.name || `Domain NFT #${nft.tokenId}`,
+                description: nft.description || nft.rawMetadata?.description || "",
+                media: [{
+                  gateway: nft.media?.[0]?.gateway || ""
+                }],
+                contract: {
+                  address: nft.contract.address
+                }
+              }));
+              methods.push('Alchemy Filtered');
+            }
+          }
+        } catch (alchemyError) {
+          console.warn("⚠️ Alchemy API also failed:", alchemyError);
+          methods.push('Alchemy Fallback (failed)');
+        }
+      }
+      
+      setDebugInfo({
+        contractAddress: CONTRACT_ADDRESS,
+        ownerAddress: owner,
+        totalNfts: formattedNfts.length,
+        networkDetected: 'Ethereum Sepolia',
+        methodsAttempted: methods,
+        successfulMethod: formattedNfts.length > 0 ? methods[methods.findIndex(m => !m.includes('failed'))] : 'none',
+        rawResponse: formattedNfts
+      });
+      
+      console.log("✅ Final formatted NFTs:", formattedNfts);
+      console.log("📊 Methods attempted:", methods);
+      setNfts(formattedNfts);
+      
+    } catch (error) {
+      console.error("❌ Error fetching NFTs:", error);
+      setError(error instanceof Error ? error.message : "Unknown error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelectNFT = () => {
+    if (!selectedNft) return;
+    
+    const nft = nfts.find(n => n.id.tokenId === selectedNft);
+    const domain = nft?.title?.replace(/^Domain NFT #\d+:?\s*/, '') || `nft-${selectedNft}`;
+    
+    onComplete(parseInt(selectedNft, 10), domain);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h3 className="text-2xl font-bold mb-4">Select Your Domain NFT</h3>
+        <p className="text-gray-300">
+          Choose an existing domain NFT to create tokens from, or register a new domain below.
+        </p>
+      </div>
+
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-blue-500 mb-4"></div>
+          <p className="text-gray-300">Loading your domain NFTs...</p>
+          <p className="text-xs text-gray-400 mt-2">Checking contract: {CONTRACT_ADDRESS}</p>
+        </div>
+      ) : error ? (
+        <div className="text-center py-12">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h4 className="text-xl font-bold mb-2 text-red-400">Error Loading NFTs</h4>
+          <p className="text-gray-300 mb-4">
+            {error}
+          </p>
+          <button
+            onClick={() => address && fetchNFTs(address)}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm"
+          >
+            Try Again
+          </button>
+          {debugInfo && (
+            <details className="mt-4 text-left">
+              <summary className="text-xs text-gray-400 cursor-pointer">Debug Info</summary>
+              <pre className="text-xs text-gray-400 mt-2 bg-slate-800 p-2 rounded overflow-auto">
+                {JSON.stringify(debugInfo, null, 2)}
+              </pre>
+            </details>
+          )}
+        </div>
+      ) : nfts.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="text-6xl mb-4">📄</div>
+          <h4 className="text-xl font-bold mb-2">No Domain NFTs Found</h4>
+          <p className="text-gray-300 mb-4">
+            You don't have any domain NFTs yet. Create your first domain below!
+          </p>
+          <div className="bg-yellow-900/30 border border-yellow-700/50 p-4 rounded-md mb-4">
+            <p className="text-yellow-400 text-sm mb-2">
+              <strong>Troubleshooting:</strong>
+            </p>
+            <ul className="text-xs text-gray-300 list-disc list-inside space-y-1">
+              <li>Make sure you're connected to the correct wallet</li>
+              <li>Verify you're on the right network (Sepolia)</li>
+              <li>Check if your NFT was minted recently (may take a few minutes to appear)</li>
+              <li>Contract being searched: <code className="bg-slate-800 px-1 rounded text-xs">{CONTRACT_ADDRESS}</code></li>
+            </ul>
+          </div>
+          <button
+            onClick={() => address && fetchNFTs(address)}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm mr-2"
+          >
+            Refresh NFTs
+          </button>
+          {debugInfo && (
+            <details className="mt-4 text-left">
+              <summary className="text-xs text-gray-400 cursor-pointer">Debug Info</summary>
+              <pre className="text-xs text-gray-400 mt-2 bg-slate-800 p-2 rounded overflow-auto">
+                {JSON.stringify(debugInfo, null, 2)}
+              </pre>
+            </details>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto p-4 bg-slate-800/30 rounded-lg">
+            {nfts.map((nft) => (
+              <div 
+                key={nft.id.tokenId}
+                onClick={() => setSelectedNft(nft.id.tokenId)}
+                className={`p-4 rounded-lg cursor-pointer transition-all border-2 ${
+                  selectedNft === nft.id.tokenId 
+                    ? "border-blue-500 bg-blue-900/30" 
+                    : "border-gray-600 bg-gray-700/30 hover:border-gray-500"
+                }`}
+              >
+                {nft.media && nft.media[0] && nft.media[0].gateway ? (
+                  <img 
+                    src={nft.media[0].gateway} 
+                    alt={nft.title || `NFT #${nft.id.tokenId}`}
+                    className="w-full h-32 object-cover rounded-md mb-3"
+                  />
+                ) : (
+                  <div className="w-full h-32 bg-gray-800 rounded-md mb-3 flex items-center justify-center">
+                    <span className="text-3xl">🏠</span>
+                  </div>
+                )}
+                <h5 className="font-bold text-white truncate mb-1">
+                  {nft.title || `Domain #${nft.id.tokenId}`}
+                </h5>
+                <p className="text-sm text-gray-400">
+                  ID: {nft.id.tokenId}
+                </p>
+                {selectedNft === nft.id.tokenId && (
+                  <div className="mt-2 text-blue-400 text-sm font-medium">
+                    ✓ Selected
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-center">
+            <Button
+              onClick={handleSelectNFT}
+              disabled={!selectedNft}
+              className="bg-blue-600 hover:bg-blue-700 px-8 py-3"
+            >
+              Create Token from Selected NFT
+            </Button>
+          </div>
+        </>
       )}
     </div>
   );
@@ -770,11 +1756,11 @@ const TokenCreationStep = ({ domain, nftId }: { domain: string; nftId: number })
             <strong>Token Address:</strong>
           </p>
           <p className="font-mono text-green-400 text-sm break-all">
-            {createdTokenAddress}
+            <a target="_blank" href={'https://evm.flowscan.io/address/' + createdTokenAddress}>{createdTokenAddress}</a>
           </p>
-          <p className="text-xs text-gray-400 mt-2">
+          {/* <p className="text-xs text-gray-400 mt-2">
             Method: {creationMethod === 'direct' ? 'Direct Receipt' : 'Launchpad'}
-          </p>
+          </p> */}
         </div>
         {tokenTxHash && (
           <p className="text-sm text-gray-400 mt-4">
@@ -886,7 +1872,7 @@ const TokenCreationStep = ({ domain, nftId }: { domain: string; nftId: number })
             </p>
             {creationMethod === 'direct' && fixedFee && (
               <p className="text-xs text-gray-400 mt-2">
-                This will cost {formatEther(fixedFee as bigint)} ETH and you'll receive all 1,000,000 tokens immediately.
+                This will cost {formatFeeHelper(fixedFee)} ETH and you'll receive all 1,000,000 tokens immediately.
               </p>
             )}
             {creationMethod === 'launchpad' && (
@@ -928,7 +1914,7 @@ const TokenCreationStep = ({ domain, nftId }: { domain: string; nftId: number })
                 <p>NFT ID: <span className="font-mono text-purple-400">#{nftId}</span></p>
                 <p>Method: <span className="font-mono text-green-400">{creationMethod}</span></p>
                 {creationMethod === 'direct' && fixedFee && (
-                  <p>Fee: <span className="font-mono text-yellow-400">{formatEther(fixedFee as bigint)} ETH</span></p>
+                  <p>Fee: <span className="font-mono text-yellow-400">{formatFeeHelper(fixedFee)} ETH</span></p>
                 )}
               </div>
               {isTokenProcessing && (
@@ -994,49 +1980,206 @@ const TokenCreationStep = ({ domain, nftId }: { domain: string; nftId: number })
   );
 };
 
-// Main Create Token Content
+// Main Create Token Content - Modal-based with choice between new domain and existing NFT
 const CreateTokenContent = () => {
   const { isConnected } = useAccount();
-  const [currentStep, setCurrentStep] = useState(1);
+  const { isAuthenticated } = useWalletAuth();
+  const [mode, setMode] = useState<'choose' | 'new-domain' | 'existing-nft'>('choose');
+  const [currentStep, setCurrentStep] = useState(3); // Start at step 3
   const [backendValidated, setBackendValidated] = useState(false);
+  const [domainVerified, setDomainVerified] = useState(false);
+  const [verifiedDomain, setVerifiedDomain] = useState('');
   const [registeredDomain, setRegisteredDomain] = useState('');
   const [mintedNftId, setMintedNftId] = useState<number | null>(null);
+  const [fromExistingNFT, setFromExistingNFT] = useState(false);
+
+  // Check for issues that require showing steps 1 & 2
+  const hasWalletIssue = !isConnected;
+  const hasBackendIssue = isConnected && !isAuthenticated;
+
+  // Auto-set backend validated if authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      setBackendValidated(true);
+    }
+  }, [isAuthenticated]);
 
   const handleBackendValidated = () => {
     setBackendValidated(true);
-    if (currentStep === 2) {
-      setCurrentStep(3);
-    }
+    setCurrentStep(3);
   };
 
-  // Auto advance to step 2 when wallet connects
-  useEffect(() => {
-    if (isConnected && currentStep === 1) {
-      setCurrentStep(2);
-    }
-  }, [isConnected, currentStep]);
+  const handleDomainVerified = (domain: string) => {
+    setVerifiedDomain(domain);
+    setDomainVerified(true);
+    setCurrentStep(4);
+  };
 
   const handleDomainRegistered = (domain: string) => {
     setRegisteredDomain(domain);
-    setCurrentStep(4);
+    setCurrentStep(5);
   };
 
   const handleNFTMinted = (nftId: number) => {
     setMintedNftId(nftId);
-    setCurrentStep(5);
+    setCurrentStep(6);
   };
 
+  const handleExistingNFTSelected = (nftId: number, domain: string) => {
+    setMintedNftId(nftId);
+    setRegisteredDomain(domain);
+    setFromExistingNFT(true);
+    setCurrentStep(6);
+  };
+
+  // Mode Selection Screen
+  if (mode === 'choose' && !hasWalletIssue && !hasBackendIssue) {
+    return (
+      <div className="space-y-10">
+        <div className="text-center">
+          {/* <h3 className="text-4xl font-bold mb-6 relative">
+            Choose Your Path
+            <AnimatedHeadingGlow 
+              color="#8B5CF6" 
+              intensity={0.2} 
+              speed={1.2} 
+              distortionAmount={0.4}
+              size={0.5}
+              randomSeed={0.5}
+            />
+          </h3> */}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div 
+            onClick={() => setMode('existing-nft')}
+            className="group relative cursor-pointer"
+          >
+            <GlassCard className="p-8 h-full transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/30 border-blue-500/20 hover:border-blue-400/40 group-hover:scale-[1.02]">
+              {/* Background glow */}
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              
+              {/* Icon with enhanced glow */}
+              <div className="relative mb-6 flex justify-center">
+                <div className="relative">
+                  <div className="text-7xl mb-2 transform transition-transform duration-300 group-hover:scale-110">🏠</div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-2xl -z-10 group-hover:from-blue-500/30 group-hover:to-purple-500/30 transition-all duration-300"></div>
+                </div>
+              </div>
+              
+              <div className="text-center relative z-10">
+                <h4 className="text-3xl font-bold mb-4 text-blue-400 group-hover:text-blue-300 transition-colors duration-300">
+                  Use Existing NFT
+                </h4>
+                <div className="w-16 h-0.5 bg-gradient-to-r from-blue-400 to-purple-400 mx-auto mb-4 opacity-50 group-hover:opacity-100 group-hover:w-24 transition-all duration-300"></div>
+                <p className="text-gray-300 group-hover:text-gray-200 transition-colors duration-300 text-lg leading-relaxed mb-6">
+                  Create tokens from a domain NFT you already own
+                </p>
+                
+                <div className="bg-blue-900/20 border border-blue-500/30 p-4 rounded-lg group-hover:bg-blue-900/30 group-hover:border-blue-400/50 transition-all duration-300">
+                  <p className="text-sm text-blue-300 group-hover:text-blue-200 transition-colors duration-300 font-medium">
+                    ⚡ Already have a Domain NFT - Mint a token from it
+                  </p>
+                </div>
+              </div>
+              
+              {/* Corner accent */}
+              <div className="absolute top-6 right-6 w-3 h-3 bg-blue-400/30 rounded-full group-hover:bg-blue-400/60 transition-colors duration-300"></div>
+            </GlassCard>
+          </div>
+
+          <div 
+            onClick={() => setMode('new-domain')}
+            className="group relative cursor-pointer"
+          >
+            <GlassCard className="p-8 h-full transition-all duration-500 hover:shadow-2xl hover:shadow-green-500/30 border-green-500/20 hover:border-green-400/40 group-hover:scale-[1.02]">
+              {/* Background glow */}
+              <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-teal-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              
+              {/* Icon with enhanced glow */}
+              <div className="relative mb-6 flex justify-center">
+                <div className="relative">
+                  <div className="text-7xl mb-2 transform transition-transform duration-300 group-hover:scale-110">🌟</div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-teal-500/20 rounded-full blur-2xl -z-10 group-hover:from-green-500/30 group-hover:to-teal-500/30 transition-all duration-300"></div>
+                </div>
+              </div>
+              
+              <div className="text-center relative z-10">
+                <h4 className="text-3xl font-bold mb-4 text-green-400 group-hover:text-green-300 transition-colors duration-300">
+                  Register New Domain
+                </h4>
+                <div className="w-16 h-0.5 bg-gradient-to-r from-green-400 to-teal-400 mx-auto mb-4 opacity-50 group-hover:opacity-100 group-hover:w-24 transition-all duration-300"></div>
+                <p className="text-gray-300 group-hover:text-gray-200 transition-colors duration-300 text-lg leading-relaxed mb-6">
+                  Verify ownership, register domain, mint NFT, then create tokens
+                </p>
+                
+                <div className="bg-green-900/20 border border-green-500/30 p-4 rounded-lg group-hover:bg-green-900/30 group-hover:border-green-400/50 transition-all duration-300">
+                  <p className="text-sm text-green-300 group-hover:text-green-200 transition-colors duration-300 font-medium">
+                    🔒 Full process - Mint domain NFT & Create Tokens
+                  </p>
+                </div>
+              </div>
+              
+              {/* Corner accent */}
+              <div className="absolute top-6 right-6 w-3 h-3 bg-green-400/30 rounded-full group-hover:bg-green-400/60 transition-colors duration-300"></div>
+            </GlassCard>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Existing NFT flow
+  if (mode === 'existing-nft') {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={() => setMode('choose')}
+            className="text-gray-400 hover:text-white flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to options
+          </button>
+        </div>
+
+        {currentStep === 6 && fromExistingNFT ? (
+          <Step title="Create Token from NFT" completed={false} active={true}>
+            <TokenCreationStep domain={registeredDomain} nftId={mintedNftId!} />
+          </Step>
+        ) : (
+          <NFTSelectionStep onComplete={handleExistingNFTSelected} />
+        )}
+      </div>
+    );
+  }
+
+  // New domain flow (starts at step 3, shows 1&2 only if issues)
   return (
     <div className="space-y-6">
-      <Step 
-        number={1} 
-        title="Connect Your Wallet" 
-        completed={isConnected} 
-        active={!isConnected}
-      >
-        {isConnected ? (
-          <p className="text-green-400">✅ Wallet successfully connected!</p>
-        ) : (
+      {mode === 'new-domain' && (
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={() => setMode('choose')}
+            className="text-gray-400 hover:text-white flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to options
+          </button>
+        </div>
+      )}
+
+      {/* Only show steps 1 & 2 if there are issues */}
+             {hasWalletIssue && (
+        <Step 
+          title="Connect Your Wallet" 
+          completed={isConnected} 
+          active={!isConnected}
+        >
           <div className="space-y-4">
             <p className="text-gray-300">
               Connect your wallet to start creating domain tokens.
@@ -1045,76 +2188,82 @@ const CreateTokenContent = () => {
               <WalletConnectButton />
             </div>
           </div>
-        )}
-      </Step>
+        </Step>
+       )}
 
-      <Step 
-        number={2} 
-        title="Backend Validation" 
-        completed={backendValidated} 
-        active={isConnected && !backendValidated}
-      >
-        {!isConnected ? (
-          <p className="text-gray-400">Complete step 1 to proceed</p>
-        ) : backendValidated ? (
-          <p className="text-green-400">✅ Backend validation completed successfully!</p>
-        ) : (
+       {hasBackendIssue && (
+        <Step 
+          title="Backend Validation" 
+          completed={backendValidated} 
+          active={isConnected && !backendValidated}
+        >
           <BackendValidationStep onComplete={handleBackendValidated} />
-        )}
-      </Step>
-      
-      <Step 
-        number={3} 
-        title="Register Domain" 
-        completed={currentStep > 3} 
-        active={isConnected && backendValidated && currentStep === 3}
-      >
-        {!isConnected || !backendValidated ? (
-          <p className="text-gray-400">Complete previous steps to proceed</p>
-        ) : currentStep > 3 ? (
-          <p className="text-green-400">✅ Domain "{registeredDomain}" registered successfully!</p>
-        ) : (
-          <DomainRegistrationStep onComplete={handleDomainRegistered} />
-        )}
-      </Step>
-      
-      <Step 
-        number={4} 
-        title="Mint Domain NFT" 
-        completed={currentStep > 4} 
-        active={isConnected && currentStep === 4}
-      >
-        {currentStep < 4 ? (
-          <p className="text-gray-400">Complete previous steps to proceed</p>
-        ) : currentStep > 4 ? (
-          <p className="text-green-400">✅ NFT #{mintedNftId} minted successfully!</p>
-        ) : (
-          <NFTMintingStep domain={registeredDomain} onComplete={handleNFTMinted} />
-        )}
-      </Step>
-      
-      <Step 
-        number={5} 
-        title="Create Domain Token" 
-        completed={false} 
-        active={isConnected && currentStep === 5}
-      >
-        {currentStep < 5 ? (
-          <p className="text-gray-400">Complete previous steps to proceed</p>
-        ) : (
-          <TokenCreationStep domain={registeredDomain} nftId={mintedNftId!} />
-        )}
-      </Step>
-      
-      <div className="mt-8 text-center">
-        <p className="text-gray-400 italic">Complete these steps to create your domain token</p>
-      </div>
+        </Step>
+       )}
+
+       {/* Main flow starts at step 3 */}
+       {!hasWalletIssue && !hasBackendIssue && (
+         <>
+          <Step 
+            title="Verify Domain Ownership" 
+            completed={domainVerified} 
+            active={!domainVerified}
+          >
+            {domainVerified ? (
+              <p className="text-green-400">✅ Domain "{verifiedDomain}" ownership verified successfully!</p>
+            ) : (
+              <SafeDomainVerificationWrapper onComplete={handleDomainVerified} />
+            )}
+          </Step>
+          
+          <Step 
+            title="Register Domain" 
+            completed={currentStep > 4} 
+            active={domainVerified && currentStep === 4}
+          >
+            {!domainVerified ? (
+              <p className="text-gray-400">Complete previous step to proceed</p>
+            ) : currentStep > 4 ? (
+              <p className="text-green-400">✅ Domain "{registeredDomain}" registered successfully!</p>
+            ) : (
+              <DomainRegistrationStep domain={verifiedDomain} onComplete={handleDomainRegistered} />
+            )}
+          </Step>
+          
+          <Step 
+            title="Mint Domain NFT" 
+            completed={currentStep > 5} 
+            active={currentStep === 5}
+          >
+            {currentStep < 5 ? (
+              <p className="text-gray-400">Complete previous steps to proceed</p>
+            ) : currentStep > 5 ? (
+              <p className="text-green-400">✅ NFT #{mintedNftId} minted successfully!</p>
+            ) : (
+              <NFTMintingStep domain={registeredDomain} onComplete={handleNFTMinted} />
+            )}
+          </Step>
+          
+          <Step 
+            title="Create Domain Token" 
+            completed={false} 
+            active={currentStep === 6}
+          >
+            {currentStep < 6 ? (
+              <p className="text-gray-400">Complete previous steps to proceed</p>
+            ) : (
+              <TokenCreationStep domain={registeredDomain} nftId={mintedNftId!} />
+            )}
+          </Step>
+         </>
+       )}
     </div>
   );
 };
 
 export default function CreateTokenPage() {
   const [isClient, setIsClient] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   useEffect(() => {
     setIsClient(true);
@@ -1125,21 +2274,116 @@ export default function CreateTokenPage() {
   }
   
   return (
-    <div className="flex flex-col min-h-screen">
-      <main className="flex-grow container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto">
-          <div className=" mb-8">
-            <h1 className="text-4xl font-bold text-white mb-6">
-              Create Domain Token
+    <div className="relative flex flex-col min-h-screen bg-gradient-to-b from-slate-900 via-slate-900/20 to-black overflow-hidden">
+      {/* Interactive 3D Background */}
+      <InteractiveBackground />
+      
+      {/* Static gradient overlay for depth and readability */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-900/40 to-black/60 pointer-events-none z-10"></div>
+      
+      {/* Animated background glows */}
+      <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-20 left-1/4 w-96 h-96 bg-gradient-to-r from-blue-900/40 via-indigo-800/50 to-purple-900/45 rounded-full blur-3xl animate-pulse opacity-50" style={{ animationDuration: '6.5s' }}></div>
+        <div className="absolute top-40 right-1/5 w-72 h-72 bg-gradient-to-l from-teal-900/35 via-cyan-800/45 to-blue-900/40 rounded-full blur-2xl animate-pulse opacity-45" style={{ animationDuration: '5.8s', animationDelay: '1s' }}></div>
+        <div className="absolute top-60 left-1/2 transform -translate-x-1/2 w-[400px] h-[300px] bg-gradient-to-br from-purple-900/45 via-blue-800/55 to-indigo-900/50 rounded-full blur-3xl animate-pulse opacity-55" style={{ animationDuration: '7.5s', animationDelay: '2s' }}></div>
+        <div className="absolute bottom-40 left-10 w-64 h-64 bg-gradient-to-tr from-cyan-900/30 via-blue-800/40 to-teal-900/35 rounded-full blur-2xl animate-pulse opacity-40" style={{ animationDuration: '5.3s', animationDelay: '0.5s' }}></div>
+        <div className="absolute bottom-20 right-10 w-76 h-76 bg-gradient-to-bl from-indigo-900/35 via-purple-800/45 to-blue-900/40 rounded-full blur-3xl animate-pulse opacity-45" style={{ animationDuration: '6.2s', animationDelay: '3s' }}></div>
+      </div>
+
+      <main className="relative z-20 flex-grow container mx-auto px-4 py-20">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h1 className="text-6xl md:text-7xl font-bold text-white mb-8 relative">
+              <span className="relative z-10">Create Domain Token</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-500 to-teal-400 bg-clip-text text-transparent blur-sm opacity-30"></div>
+              <AnimatedHeadingGlow 
+                color="#60A5FA" 
+                intensity={0.25} 
+                speed={0.8} 
+                distortionAmount={0.6}
+                size={0.8}
+                randomSeed={1}
+              />
             </h1>
-            <p className="text-xl text-gray-300 max-w-2xl ">
-              Transform your domain into a tradeable token. Register a domain, mint an NFT, and create a token for trading.
+            <p className="text-2xl text-gray-300 max-w-4xl mx-auto mb-12 leading-relaxed">
+              Transform your domain into a tradeable token. Choose to register a new domain or use an existing domain NFT to create tokens for trading.
             </p>
+            
+            <div className="relative group inline-block">
+              <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 rounded-3xl blur-lg opacity-30 group-hover:opacity-60 transition-all duration-500 animate-pulse"></div>
+              <Button
+                onClick={() => setIsModalOpen(true)}
+                className="relative bg-slate-800/80 hover:bg-slate-700/80 text-white px-16 py-8 text-2xl font-bold rounded-3xl shadow-2xl hover:shadow-4xl transition-all duration-500 transform hover:scale-105 hover:-translate-y-1  backdrop-blur-sm group-hover:shadow-purple-500/40"
+                style={{
+                  borderImage: 'linear-gradient(45deg, #3b82f6, #8b5cf6, #06b6d4) 1',
+                  background: 'linear-gradient(45deg, #3b82f6, #8b5cf6, #06b6d4) border-box, rgba(30, 41, 59, 0.8) padding-box'
+                }}
+              >
+                <span className="relative z-10 flex items-center gap-3">
+                  Get Started
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-400/0 via-purple-400/10 to-cyan-400/0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              </Button>
+            </div>
           </div>
 
-          <CreateTokenContent />
+          {/* Features Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+            <div className="relative group">
+              <GlassCard className="p-5 text-center h-full transition-all duration-500 hover:shadow-xl hover:shadow-blue-500/20 border-blue-500/20 hover:border-blue-400/40 group-hover:scale-[1.02]">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative z-10">
+                  <div className="text-5xl mb-6 transform transition-transform duration-300 group-hover:scale-110">🏠</div>
+                  <h3 className="text-2xl font-bold mb-4 text-blue-400 group-hover:text-blue-300 transition-colors duration-300">Use Existing NFT</h3>
+                  <div className="w-12 h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 mx-auto mb-4 opacity-50 group-hover:opacity-100 transition-all duration-300"></div>
+                  <p className="text-gray-300 group-hover:text-gray-200 transition-colors duration-300 leading-relaxed">
+                    Create tokens from domain NFTs you already own - quick and easy!
+                  </p>
+                </div>
+                <div className="absolute top-4 right-4 w-2 h-2 bg-blue-400/30 rounded-full group-hover:bg-blue-400/60 transition-colors duration-300"></div>
+              </GlassCard>
+            </div>
+            
+            <div className="relative group">
+              <GlassCard className="p-5 text-center h-full transition-all duration-500 hover:shadow-xl hover:shadow-green-500/20 border-green-500/20 hover:border-green-400/40 group-hover:scale-[1.02]">
+                <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-teal-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative z-10">
+                  <div className="text-5xl mb-6 transform transition-transform duration-300 group-hover:scale-110">🌟</div>
+                  <h3 className="text-2xl font-bold mb-4 text-green-400 group-hover:text-green-300 transition-colors duration-300">Register New Domain</h3>
+                  <div className="w-12 h-0.5 bg-gradient-to-r from-green-400 to-teal-400 mx-auto mb-4 opacity-50 group-hover:opacity-100 transition-all duration-300"></div>
+                  <p className="text-gray-300 group-hover:text-gray-200 transition-colors duration-300 leading-relaxed">
+                    Full process from domain verification to token creation.
+                  </p>
+                </div>
+                <div className="absolute top-4 right-4 w-2 h-2 bg-green-400/30 rounded-full group-hover:bg-green-400/60 transition-colors duration-300"></div>
+              </GlassCard>
+            </div>
+            
+            <div className="relative group">
+              <GlassCard className="p-5 text-center h-full transition-all duration-500 hover:shadow-xl hover:shadow-purple-500/20 border-purple-500/20 hover:border-purple-400/40 group-hover:scale-[1.02]">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative z-10">
+                  <div className="text-5xl mb-6 transform transition-transform duration-300 group-hover:scale-110">🚀</div>
+                  <h3 className="text-2xl font-bold mb-4 text-purple-400 group-hover:text-purple-300 transition-colors duration-300">Launch & Trade</h3>
+                  <div className="w-12 h-0.5 bg-gradient-to-r from-purple-400 to-pink-400 mx-auto mb-4 opacity-50 group-hover:opacity-100 transition-all duration-300"></div>
+                  <p className="text-gray-300 group-hover:text-gray-200 transition-colors duration-300 leading-relaxed">
+                    Choose direct receipt or launchpad for your tokens.
+                  </p>
+                </div>
+                <div className="absolute top-4 right-4 w-2 h-2 bg-purple-400/30 rounded-full group-hover:bg-purple-400/60 transition-colors duration-300"></div>
+              </GlassCard>
+            </div>
+          </div>
         </div>
       </main>
+
+      {/* Modal */}
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+        <CreateTokenContent />
+      </Modal>
     </div>
   );
 }

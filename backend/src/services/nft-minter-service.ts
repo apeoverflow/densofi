@@ -202,6 +202,110 @@ export class NFTMinterService {
   }
 
   /**
+   * Get NFTs owned by an address
+   * Since this is an ERC1155 contract, we need to check balances for known token IDs
+   * @param ownerAddress The address to check NFTs for
+   * @returns Array of NFT information
+   */
+  static async getNFTsForOwner(ownerAddress: Address): Promise<Array<{
+    tokenId: string;
+    balance: string;
+    domainName: string;
+    title: string;
+    description: string;
+    image: string;
+  }>> {
+    try {
+      logger.info(`🔍 Fetching NFTs for address: ${ownerAddress}`);
+      
+      // Get the current token counter to know how many tokens exist
+      const tokenCounter = await WalletService.readContract(
+        this.contractAddress,
+        NFT_MINTER_ABI,
+        's_tokenCounter',
+        []
+      ) as bigint;
+
+      const nfts = [];
+      
+      // Check balance for each existing token ID
+      for (let tokenId = 1n; tokenId <= tokenCounter; tokenId++) {
+        try {
+          // Check balance for this token ID
+          const balance = await WalletService.readContract(
+            this.contractAddress,
+            NFT_MINTER_ABI,
+            'balanceOf',
+            [ownerAddress, tokenId]
+          ) as bigint;
+
+          // If balance > 0, user owns this NFT
+          if (balance > 0n) {
+                         // Try to get domain name for this token ID
+             let domainName = `Domain #${tokenId}`;
+             try {
+               const tokenName = await WalletService.readContract(
+                 this.contractAddress,
+                 NFT_MINTER_ABI,
+                 'getTokenNameFromId',
+                 [tokenId]
+               ) as string;
+               
+               if (tokenName && tokenName !== '' && tokenName !== '0x') {
+                 domainName = tokenName;
+               }
+             } catch (nameError) {
+               logger.warn(`Could not get token name for token ID ${tokenId}:`, nameError);
+               // Keep default name
+             }
+
+            nfts.push({
+              tokenId: tokenId.toString(),
+              balance: balance.toString(),
+              domainName,
+              title: `Domain NFT #${tokenId}`,
+              description: `NFT representing ownership rights for ${domainName}`,
+              image: "" // Could be generated based on domain or token ID
+            });
+          }
+        } catch (error) {
+          // If there's an error checking a specific token ID, log it but continue
+          logger.warn(`Failed to check token ID ${tokenId} for ${ownerAddress}:`, error);
+        }
+      }
+
+      logger.info(`✅ Found ${nfts.length} NFTs for address: ${ownerAddress}`);
+      return nfts;
+    } catch (error) {
+      logger.error(`❌ Failed to fetch NFTs for ${ownerAddress}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get domain name from token ID using the mapping
+   * @param tokenId The token ID
+   * @returns The domain name hash (we'll need to implement reverse lookup)
+   */
+  static async getDomainNameFromTokenId(tokenId: bigint): Promise<string> {
+    try {
+      const domainNameHash = await WalletService.readContract(
+        this.contractAddress,
+        NFT_MINTER_ABI,
+        's_tokenIdToDomainName',
+        [tokenId]
+      ) as Hex;
+
+      // TODO: Implement proper domain name reverse lookup
+      // For now, return a placeholder
+      return `Domain #${tokenId}`;
+    } catch (error) {
+      logger.error(`❌ Failed to get domain name for token ID ${tokenId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Get the contract ABI
    */
   static getContractABI() {
