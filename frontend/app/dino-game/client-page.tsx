@@ -40,6 +40,7 @@ interface Projectile {
   y: number;
   velocityX: number;
   velocityY: number;
+  targetKangarooIndex?: number; // Index of kangaroo this projectile will kill
 }
 
 interface PowerUp {
@@ -376,18 +377,73 @@ export default function DinoGameClient() {
   const shootFireball = useCallback(() => {
     setGameState(prev => {
       if (prev.fireballCount > 0) {
-        const newProjectile: Projectile = {
-          x: 150, // Start from dino position
-          y: GAME_HEIGHT - DINO_SIZE + prev.dinoY + DINO_SIZE / 2, // Center of dino
-          velocityX: PROJECTILE_SPEED,
-          velocityY: 0,
-        };
+        const dinoX = 150;
+        const dinoY = GAME_HEIGHT - DINO_SIZE + prev.dinoY + DINO_SIZE / 2;
         
-        return {
-          ...prev,
-          projectiles: [...prev.projectiles, newProjectile],
-          fireballCount: prev.fireballCount - 1,
-        };
+        // Find the nearest kangaroo
+        let nearestKangarooIndex = -1;
+        let nearestDistance = Infinity;
+        
+        for (let i = 0; i < prev.kangaroos.length; i++) {
+          const kangaroo = prev.kangaroos[i];
+          const kangarooCenterX = kangaroo.x + kangaroo.width / 2;
+          const kangarooCenterY = kangaroo.y + kangaroo.height / 2;
+          
+          // Only target kangaroos that are ahead of the dino
+          if (kangarooCenterX > dinoX) {
+            const distance = Math.sqrt(
+              Math.pow(kangarooCenterX - dinoX, 2) + 
+              Math.pow(kangarooCenterY - dinoY, 2)
+            );
+            
+            if (distance < nearestDistance) {
+              nearestDistance = distance;
+              nearestKangarooIndex = i;
+            }
+          }
+        }
+        
+        let newState = { ...prev };
+        
+        // If there's a nearest kangaroo, create a targeted projectile
+        if (nearestKangarooIndex !== -1) {
+          const targetKangaroo = newState.kangaroos[nearestKangarooIndex];
+          const targetX = targetKangaroo.x + targetKangaroo.width / 2;
+          const targetY = targetKangaroo.y + targetKangaroo.height / 2;
+          
+          // Create a targeted projectile that will kill the kangaroo on impact
+          const deltaX = targetX - dinoX;
+          const deltaY = targetY - dinoY;
+          const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+          
+          const velocityX = (deltaX / distance) * PROJECTILE_SPEED * 1.5; // Slightly faster
+          const velocityY = (deltaY / distance) * PROJECTILE_SPEED * 1.5;
+          
+          const targetedProjectile: Projectile = {
+            x: dinoX,
+            y: dinoY,
+            velocityX: velocityX,
+            velocityY: velocityY,
+            targetKangarooIndex: nearestKangarooIndex, // Mark which kangaroo to kill
+          };
+          
+          newState.projectiles = [...newState.projectiles, targetedProjectile];
+        } else {
+          // No kangaroos to target, shoot straight ahead as before
+          const normalProjectile: Projectile = {
+            x: dinoX,
+            y: dinoY,
+            velocityX: PROJECTILE_SPEED,
+            velocityY: 0,
+          };
+          
+          newState.projectiles = [...newState.projectiles, normalProjectile];
+        }
+        
+        // Always consume fireball
+        newState.fireballCount = newState.fireballCount - 1;
+        
+        return newState;
       }
       return prev;
     });
@@ -411,12 +467,16 @@ export default function DinoGameClient() {
     }
   }, [keys, gameState.isGameRunning, gameState.isGameOver, shootFireball]);
 
-  // Handle touch input for mobile
+  // Handle touch input for mobile (only on canvas)
   useEffect(() => {
     const handleTouchStart = (e: TouchEvent) => {
-      e.preventDefault();
-      if (gameState.isGameRunning && !gameState.isGameOver) {
-        jump();
+      // Only handle touches on the canvas itself, not on buttons
+      const canvas = canvasRef.current;
+      if (canvas && e.target === canvas) {
+        e.preventDefault();
+        if (gameState.isGameRunning && !gameState.isGameOver) {
+          jump();
+        }
       }
     };
 
@@ -719,42 +779,86 @@ export default function DinoGameClient() {
           return true; // Keep the power-up
         });
 
-        // Check projectile-kangaroo collisions with tighter detection
+        // Check projectile-kangaroo collisions with special handling for targeted projectiles
         newState.projectiles.forEach((projectile, projIndex) => {
-          newState.kangaroos.forEach((kangaroo, kangIndex) => {
-            const projectileRect = {
-              x: projectile.x,
-              y: projectile.y,
-              width: 8,
-              height: 8,
-            };
+          // Handle targeted projectiles (guaranteed hits)
+          if (projectile.targetKangarooIndex !== undefined) {
+            const targetIndex = projectile.targetKangarooIndex;
             
-            // Make kangaroo hitbox smaller and more precise
-            const kangarooRect = {
-              x: kangaroo.x + 5, // Reduce hitbox by 5px on each side
-              y: kangaroo.y + 5, // Reduce hitbox by 5px on top/bottom
-              width: kangaroo.width - 10,
-              height: kangaroo.height - 10,
-            };
-            
-            // Additional check: projectile center must be within kangaroo bounds
-            const projectileCenterX = projectile.x + 4;
-            const projectileCenterY = projectile.y + 4;
-            
-            const isWithinKangarooBounds = (
-              projectileCenterX >= kangaroo.x + 3 &&
-              projectileCenterX <= kangaroo.x + kangaroo.width - 3 &&
-              projectileCenterY >= kangaroo.y + 3 &&
-              projectileCenterY <= kangaroo.y + kangaroo.height - 3
-            );
-            
-            if (checkCollision(projectileRect, kangarooRect) && isWithinKangarooBounds) {
-              // Remove both projectile and kangaroo
+            // Check if target kangaroo still exists
+            if (targetIndex < newState.kangaroos.length) {
+              const targetKangaroo = newState.kangaroos[targetIndex];
+              
+              // Calculate distance to target
+              const targetCenterX = targetKangaroo.x + targetKangaroo.width / 2;
+              const targetCenterY = targetKangaroo.y + targetKangaroo.height / 2;
+              const distanceToTarget = Math.sqrt(
+                Math.pow(projectile.x - targetCenterX, 2) + 
+                Math.pow(projectile.y - targetCenterY, 2)
+              );
+              
+              // If projectile is close enough to target, kill the kangaroo
+              if (distanceToTarget <= 20) { // 20px hit radius
+                newState.projectiles.splice(projIndex, 1);
+                newState.kangaroos.splice(targetIndex, 1);
+                newState.score += 50; // Bonus points for killing kangaroo
+                
+                // Update target indices for other projectiles since we removed a kangaroo
+                newState.projectiles.forEach(proj => {
+                  if (proj.targetKangarooIndex !== undefined && proj.targetKangarooIndex > targetIndex) {
+                    proj.targetKangarooIndex--;
+                  }
+                });
+              }
+            } else {
+              // Target kangaroo no longer exists, remove projectile
               newState.projectiles.splice(projIndex, 1);
-              newState.kangaroos.splice(kangIndex, 1);
-              newState.score += 50; // Bonus points for killing kangaroo
             }
-          });
+          } else {
+            // Handle normal projectiles with regular collision detection
+            newState.kangaroos.forEach((kangaroo, kangIndex) => {
+              const projectileRect = {
+                x: projectile.x,
+                y: projectile.y,
+                width: 8,
+                height: 8,
+              };
+              
+              // Make kangaroo hitbox smaller and more precise
+              const kangarooRect = {
+                x: kangaroo.x + 5, // Reduce hitbox by 5px on each side
+                y: kangaroo.y + 5, // Reduce hitbox by 5px on top/bottom
+                width: kangaroo.width - 10,
+                height: kangaroo.height - 10,
+              };
+              
+              // Additional check: projectile center must be within kangaroo bounds
+              const projectileCenterX = projectile.x + 4;
+              const projectileCenterY = projectile.y + 4;
+              
+              const isWithinKangarooBounds = (
+                projectileCenterX >= kangaroo.x + 3 &&
+                projectileCenterX <= kangaroo.x + kangaroo.width - 3 &&
+                projectileCenterY >= kangaroo.y + 3 &&
+                projectileCenterY <= kangaroo.y + kangaroo.height - 3
+              );
+              
+              // Direct rectangle collision check
+              const isColliding = (
+                projectileRect.x < kangarooRect.x + kangarooRect.width &&
+                projectileRect.x + projectileRect.width > kangarooRect.x &&
+                projectileRect.y < kangarooRect.y + kangarooRect.height &&
+                projectileRect.y + projectileRect.height > kangarooRect.y
+              );
+              
+              if (isColliding && isWithinKangarooBounds) {
+                // Remove both projectile and kangaroo
+                newState.projectiles.splice(projIndex, 1);
+                newState.kangaroos.splice(kangIndex, 1);
+                newState.score += 50; // Bonus points for killing kangaroo
+              }
+            });
+          }
         });
 
         // Check dino-obstacle collisions
@@ -1655,7 +1759,72 @@ export default function DinoGameClient() {
                       </div>
                     </div>
                   ) : (
-                    <p className="text-gray-300 text-xs sm:text-sm px-2">JUMP: TAP/SPACE/↑ • DOUBLE JUMP: Press again in air • SHOOT: X key!</p>
+                    <div className="space-y-2">
+                      <p className="text-gray-300 text-xs sm:text-sm px-2">JUMP: TAP/SPACE/↑ • DOUBLE JUMP: Press again in air • SHOOT: X key!</p>
+                      
+                      {/* Floating Mobile Controls */}
+                      {gameState.isGameRunning && !gameState.isGameOver && (
+                        <>
+                          {/* Jump Button - Floating Left */}
+                          <div className="fixed bottom-32 left-4 z-50 sm:hidden">
+                            <Button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                console.log('Jump button clicked', { isGameRunning: gameState.isGameRunning, isGameOver: gameState.isGameOver });
+                                if (gameState.isGameRunning && !gameState.isGameOver) {
+                                  jump();
+                                }
+                              }}
+                              onTouchStart={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                console.log('Jump button touched', { isGameRunning: gameState.isGameRunning, isGameOver: gameState.isGameOver });
+                                if (gameState.isGameRunning && !gameState.isGameOver) {
+                                  jump();
+                                }
+                              }}
+                              className="bg-gradient-to-r from-green-500/80 to-emerald-600/80 hover:brightness-110 text-white p-4 rounded-full shadow-2xl active:scale-95 transition-all touch-none select-none border-2 border-white/20 backdrop-blur-sm"
+                            >
+                              <Image src="/pixel/kangaroo-pixel.png" alt="Jump" width={32} height={32} className="drop-shadow-lg" />
+                            </Button>
+                          </div>
+
+                          {/* Shoot Button - Floating Right */}
+                          {gameState.score >= ADVANCED_FEATURES_SCORE_THRESHOLD && (
+                            <div className="fixed bottom-32 right-4 z-50 sm:hidden">
+                              <Button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  console.log('Shoot button clicked', { isGameRunning: gameState.isGameRunning, isGameOver: gameState.isGameOver, fireballCount: gameState.fireballCount });
+                                  if (gameState.isGameRunning && !gameState.isGameOver && gameState.fireballCount > 0) {
+                                    shootFireball();
+                                  }
+                                }}
+                                onTouchStart={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  console.log('Shoot button touched', { isGameRunning: gameState.isGameRunning, isGameOver: gameState.isGameOver, fireballCount: gameState.fireballCount });
+                                  if (gameState.isGameRunning && !gameState.isGameOver && gameState.fireballCount > 0) {
+                                    shootFireball();
+                                  }
+                                }}
+                                disabled={gameState.fireballCount === 0}
+                                className="bg-gradient-to-r from-orange-500/80 to-red-600/80 hover:brightness-110 text-white p-4 rounded-full shadow-2xl active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed touch-none select-none border-2 border-white/20 backdrop-blur-sm relative"
+                              >
+                                <Image src="/pixel/rocket-pixel.png" alt="Shoot" width={32} height={32} className="drop-shadow-lg" />
+                                {gameState.fireballCount > 0 && (
+                                  <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-white">
+                                    {gameState.fireballCount}
+                                  </div>
+                                )}
+                              </Button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
