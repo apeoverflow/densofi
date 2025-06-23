@@ -101,9 +101,17 @@ export default function ClientPage() {
                         
                       </div>
                       
-                      <h1 className="p-2 text-4xl md:text-6xl font-bold text-white mb-6 leading-tight relative overflow-visible z-10 text-center md:text-left">
+                      <h1 className="px-5 py-4 text-4xl md:text-6xl font-bold text-white mb-6 leading-tight relative overflow-visible z-10 text-center md:text-left">
                         <span className="relative z-10">Unlocking price discovery and liquidity for domain names</span>
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-500 to-teal-400 bg-clip-text text-transparent blur-sm opacity-30"></div>
+                        <AnimatedHeadingGlow 
+                          color="#8B5CF6" 
+                          intensity={0.4} 
+                          speed={0.9} 
+                          distortionAmount={0.7}
+                          size={0.6}
+                          randomSeed={0.8}
+                        />
                       </h1>
                     </div>
                     <div className="text-lg text-gray-300 space-y-4 mb-8 text-center md:text-left">

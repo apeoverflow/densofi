@@ -2184,15 +2184,15 @@ const CreateTokenContent = () => {
               <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-gradient-to-tr from-emerald-400/15 to-green-400/15 rounded-full blur-lg group-hover:scale-125 transition-transform duration-700 delay-100"></div>
 
               {/* Enhanced icon section */}
-              <div className="relative mb-8 flex justify-center">
+              <div className="relative mb-4 sm:mb-6 lg:mb-8 flex justify-center">
                 <div className="relative group/icon">
-                  <div className="absolute inset-0 bg-gradient-to-r from-green-500/30 to-teal-500/30 rounded-2xl blur-xl group-hover:from-green-500/50 group-hover:to-teal-500/50 transition-all duration-500"></div>
-                  <div className="relative p-6 bg-gradient-to-br from-green-500/20 via-teal-500/10 to-green-500/20 rounded-2xl backdrop-blur-sm border border-green-500/30 group-hover:border-green-400/50 transition-all duration-300 group-hover:scale-110">
-                    <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-green-500/30 to-teal-500/30 flex items-center justify-center group-hover:from-green-400/40 group-hover:to-teal-400/40 transition-all duration-300">
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-500/30 to-teal-500/30 rounded-lg sm:rounded-xl lg:rounded-2xl blur-lg sm:blur-xl group-hover:from-green-500/50 group-hover:to-teal-500/50 transition-all duration-500"></div>
+                  <div className="relative p-3 sm:p-4 lg:p-6 bg-gradient-to-br from-green-500/20 via-teal-500/10 to-green-500/20 rounded-lg sm:rounded-xl lg:rounded-2xl backdrop-blur-sm border border-green-500/30 group-hover:border-green-400/50 transition-all duration-300 group-hover:scale-110">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-md sm:rounded-lg lg:rounded-xl bg-gradient-to-br from-green-500/30 to-teal-500/30 flex items-center justify-center group-hover:from-green-400/40 group-hover:to-teal-400/40 transition-all duration-300">
                       <img
                         src="/pixel/star-pixel.png"
                         alt="New"
-                        className="w-12 h-12 group-hover/icon:scale-110 transition-transform duration-300"
+                        className="w-6 h-6 sm:w-8 sm:h-8 lg:w-12 lg:h-12 group-hover/icon:scale-110 transition-transform duration-300"
                       />
                     </div>
                   </div>
@@ -2200,26 +2200,27 @@ const CreateTokenContent = () => {
               </div>
 
               <div className="relative z-10 text-center">
-                <h3 className="text-3xl font-bold mb-4 bg-gradient-to-r from-green-400 to-green-300 bg-clip-text text-transparent group-hover:from-green-300 group-hover:to-green-200 transition-all duration-300">
+                <h3 className="text-lg sm:text-2xl lg:text-3xl font-bold mb-2 sm:mb-4 bg-gradient-to-r from-green-400 to-green-300 bg-clip-text text-transparent group-hover:from-green-300 group-hover:to-green-200 transition-all duration-300">
                   Register New Domain
                 </h3>
 
                 {/* Animated underline */}
-                <div className="w-16 h-1 bg-gradient-to-r from-green-400 to-teal-400 mx-auto mb-6 rounded-full opacity-60 group-hover:opacity-100 group-hover:w-24 group-hover:h-1.5 transition-all duration-500"></div>
+                <div className="w-12 sm:w-16 h-0.5 sm:h-1 bg-gradient-to-r from-green-400 to-teal-400 mx-auto mb-3 sm:mb-6 rounded-full opacity-60 group-hover:opacity-100 group-hover:w-16 sm:group-hover:w-24 group-hover:h-1 sm:group-hover:h-1.5 transition-all duration-500"></div>
 
-                <p className="text-gray-300 group-hover:text-gray-100 transition-colors duration-300 text-lg leading-relaxed mb-6">
+                <p className="text-gray-300 group-hover:text-gray-100 transition-colors duration-300 text-sm sm:text-base lg:text-lg leading-relaxed mb-3 sm:mb-6">
                   Complete flow from verification to token creation
                 </p>
 
                 {/* Enhanced feature badge */}
                 <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-teal-500/20 rounded-xl blur-sm group-hover:from-green-500/30 group-hover:to-teal-500/30 transition-all duration-300"></div>
-                  <div className="relative bg-gradient-to-r from-green-900/40 to-teal-900/40 border border-green-500/40 group-hover:border-green-400/60 p-4 rounded-xl group-hover:bg-gradient-to-r group-hover:from-green-900/60 group-hover:to-teal-900/60 transition-all duration-300">
-                    <p className="text-sm font-semibold text-green-300 group-hover:text-green-200 transition-colors duration-300 flex items-center gap-3">
-                      <svg className="w-5 h-5 text-green-400 group-hover:text-green-300 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-teal-500/20 rounded-lg sm:rounded-xl blur-sm group-hover:from-green-500/30 group-hover:to-teal-500/30 transition-all duration-300"></div>
+                  <div className="relative bg-gradient-to-r from-green-900/40 to-teal-900/40 border border-green-500/40 group-hover:border-green-400/60 p-2 sm:p-3 lg:p-4 rounded-lg sm:rounded-xl group-hover:bg-gradient-to-r group-hover:from-green-900/60 group-hover:to-teal-900/60 transition-all duration-300">
+                    <p className="text-xs sm:text-sm font-semibold text-green-300 group-hover:text-green-200 transition-colors duration-300 flex items-center gap-2 sm:gap-3">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-400 group-hover:text-green-300 transition-colors duration-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                       </svg>
-                      Full Process - Verify, Register & Create
+                      <span className="hidden sm:inline">Full Process - Verify, Register & Create</span>
+                      <span className="sm:hidden">Full Process</span>
                     </p>
                   </div>
                 </div>
@@ -2510,29 +2511,29 @@ export default function CreateTokenPage() {
 
                 <div className="relative z-10">
                   {/* Mobile-optimized icon */}
-                  <div className="mb-4 sm:mb-6 lg:mb-8 flex justify-center">
+                  <div className="mb-3 sm:mb-4 lg:mb-6 flex justify-center">
                     <div className="relative group/icon">
-                      <div className="absolute inset-0 bg-gradient-to-r from-green-500/40 to-teal-500/40 rounded-xl sm:rounded-2xl blur-md sm:blur-lg group-hover:from-green-500/60 group-hover:to-teal-500/60 transition-all duration-500"></div>
-                      <div className="relative p-3 sm:p-4 lg:p-5 bg-gradient-to-br from-green-500/15 via-teal-500/10 to-green-500/15 rounded-xl sm:rounded-2xl backdrop-blur-sm border border-green-500/30 group-hover:border-green-400/50 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
-                        <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-lg sm:rounded-xl bg-gradient-to-br from-green-500/25 to-teal-500/25 flex items-center justify-center group-hover:from-green-400/35 group-hover:to-teal-400/35 transition-all duration-300">
+                      <div className="absolute inset-0 bg-gradient-to-r from-green-500/40 to-teal-500/40 rounded-lg sm:rounded-xl blur-sm sm:blur-md group-hover:from-green-500/60 group-hover:to-teal-500/60 transition-all duration-500"></div>
+                      <div className="relative p-2 sm:p-3 lg:p-4 bg-gradient-to-br from-green-500/15 via-teal-500/10 to-green-500/15 rounded-lg sm:rounded-xl backdrop-blur-sm border border-green-500/30 group-hover:border-green-400/50 transition-all duration-300 group-hover:scale-110">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-md sm:rounded-lg bg-gradient-to-br from-green-500/25 to-teal-500/25 flex items-center justify-center group-hover:from-green-400/35 group-hover:to-teal-400/35 transition-all duration-300">
                           <img
                             src="/pixel/star-pixel.png"
                             alt="New"
-                            className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 group-hover/icon:scale-110 group-hover/icon:rotate-12 transition-transform duration-300"
+                            className="w-4 h-4 sm:w-6 sm:h-6 lg:w-8 lg:h-8 group-hover/icon:scale-110 transition-transform duration-300"
                           />
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <h3 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 sm:mb-3 lg:mb-4 bg-gradient-to-r from-green-400 to-teal-400 bg-clip-text text-transparent group-hover:from-green-300 group-hover:to-teal-300 transition-all duration-300">
+                  <h3 className="text-base sm:text-lg lg:text-xl font-bold mb-2 bg-gradient-to-r from-green-400 to-teal-400 bg-clip-text text-transparent group-hover:from-green-300 group-hover:to-teal-300 transition-all duration-300">
                     Register New Domain
                   </h3>
 
                   {/* Animated underline */}
-                  <div className="w-8 sm:w-10 lg:w-12 h-0.5 bg-gradient-to-r from-green-400 to-teal-400 mx-auto mb-2 sm:mb-3 lg:mb-4 rounded-full opacity-50 group-hover:opacity-100 group-hover:w-12 sm:group-hover:w-14 lg:group-hover:w-16 transition-all duration-300"></div>
+                  <div className="w-6 sm:w-8 lg:w-10 h-0.5 bg-gradient-to-r from-green-400 to-teal-400 mx-auto mb-2 sm:mb-3 rounded-full opacity-50 group-hover:opacity-100 group-hover:w-8 sm:group-hover:w-10 lg:group-hover:w-12 transition-all duration-300"></div>
 
-                  <p className="text-gray-300 group-hover:text-gray-100 transition-colors duration-300 leading-relaxed text-sm sm:text-base">
+                  <p className="text-gray-300 group-hover:text-gray-100 transition-colors duration-300 leading-relaxed text-xs sm:text-sm">
                     Full process from domain verification to token creation.
                   </p>
                 </div>
@@ -2554,29 +2555,29 @@ export default function CreateTokenPage() {
 
                 <div className="relative z-10">
                   {/* Mobile-optimized icon */}
-                  <div className="mb-4 sm:mb-6 lg:mb-8 flex justify-center">
+                  <div className="mb-3 sm:mb-4 lg:mb-6 flex justify-center">
                     <div className="relative group/icon">
-                      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/40 to-pink-500/40 rounded-xl sm:rounded-2xl blur-md sm:blur-lg group-hover:from-purple-500/60 group-hover:to-pink-500/60 transition-all duration-500"></div>
-                      <div className="relative p-3 sm:p-4 lg:p-5 bg-gradient-to-br from-purple-500/15 via-pink-500/10 to-purple-500/15 rounded-xl sm:rounded-2xl backdrop-blur-sm border border-purple-500/30 group-hover:border-purple-400/50 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
-                        <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-lg sm:rounded-xl bg-gradient-to-br from-purple-500/25 to-pink-500/25 flex items-center justify-center group-hover:from-purple-400/35 group-hover:to-pink-400/35 transition-all duration-300">
+                      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/40 to-pink-500/40 rounded-lg sm:rounded-xl blur-sm sm:blur-md group-hover:from-purple-500/60 group-hover:to-pink-500/60 transition-all duration-500"></div>
+                      <div className="relative p-2 sm:p-3 lg:p-4 bg-gradient-to-br from-purple-500/15 via-pink-500/10 to-purple-500/15 rounded-lg sm:rounded-xl backdrop-blur-sm border border-purple-500/30 group-hover:border-purple-400/50 transition-all duration-300 group-hover:scale-110">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-md sm:rounded-lg bg-gradient-to-br from-purple-500/25 to-pink-500/25 flex items-center justify-center group-hover:from-purple-400/35 group-hover:to-pink-400/35 transition-all duration-300">
                           <img
                             src="/pixel/rocket-pixel.png"
                             alt="Launch"
-                            className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 group-hover/icon:scale-110 group-hover/icon:rotate-12 transition-transform duration-300"
+                            className="w-4 h-4 sm:w-6 sm:h-6 lg:w-8 lg:h-8 group-hover/icon:scale-110 transition-transform duration-300"
                           />
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <h3 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 sm:mb-3 lg:mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent group-hover:from-purple-300 group-hover:to-pink-300 transition-all duration-300">
+                  <h3 className="text-base sm:text-lg lg:text-xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent group-hover:from-purple-300 group-hover:to-pink-300 transition-all duration-300">
                     Launch & Trade
                   </h3>
 
                   {/* Animated underline */}
-                  <div className="w-8 sm:w-10 lg:w-12 h-0.5 bg-gradient-to-r from-purple-400 to-pink-400 mx-auto mb-2 sm:mb-3 lg:mb-4 rounded-full opacity-50 group-hover:opacity-100 group-hover:w-12 sm:group-hover:w-14 lg:group-hover:w-16 transition-all duration-300"></div>
+                  <div className="w-6 sm:w-8 lg:w-10 h-0.5 bg-gradient-to-r from-purple-400 to-pink-400 mx-auto mb-2 sm:mb-3 rounded-full opacity-50 group-hover:opacity-100 group-hover:w-8 sm:group-hover:w-10 lg:group-hover:w-12 transition-all duration-300"></div>
 
-                  <p className="text-gray-300 group-hover:text-gray-100 transition-colors duration-300 leading-relaxed text-sm sm:text-base">
+                  <p className="text-gray-300 group-hover:text-gray-100 transition-colors duration-300 leading-relaxed text-xs sm:text-sm">
                     Choose direct receipt or launchpad for your tokens.
                   </p>
                 </div>

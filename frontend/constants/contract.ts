@@ -89,7 +89,7 @@ export function isSupportedChain(chainId: number): chainId is SupportedChainId {
 export function getChainName(chainId: SupportedChainId): string {
   switch (chainId) {
     case 747:
-      return 'Testnet 747';
+      return 'Flow Mainnet';
     case 11155111:
       return 'Sepolia';
     default:
