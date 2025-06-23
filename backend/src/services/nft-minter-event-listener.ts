@@ -1,5 +1,5 @@
 import { parseAbiItem } from 'viem';
-import { publicClient } from './viem-client.js';
+import { publicClient, supportsEventFiltering, supportsEventListening, needsPollingForEvents } from './viem-client.js';
 import { CONTRACT_ADDRESSES, NFT_MINTER_ABI } from '../config/contracts.js';
 import { ENV } from '../config/env.js';
 import { logger } from '../utils/logger.js';
@@ -18,7 +18,9 @@ class NFTMinterEventListener {
   private unwatchDomainOwnerSet: (() => void) | null = null;
   private unwatchDomainMintableStatusSet: (() => void) | null = null;
   private unwatchDomainNFTMintedStatusSet: (() => void) | null = null;
+  private pollingInterval: NodeJS.Timeout | null = null;
   private isListening: boolean = false;
+  private lastProcessedBlock: bigint = BigInt(0);
 
   // Event handlers
   private onNFTMinted: EventHandler<NFTMintedEvent> = async (event, log) => {
@@ -145,6 +147,20 @@ class NFTMinterEventListener {
       return;
     }
 
+    // Check if event listening is enabled
+    if (!ENV.ENABLE_EVENT_LISTENERS) {
+      logger.info('🔇 NFT Minter event listeners are DISABLED (ENABLE_EVENT_LISTENERS=false)');
+      return;
+    }
+
+    // Check if the current network supports event listening
+    if (!supportsEventListening()) {
+      logger.warn(`⚠️  NFT Minter event listening not supported on Chain ID ${ENV.CHAIN_ID}`);
+      logger.warn('   NFT Minter event listeners will be skipped for this network.');
+      logger.warn('   Supported networks: Sepolia (11155111), Flow (747)');
+      return;
+    }
+
     if (!('addresses' in CONTRACT_ADDRESSES) || !CONTRACT_ADDRESSES.addresses?.nftMinter) {
       throw new Error('NFT Minter contract address not configured');
     }
@@ -152,6 +168,8 @@ class NFTMinterEventListener {
     const contractAddress = CONTRACT_ADDRESSES.addresses.nftMinter as `0x${string}`;
 
     try {
+      logger.info(`🎧 Starting NFT Minter event listeners for Chain ID ${ENV.CHAIN_ID}`);
+
       // Watch for NFTMinted events
       this.unwatchNFTMinted = publicClient.watchEvent({
         address: contractAddress,

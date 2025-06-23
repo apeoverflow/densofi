@@ -10,6 +10,11 @@ import { useNFTMinterContract } from "@/hooks/useNFTMinterContract";
 import { useTokenMinterContract } from "@/hooks/useTokenMinterContract";
 import { useLaunchpadContract } from "@/hooks/useLaunchpadContract";
 import { WalletConnectButton } from "@/components/WalletConnectButton";
+import { WalletAuthButton } from "@/components/WalletAuthButton";
+import { useWalletAuth } from "@/hooks/useWalletAuth";
+import { useAuthenticatedFetch } from "@/hooks/useAuthenticatedFetch";
+import { useDomainRegistrationEvents, useNFTMintingEvents, useDomainMintableStatus } from "@/hooks/useDomainEvents";
+import { useNFTMinting } from "@/hooks/useNFTMinting";
 import { formatEther, parseEther } from 'viem';
 
 // Environment variable for backend service URL
@@ -49,12 +54,14 @@ const Step = ({ number, title, completed, active, children }: StepProps) => {
   );
 };
 
-// Backend Validation Component
+// Backend Validation Component - Updated to use proper authentication
 const BackendValidationStep = ({ onComplete }: { onComplete: () => void }) => {
   const [isValidating, setIsValidating] = useState(false);
   const [validationComplete, setValidationComplete] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const { address } = useWalletConnection();
+  const { isAuthenticated, isLoading: authLoading, error: authError } = useWalletAuth();
+  const authenticatedFetch = useAuthenticatedFetch();
 
   const handleValidation = async () => {
     if (!address) {
@@ -62,19 +69,18 @@ const BackendValidationStep = ({ onComplete }: { onComplete: () => void }) => {
       return;
     }
 
+    if (!isAuthenticated) {
+      setValidationError('Wallet not authenticated. Please authenticate your wallet first.');
+      return;
+    }
+
     setIsValidating(true);
     setValidationError(null);
 
     try {
-      const response = await fetch(`${BACKEND_SERVICE_URL}/api/validate-user`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          address: address,
-          timestamp: Date.now(),
-        }),
+      // Test backend connection with a simple status check
+      const response = await authenticatedFetch(`${BACKEND_SERVICE_URL}/api/status`, {
+        method: 'GET',
       });
 
       if (!response.ok) {
@@ -87,7 +93,7 @@ const BackendValidationStep = ({ onComplete }: { onComplete: () => void }) => {
         setValidationComplete(true);
         onComplete();
       } else {
-        throw new Error(data.message || 'Validation failed');
+        throw new Error(data.message || 'Backend validation failed');
       }
     } catch (error) {
       console.error('Backend validation error:', error);
@@ -97,12 +103,12 @@ const BackendValidationStep = ({ onComplete }: { onComplete: () => void }) => {
     }
   };
 
-  // Auto-trigger validation when component mounts
+  // Auto-trigger validation when wallet is authenticated
   useEffect(() => {
-    if (address && !validationComplete && !isValidating && !validationError) {
+    if (isAuthenticated && address && !validationComplete && !isValidating && !validationError) {
       handleValidation();
     }
-  }, [address, validationComplete, isValidating, validationError]);
+  }, [isAuthenticated, address, validationComplete, isValidating, validationError]);
 
   if (validationComplete) {
     return (
@@ -110,8 +116,52 @@ const BackendValidationStep = ({ onComplete }: { onComplete: () => void }) => {
         <div className="mb-4 text-green-400 text-5xl">✅</div>
         <h3 className="text-xl font-bold mb-2">Backend Validation Complete!</h3>
         <p className="mb-4 text-gray-300">
-          Your wallet has been validated by our backend service.
+          Your wallet has been authenticated and validated by our backend service.
         </p>
+      </div>
+    );
+  }
+
+  // Show authentication component if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-blue-900/30 border border-blue-700/50 p-4 rounded-md">
+          <h4 className="text-blue-400 font-bold mb-2">Backend Service Validation</h4>
+          <p className="text-gray-300 text-sm mb-4">
+            Connecting to our backend service to validate your wallet and prepare for domain registration.
+          </p>
+          <div className="text-xs text-gray-400">
+            <p>Service URL: {BACKEND_SERVICE_URL}</p>
+            <p>Wallet: {address}</p>
+          </div>
+        </div>
+
+        <div className="bg-yellow-900/30 border border-yellow-700/50 p-4 rounded-md">
+          <h4 className="text-yellow-400 font-bold mb-2">Authentication Required</h4>
+          <p className="text-gray-300 text-sm mb-4">
+            Please authenticate your wallet to proceed with backend validation.
+          </p>
+          
+          <WalletAuthButton 
+            onAuthSuccess={() => {
+              // Validation will auto-trigger after authentication
+            }}
+            onAuthError={(error) => {
+              setValidationError(`Authentication failed: ${error}`);
+            }}
+            className="w-full"
+          />
+        </div>
+
+        {authError && (
+          <div className="bg-red-900/30 border border-red-700/50 p-4 rounded-md">
+            <h4 className="text-red-400 font-bold mb-2">Authentication Error</h4>
+            <p className="text-gray-300 text-sm">
+              {authError}
+            </p>
+          </div>
+        )}
       </div>
     );
   }
@@ -144,7 +194,7 @@ const BackendValidationStep = ({ onComplete }: { onComplete: () => void }) => {
           </p>
           <Button
             onClick={handleValidation}
-            disabled={isValidating}
+            disabled={isValidating || !isAuthenticated}
             className="bg-red-600 hover:bg-red-700"
           >
             {isValidating ? 'Retrying...' : 'Retry Validation'}
@@ -152,10 +202,10 @@ const BackendValidationStep = ({ onComplete }: { onComplete: () => void }) => {
         </div>
       )}
 
-      {!isValidating && !validationError && !validationComplete && (
+      {!isValidating && !validationError && !validationComplete && isAuthenticated && (
         <Button
           onClick={handleValidation}
-          disabled={!address}
+          disabled={!address || !isAuthenticated}
           className="w-full"
         >
           Start Backend Validation
@@ -171,6 +221,7 @@ const DomainRegistrationStep = ({ onComplete }: { onComplete: (domain: string) =
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
   const [registeredDomain, setRegisteredDomain] = useState('');
+  const [isListeningForEvents, setIsListeningForEvents] = useState(false);
 
   const { 
     requestRegistration, 
@@ -178,13 +229,42 @@ const DomainRegistrationStep = ({ onComplete }: { onComplete: (domain: string) =
     isProcessing, 
     isConfirmed, 
     transactionHash, 
-    writeError 
+    writeError,
+    chainId,
+    isSupported,
+    chainName,
+    feeLoading,
+    feeError 
   } = useDomainRegistrationContract();
 
+  // Listen for domain registration events
+  const { 
+    latestEvent: registrationEvent, 
+    clearEvents: clearRegistrationEvents,
+    isListening: isEventListenerActive
+  } = useDomainRegistrationEvents(registeredDomain);
+
+  // Handle successful domain registration event
+  useEffect(() => {
+    if (registrationEvent && registeredDomain && !registrationComplete) {
+      console.log('🎉 Domain registration event received!', registrationEvent);
+      setRegistrationComplete(true);
+      setIsListeningForEvents(false);
+      onComplete(registeredDomain);
+    }
+  }, [registrationEvent, registeredDomain, registrationComplete, onComplete]);
+
+  // Fallback: if transaction is confirmed but no event received within 30 seconds
   useEffect(() => {
     if (isConfirmed && registeredDomain && !registrationComplete) {
-      setRegistrationComplete(true);
-      onComplete(registeredDomain);
+      const timer = setTimeout(() => {
+        console.log('⏰ Fallback: Transaction confirmed, assuming registration successful');
+        setRegistrationComplete(true);
+        setIsListeningForEvents(false);
+        onComplete(registeredDomain);
+      }, 30000); // 30 second fallback
+
+      return () => clearTimeout(timer);
     }
   }, [isConfirmed, registeredDomain, registrationComplete, onComplete]);
 
@@ -194,13 +274,18 @@ const DomainRegistrationStep = ({ onComplete }: { onComplete: (domain: string) =
 
     setIsSubmitting(true);
     setRegisteredDomain(domainName.trim());
+    setIsListeningForEvents(true);
+    clearRegistrationEvents(); // Clear any previous events
     
     try {
+      console.log('🚀 Submitting domain registration for:', domainName.trim());
       await requestRegistration(domainName.trim());
+      console.log('📡 Now listening for registration events...');
     } catch (error) {
       console.error('Error registering domain:', error);
       setIsSubmitting(false);
       setRegisteredDomain('');
+      setIsListeningForEvents(false);
     }
   };
 
@@ -217,6 +302,59 @@ const DomainRegistrationStep = ({ onComplete }: { onComplete: (domain: string) =
             Transaction: <span className="font-mono text-blue-400">{transactionHash}</span>
           </p>
         )}
+      </div>
+    );
+  }
+
+  // Show chain compatibility issues first
+  if (!isSupported) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-yellow-900/30 border border-yellow-700/50 p-4 rounded-md">
+          <h4 className="text-yellow-400 font-bold mb-2">Unsupported Network</h4>
+          <p className="text-gray-300 text-sm mb-4">
+            You're currently connected to {chainName} (Chain ID: {chainId}). 
+            Please switch to one of the supported networks:
+          </p>
+          <ul className="text-gray-300 text-sm list-disc list-inside">
+            <li>Testnet 747</li>
+            <li>Sepolia (Chain ID: 11155111)</li>
+          </ul>
+        </div>
+      </div>
+    );
+  }
+
+  // Show fee loading state
+  if (feeLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-blue-900/30 border border-blue-700/50 p-4 rounded-md">
+          <h4 className="text-blue-400 font-bold mb-2">Loading Contract Information</h4>
+          <div className="flex items-center gap-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-blue-500"></div>
+            <p className="text-gray-300 text-sm">
+              Loading registration fee from {chainName}...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show fee error
+  if (feeError) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-red-900/30 border border-red-700/50 p-4 rounded-md">
+          <h4 className="text-red-400 font-bold mb-2">Contract Error</h4>
+          <p className="text-gray-300 text-sm mb-4">
+            Failed to load contract information: {feeError.message}
+          </p>
+          <p className="text-gray-400 text-xs">
+            Chain: {chainName} (ID: {chainId})
+          </p>
+        </div>
       </div>
     );
   }
@@ -240,9 +378,11 @@ const DomainRegistrationStep = ({ onComplete }: { onComplete: (domain: string) =
       </div>
 
       <div className="bg-blue-900/30 border border-blue-700/50 p-4 rounded-md">
-                 <p className="text-sm text-gray-300">
-           <strong>Registration Fee:</strong> {registrationFee ? formatEther(registrationFee as bigint) : '...'} ETH
-         </p>
+        <h4 className="text-blue-400 font-bold mb-2">Registration Details</h4>
+        <div className="text-gray-300 text-sm space-y-1">
+          <p>Network: {chainName}</p>
+          <p><strong>Registration Fee:</strong> {registrationFee ? formatEther(registrationFee as bigint) : '...'} ETH</p>
+        </div>
         <p className="text-xs text-gray-400 mt-2">
           This fee is required to process your domain registration request.
         </p>
@@ -250,16 +390,42 @@ const DomainRegistrationStep = ({ onComplete }: { onComplete: (domain: string) =
 
       <Button
         type="submit"
-        disabled={isProcessing || isSubmitting || !domainName.trim()}
+        disabled={isProcessing || isSubmitting || !domainName.trim() || !registrationFee}
         className="w-full"
       >
         {isProcessing || isSubmitting ? 'Processing...' : 'Register Domain'}
       </Button>
 
+      {/* Transaction Status */}
+      {transactionHash && !registrationComplete && (
+        <div className="bg-blue-900/30 border border-blue-700/50 p-4 rounded-md">
+          <h4 className="text-blue-400 font-bold mb-2">Transaction Submitted</h4>
+          <p className="text-gray-300 text-sm mb-2">
+            Transaction Hash: <code className="bg-slate-800 px-2 py-1 rounded text-xs">{transactionHash}</code>
+          </p>
+          {isListeningForEvents && (
+            <div className="flex items-center gap-2 mt-3">
+              <div className="animate-pulse w-2 h-2 bg-green-500 rounded-full"></div>
+              <p className="text-green-400 text-sm">
+                📡 Listening for registration events...
+              </p>
+            </div>
+          )}
+          {isConfirmed && (
+            <p className="text-yellow-400 text-sm mt-2">
+              ⏳ Transaction confirmed, waiting for registration event...
+            </p>
+          )}
+        </div>
+      )}
+
       {writeError && (
-        <p className="text-red-400 text-sm">
-          Error: {writeError.message || 'Failed to register domain'}
-        </p>
+        <div className="bg-red-900/30 border border-red-700/50 p-4 rounded-md">
+          <h4 className="text-red-400 font-bold mb-2">Transaction Failed</h4>
+          <p className="text-gray-300 text-sm">
+            {writeError.message || 'Failed to register domain'}
+          </p>
+        </div>
       )}
     </form>
   );
@@ -269,43 +435,102 @@ const DomainRegistrationStep = ({ onComplete }: { onComplete: (domain: string) =
 const NFTMintingStep = ({ domain, onComplete }: { domain: string; onComplete: (nftId: number) => void }) => {
   const [mintingComplete, setMintingComplete] = useState(false);
   const [mintedNftId, setMintedNftId] = useState<number | null>(null);
+  const [waitingForMintable, setWaitingForMintable] = useState(true);
 
+  // Use the new NFT minting hook
   const { 
     mintNFT, 
-    isProcessing, 
+    isLoading: isMintingProcessing, 
+    isConfirming, 
     isConfirmed, 
-    transactionHash, 
-    writeError,
-    getTokenIdForDomain
-  } = useNFTMinterContract();
+    txHash, 
+    error: mintingError,
+    success: mintingSuccess
+  } = useNFTMinting();
+
+  // Monitor domain mintable status and ownership
+  const {
+    isReadyForMinting,
+    isDomainMintable,
+    domainOwner,
+    existingTokenId,
+    latestEvent: mintableEvent,
+    isPolling,
+    startPolling,
+    pollContractState,
+    isListening: isMintableListening
+  } = useDomainMintableStatus(domain);
+
+  // Listen for NFT minting events
+  const { 
+    latestEvent: mintingEvent, 
+    clearEvents: clearMintingEvents,
+    isListening: isEventListenerActive
+  } = useNFTMintingEvents(domain);
+
+  const { address } = useAccount();
 
   // Check if NFT already exists for this domain
-  const { data: existingTokenId } = getTokenIdForDomain(domain);
-
   useEffect(() => {
     if (existingTokenId && Number(existingTokenId) > 0) {
       setMintedNftId(Number(existingTokenId));
       setMintingComplete(true);
+      setWaitingForMintable(false);
       onComplete(Number(existingTokenId));
     }
   }, [existingTokenId, onComplete]);
 
+  // Handle successful NFT minting event
   useEffect(() => {
-    if (isConfirmed && !mintingComplete) {
-      // When transaction is confirmed, check for the token ID
-      setTimeout(() => {
-        if (existingTokenId && Number(existingTokenId) > 0) {
-          setMintedNftId(Number(existingTokenId));
-          setMintingComplete(true);
-          onComplete(Number(existingTokenId));
-        }
-      }, 2000);
+    if (mintingEvent && !mintingComplete) {
+      console.log('🎉 NFT minting event received!', mintingEvent);
+      const tokenId = Number(mintingEvent.tokenId);
+      setMintedNftId(tokenId);
+      setMintingComplete(true);
+      setWaitingForMintable(false);
+      onComplete(tokenId);
     }
-  }, [isConfirmed, mintingComplete, existingTokenId, onComplete]);
+  }, [mintingEvent, mintingComplete, onComplete]);
 
-  const handleMintNFT = async () => {
+  // Handle successful minting from the new hook
+  useEffect(() => {
+    if (mintingSuccess && isConfirmed && !mintingComplete) {
+      console.log('🎉 NFT minting transaction confirmed!');
+      // Poll for the token ID
+      pollContractState();
+    }
+  }, [mintingSuccess, isConfirmed, mintingComplete, pollContractState]);
+
+  // Monitor when domain becomes mintable
+  useEffect(() => {
+    if (mintableEvent) {
+      console.log('🔔 Domain mintable status changed:', mintableEvent);
+      pollContractState(); // Refresh contract state
+    }
+  }, [mintableEvent, pollContractState]);
+
+  // Start polling when component mounts
+  useEffect(() => {
+    if (domain && address && !mintingComplete) {
+      console.log('🔄 Starting domain mintable status monitoring for:', domain);
+      startPolling();
+    }
+  }, [domain, address, mintingComplete, startPolling]);
+
+  // Update waiting state based on minting readiness
+  useEffect(() => {
+    if (isReadyForMinting) {
+      setWaitingForMintable(false);
+    }
+  }, [isReadyForMinting]);
+
+  const handleMintNFT = () => {
+    clearMintingEvents(); // Clear any previous events
+    
     try {
-      await mintNFT(domain);
+      console.log('🚀 Submitting NFT mint for domain:', domain);
+      mintNFT(domain);
+      console.log('📡 Now listening for NFT minting events...');
     } catch (error) {
       console.error('Error minting NFT:', error);
     }
@@ -322,9 +547,9 @@ const NFTMintingStep = ({ domain, onComplete }: { domain: string; onComplete: (n
         <p className="text-sm text-gray-400">
           NFT ID: <span className="font-mono text-blue-400">#{mintedNftId}</span>
         </p>
-        {transactionHash && (
+        {txHash && (
           <p className="text-sm text-gray-400 mt-2">
-            Transaction: <span className="font-mono text-blue-400">{transactionHash}</span>
+            Transaction: <span className="font-mono text-blue-400">{txHash}</span>
           </p>
         )}
       </div>
@@ -336,25 +561,97 @@ const NFTMintingStep = ({ domain, onComplete }: { domain: string; onComplete: (n
       <div className="bg-purple-900/30 border border-purple-700/50 p-4 rounded-md">
         <h4 className="text-purple-400 font-bold mb-2">Domain NFT Minting</h4>
         <p className="text-gray-300 text-sm">
-          Create an NFT that represents ownership of your domain: <span className="font-bold text-blue-400">{domain}</span>
+          Create an NFT that provides the minting rights of your domain: <span className="font-bold text-blue-400">{domain}</span>
         </p>
       </div>
 
-      <Button
-        onClick={handleMintNFT}
-        disabled={isProcessing}
-        className="w-full bg-purple-600 hover:bg-purple-700"
-      >
-        {isProcessing ? 'Minting NFT...' : 'Mint Domain NFT'}
-      </Button>
-
-      {writeError && (
-        <p className="text-red-400 text-sm">
-          Error: {writeError.message || 'Failed to mint NFT'}
-        </p>
+      {/* Mintable Status Monitoring */}
+      {waitingForMintable && !isReadyForMinting && (
+        <div className="bg-yellow-900/30 border border-yellow-700/50 p-4 rounded-md">
+          <h4 className="text-yellow-400 font-bold mb-2">Waiting for Domain to be Mintable</h4>
+          <p className="text-gray-300 text-sm mb-2">
+            Monitoring domain ownership and mintable status...
+          </p>
+          <div className="text-xs text-gray-400 space-y-1">
+            <p>Domain: <span className="font-mono">{domain}</span></p>
+            <p>Is Mintable: <span className={isDomainMintable ? 'text-green-400' : 'text-red-400'}>
+              {isDomainMintable ? 'Yes' : 'No'}
+            </span></p>
+            <p>Domain Owner: <span className="font-mono">{domainOwner || 'Not set'}</span></p>
+            <p>Your Address: <span className="font-mono">{address}</span></p>
+            <p>You Own Domain: <span className={domainOwner && address && domainOwner.toLowerCase() === address.toLowerCase() ? 'text-green-400' : 'text-red-400'}>
+              {domainOwner && address && domainOwner.toLowerCase() === address.toLowerCase() ? 'Yes' : 'No'}
+            </span></p>
+          </div>
+          {(isMintableListening || isPolling) && (
+            <div className="flex items-center gap-2 mt-3">
+              <div className="animate-pulse w-2 h-2 bg-green-500 rounded-full"></div>
+              <p className="text-green-400 text-sm">
+                📡 Listening for domain mintable events...
+              </p>
+            </div>
+          )}
+        </div>
       )}
 
-      {isProcessing && (
+      {/* Ready to Mint */}
+      {isReadyForMinting && !mintingComplete && (
+        <div className="bg-green-900/30 border border-green-700/50 p-4 rounded-md">
+          <h4 className="text-green-400 font-bold mb-2">Ready to Mint NFT!</h4>
+          <p className="text-gray-300 text-sm">
+            Domain is now mintable and you are the verified owner.
+          </p>
+        </div>
+      )}
+
+      <Button
+        onClick={handleMintNFT}
+        disabled={!isReadyForMinting || isMintingProcessing}
+        className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600"
+      >
+        {isMintingProcessing ? 'Minting NFT...' : 
+         !isReadyForMinting ? 'Waiting for Domain to be Mintable...' : 
+         'Mint Domain NFT'}
+      </Button>
+
+      {/* Transaction Status */}
+      {txHash && !mintingComplete && (
+        <div className="bg-purple-900/30 border border-purple-700/50 p-4 rounded-md">
+          <h4 className="text-purple-400 font-bold mb-2">NFT Mint Transaction Submitted</h4>
+          <p className="text-gray-300 text-sm mb-2">
+            Transaction Hash: <code className="bg-slate-800 px-2 py-1 rounded text-xs">{txHash}</code>
+          </p>
+          {isEventListenerActive && (
+            <div className="flex items-center gap-2 mt-3">
+              <div className="animate-pulse w-2 h-2 bg-green-500 rounded-full"></div>
+              <p className="text-green-400 text-sm">
+                📡 Listening for NFT minting events...
+              </p>
+            </div>
+          )}
+          {isConfirming && (
+            <p className="text-yellow-400 text-sm mt-2">
+              ⏳ Transaction confirming...
+            </p>
+          )}
+          {isConfirmed && (
+            <p className="text-yellow-400 text-sm mt-2">
+              ⏳ Transaction confirmed, waiting for NFT minting event...
+            </p>
+          )}
+        </div>
+      )}
+
+      {mintingError && (
+        <div className="bg-red-900/30 border border-red-700/50 p-4 rounded-md">
+          <h4 className="text-red-400 font-bold mb-2">Transaction Failed</h4>
+          <p className="text-gray-300 text-sm">
+            {mintingError.message || 'Failed to mint NFT'}
+          </p>
+        </div>
+      )}
+
+      {isMintingProcessing && !txHash && (
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-purple-500 mx-auto"></div>
           <p className="text-gray-300 text-sm mt-2">Minting your domain NFT...</p>
@@ -370,6 +667,7 @@ const TokenCreationStep = ({ domain, nftId }: { domain: string; nftId: number })
   const [approvalComplete, setApprovalComplete] = useState(false);
   const [tokenCreated, setTokenCreated] = useState(false);
   const [createdTokenAddress, setCreatedTokenAddress] = useState('');
+  const [isWaitingForToken, setIsWaitingForToken] = useState(false);
 
   const { 
     createTokenFromNFT, 
@@ -411,7 +709,7 @@ const TokenCreationStep = ({ domain, nftId }: { domain: string; nftId: number })
   }, [isApprovalConfirmed]);
 
   useEffect(() => {
-    if (existingTokenAddress && existingTokenAddress !== '0x0000000000000000000000000000000000000000') {
+    if (existingTokenAddress && typeof existingTokenAddress === 'string' && existingTokenAddress !== '0x0000000000000000000000000000000000000000') {
       setCreatedTokenAddress(existingTokenAddress);
       setTokenCreated(true);
     }
@@ -419,13 +717,27 @@ const TokenCreationStep = ({ domain, nftId }: { domain: string; nftId: number })
 
   useEffect(() => {
     if (isTokenConfirmed && !tokenCreated) {
-      // Check for token address after confirmation
-      setTimeout(() => {
-        if (existingTokenAddress && existingTokenAddress !== '0x0000000000000000000000000000000000000000') {
-          setCreatedTokenAddress(existingTokenAddress);
-          setTokenCreated(true);
+      setIsWaitingForToken(true);
+      // Check for token address after confirmation with multiple attempts
+      const checkTokenAddress = (attempts = 0) => {
+        if (attempts >= 10) {
+          console.warn('Max attempts reached checking for token address');
+          setIsWaitingForToken(false);
+          return;
         }
-      }, 2000);
+        
+        setTimeout(() => {
+          if (existingTokenAddress && typeof existingTokenAddress === 'string' && existingTokenAddress !== '0x0000000000000000000000000000000000000000') {
+            setCreatedTokenAddress(existingTokenAddress);
+            setTokenCreated(true);
+            setIsWaitingForToken(false);
+          } else {
+            checkTokenAddress(attempts + 1);
+          }
+        }, 2000 + (attempts * 1000)); // Increasing delay
+      };
+      
+      checkTokenAddress();
     }
   }, [isTokenConfirmed, tokenCreated, existingTokenAddress]);
 
@@ -529,10 +841,37 @@ const TokenCreationStep = ({ domain, nftId }: { domain: string; nftId: number })
           >
             {isApprovalProcessing ? 'Approving...' : 'Approve Token Minter'}
           </Button>
+
+          {/* Approval Transaction Status */}
+          {approvalTxHash && !approvalComplete && (
+            <div className="bg-yellow-900/30 border border-yellow-700/50 p-4 rounded-md mt-4">
+              <h4 className="text-yellow-400 font-bold mb-2">Approval Transaction Submitted</h4>
+              <p className="text-gray-300 text-sm mb-2">
+                Transaction Hash: <code className="bg-slate-800 px-2 py-1 rounded text-xs">{approvalTxHash}</code>
+              </p>
+              {isApprovalProcessing && (
+                <div className="flex items-center gap-2 mt-3">
+                  <div className="animate-pulse w-2 h-2 bg-yellow-500 rounded-full"></div>
+                  <p className="text-yellow-400 text-sm">
+                    ⏳ Waiting for approval confirmation...
+                  </p>
+                </div>
+              )}
+              {isApprovalConfirmed && (
+                <p className="text-green-400 text-sm mt-2">
+                  ✅ Approval confirmed! You can now create your token.
+                </p>
+              )}
+            </div>
+          )}
+
           {approvalError && (
-            <p className="text-red-400 text-sm mt-2">
-              Error: {approvalError.message || 'Failed to set approval'}
-            </p>
+            <div className="bg-red-900/30 border border-red-700/50 p-4 rounded-md mt-4">
+              <h4 className="text-red-400 font-bold mb-2">Approval Failed</h4>
+              <p className="text-gray-300 text-sm">
+                {approvalError.message || 'Failed to set approval'}
+              </p>
+            </div>
           )}
         </div>
       )}
@@ -569,16 +908,84 @@ const TokenCreationStep = ({ domain, nftId }: { domain: string; nftId: number })
             {isTokenProcessing ? 'Creating Token...' : `Create Token (${creationMethod})`}
           </Button>
 
-          {tokenError && (
-            <p className="text-red-400 text-sm mt-2">
-              Error: {tokenError.message || 'Failed to create token'}
-            </p>
+          {/* Token Creation Transaction Status */}
+          {tokenTxHash && !tokenCreated && (
+            <div className={`${
+              creationMethod === 'direct' 
+                ? 'bg-blue-900/30 border-blue-700/50' 
+                : 'bg-purple-900/30 border-purple-700/50'
+            } border p-4 rounded-md mt-4`}>
+              <h4 className={`${
+                creationMethod === 'direct' ? 'text-blue-400' : 'text-purple-400'
+              } font-bold mb-2`}>
+                Token Creation Transaction Submitted
+              </h4>
+              <p className="text-gray-300 text-sm mb-2">
+                Transaction Hash: <code className="bg-slate-800 px-2 py-1 rounded text-xs">{tokenTxHash}</code>
+              </p>
+              <div className="text-xs text-gray-400 space-y-1 mb-3">
+                <p>Domain: <span className="font-mono text-blue-400">{domain}</span></p>
+                <p>NFT ID: <span className="font-mono text-purple-400">#{nftId}</span></p>
+                <p>Method: <span className="font-mono text-green-400">{creationMethod}</span></p>
+                {creationMethod === 'direct' && fixedFee && (
+                  <p>Fee: <span className="font-mono text-yellow-400">{formatEther(fixedFee as bigint)} ETH</span></p>
+                )}
+              </div>
+              {isTokenProcessing && (
+                <div className="flex items-center gap-2 mt-3">
+                  <div className={`animate-pulse w-2 h-2 ${
+                    creationMethod === 'direct' ? 'bg-blue-500' : 'bg-purple-500'
+                  } rounded-full`}></div>
+                  <p className={`${
+                    creationMethod === 'direct' ? 'text-blue-400' : 'text-purple-400'
+                  } text-sm`}>
+                    🔄 Processing token creation...
+                  </p>
+                </div>
+              )}
+              {isTokenConfirmed && !tokenCreated && (
+                <div className="space-y-2 mt-3">
+                  <p className="text-green-400 text-sm">
+                    ✅ Transaction confirmed! Checking for token address...
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full"></div>
+                    <p className="text-green-400 text-sm">
+                      {isWaitingForToken ? '📡 Polling for token deployment...' : '📡 Waiting for token deployment...'}
+                    </p>
+                  </div>
+                  {isWaitingForToken && (
+                    <p className="text-yellow-400 text-xs">
+                      ⏳ This may take up to 20 seconds to complete...
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           )}
 
-          {isTokenProcessing && (
+          {tokenError && (
+            <div className="bg-red-900/30 border border-red-700/50 p-4 rounded-md mt-4">
+              <h4 className="text-red-400 font-bold mb-2">Token Creation Failed</h4>
+              <p className="text-gray-300 text-sm mb-2">
+                {tokenError.message || 'Failed to create token'}
+              </p>
+              <div className="text-xs text-gray-400">
+                <p>Domain: <span className="font-mono">{domain}</span></p>
+                <p>NFT ID: <span className="font-mono">#{nftId}</span></p>
+                <p>Method: <span className="font-mono">{creationMethod}</span></p>
+              </div>
+            </div>
+          )}
+
+          {isTokenProcessing && !tokenTxHash && (
             <div className="text-center mt-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-indigo-500 mx-auto"></div>
-              <p className="text-gray-300 text-sm mt-2">Creating your domain token...</p>
+              <div className={`animate-spin rounded-full h-8 w-8 border-t-2 ${
+                creationMethod === 'direct' ? 'border-blue-500' : 'border-purple-500'
+              } mx-auto`}></div>
+              <p className="text-gray-300 text-sm mt-2">
+                Creating your domain token using {creationMethod} method...
+              </p>
             </div>
           )}
         </div>

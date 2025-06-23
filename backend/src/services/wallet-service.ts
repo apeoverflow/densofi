@@ -1,13 +1,52 @@
-import { createPublicClient, createWalletClient, http, type Address, type Hex, type WalletClient, type PublicClient, type Abi } from 'viem';
+import { createPublicClient, createWalletClient, http, type Address, type Hex, type WalletClient, type PublicClient, type Abi, type Chain } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { sepolia } from 'viem/chains';
 import { ENV } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 
+// Define Flow network chain configuration (same as in viem-client.ts)
+const flowMainnet: Chain = {
+  id: 747,
+  name: 'Flow',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'Flow',
+    symbol: 'FLOW',
+  },
+  rpcUrls: {
+    default: {
+      http: ['https://mainnet.evm.nodes.onflow.org'],
+    },
+    public: {
+      http: ['https://mainnet.evm.nodes.onflow.org'],
+    },
+  },
+  blockExplorers: {
+    default: { name: 'Flow Explorer', url: 'https://evm.flowscan.io' },
+  },
+};
+
 export class WalletService {
   private static walletClient: WalletClient | null = null;
   private static publicClient: PublicClient | null = null;
   private static account: any | null = null;
+
+  /**
+   * Get chain configuration based on environment
+   */
+  private static getChain(): Chain {
+    const chainId = ENV.CHAIN_ID;
+    
+    switch (chainId) {
+      case '11155111':
+        return sepolia;
+      case '747':
+        return flowMainnet;
+      default:
+        logger.warn(`Unknown chain ID: ${chainId}. Defaulting to Sepolia.`);
+        return sepolia;
+    }
+  }
 
   /**
    * Initialize the wallet service with the private key from environment
@@ -31,21 +70,26 @@ export class WalletService {
       // Create account from private key
       this.account = privateKeyToAccount(privateKey);
       
+      // Get the appropriate chain configuration
+      const chain = this.getChain();
+      
       // Create public client for reading contract state and simulating transactions
       this.publicClient = createPublicClient({
-        chain: sepolia,
+        chain,
         transport: http(ENV.RPC_URL)
       });
 
       // Create wallet client for sending transactions
       this.walletClient = createWalletClient({
         account: this.account,
-        chain: sepolia,
+        chain,
         transport: http(ENV.RPC_URL)
       });
 
       logger.info('✅ Wallet service initialized successfully');
       logger.info(`   Account: ${this.account.address}`);
+      logger.info(`   Chain: ${chain.name} (ID: ${chain.id})`);
+      logger.info(`   RPC URL: ${ENV.RPC_URL}`);
     } catch (error) {
       logger.error('❌ Failed to initialize wallet service:', error);
       throw error;
