@@ -18,12 +18,50 @@ interface Obstacle {
   height: number;
 }
 
+interface Fireball {
+  x: number;
+  y: number;
+  collected: boolean;
+  type: 'single' | 'bundle5' | 'bundle10';
+  value: number;
+}
+
+interface Kangaroo {
+  x: number;
+  y: number;
+  velocityY: number;
+  isJumping: boolean;
+  width: number;
+  height: number;
+}
+
+interface Projectile {
+  x: number;
+  y: number;
+  velocityX: number;
+  velocityY: number;
+}
+
+interface PowerUp {
+  x: number;
+  y: number;
+  type: 'triple_jump';
+  collected: boolean;
+}
+
 interface GameState {
   dinoY: number;
   dinoVelocity: number;
   isJumping: boolean;
   hasDoubleJump: boolean;
+  hasTripleJump: boolean;
+  tripleJumpCharges: number; // Number of triple jumps available
   obstacles: Obstacle[];
+  fireballs: Fireball[];
+  kangaroos: Kangaroo[];
+  projectiles: Projectile[];
+  powerUps: PowerUp[];
+  fireballCount: number;
   score: number;
   gameSpeed: number;
   isGameOver: boolean;
@@ -35,7 +73,14 @@ const INITIAL_GAME_STATE: GameState = {
   dinoVelocity: 0,
   isJumping: false,
   hasDoubleJump: true,
+  hasTripleJump: false,
+  tripleJumpCharges: 0,
   obstacles: [],
+  fireballs: [],
+  kangaroos: [],
+  projectiles: [],
+  powerUps: [],
+  fireballCount: 0, // Start with 0 fireballs, get them after unlock
   score: 0,
   gameSpeed: 2,
   isGameOver: false,
@@ -51,6 +96,17 @@ const GRAVITY = 0.75;
 const OBSTACLE_SPEED = 6;
 const SPAWN_RATE = 0.015;
 const GROUND_HEIGHT = GAME_HEIGHT + 20;
+const FIREBALL_SIZE = 20;
+const KANGAROO_WIDTH = 40;
+const KANGAROO_HEIGHT = 45;
+const KANGAROO_JUMP_FORCE = -12;
+const KANGAROO_GRAVITY = 0.6;
+const PROJECTILE_SPEED = 8;
+const FIREBALL_SPAWN_RATE = 0.004; // Reduced from 0.008
+const KANGAROO_SPAWN_RATE = 0.006; // Reduced from 0.012
+const POWERUP_SPAWN_RATE = 0.005; // Reduced spawn rate for one-use power-ups
+const POWERUP_SIZE = 25;
+const ADVANCED_FEATURES_SCORE_THRESHOLD = 1000; // Score needed to unlock kangaroos and fireballs
 
 // Helper component for pixel icons
 const PixelIcon = ({ src, alt, size = 16 }: { src: string; alt: string; size?: number }) => (
@@ -82,6 +138,7 @@ export default function DinoGameClient() {
   const gameLoopRef = useRef<number | undefined>(undefined);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const spriteImageRef = useRef<HTMLImageElement | null>(null);
+  const kangarooImageRef = useRef<HTMLImageElement | null>(null);
   const [animationFrame, setAnimationFrame] = useState(0);
   const animationCounterRef = useRef(0);
   const [gameStartCountdown, setGameStartCountdown] = useState(0);
@@ -225,12 +282,20 @@ export default function DinoGameClient() {
     }
   };
 
-  // Load sprite image
+  // Load sprite images
   useEffect(() => {
-    const img = new window.Image();
-    img.src = '/running-sprite.png';
-    img.onload = () => {
-      spriteImageRef.current = img;
+    // Load dino sprite
+    const dinoImg = new window.Image();
+    dinoImg.src = '/running-sprite.png';
+    dinoImg.onload = () => {
+      spriteImageRef.current = dinoImg;
+    };
+
+    // Load kangaroo sprite
+    const kangarooImg = new window.Image();
+    kangarooImg.src = '/pixel/kangaroo-pixel.png';
+    kangarooImg.onload = () => {
+      kangarooImageRef.current = kangarooImg;
     };
   }, []);
 
@@ -248,14 +313,14 @@ export default function DinoGameClient() {
   // Handle keyboard input
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' || e.code === 'ArrowUp') {
+      if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyX') {
         e.preventDefault();
         setKeys(prev => new Set(prev).add(e.code));
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code === 'Space' || e.code === 'ArrowUp') {
+      if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyX') {
         setKeys(prev => {
           const newKeys = new Set(prev);
           newKeys.delete(e.code);
@@ -273,7 +338,7 @@ export default function DinoGameClient() {
     };
   }, []);
 
-  // Jump logic with double jump
+  // Jump logic with double and triple jump
   const jump = useCallback(() => {
     setGameState(prev => {
       // First jump: when on ground
@@ -283,6 +348,7 @@ export default function DinoGameClient() {
           isJumping: true,
           dinoVelocity: JUMP_FORCE,
           hasDoubleJump: true, // Enable double jump after first jump
+          hasTripleJump: prev.tripleJumpCharges > 0, // Enable triple jump if charges available
         };
       }
       // Double jump: when in air and double jump is available
@@ -291,6 +357,36 @@ export default function DinoGameClient() {
           ...prev,
           dinoVelocity: JUMP_FORCE * 0.8, // Slightly weaker double jump
           hasDoubleJump: false, // Use up the double jump
+        };
+      }
+      // Triple jump: when in air and triple jump is available
+      else if (prev.isJumping && !prev.hasDoubleJump && prev.hasTripleJump && prev.dinoY < 0 && prev.tripleJumpCharges > 0) {
+        return {
+          ...prev,
+          dinoVelocity: JUMP_FORCE * 0.6, // Weaker triple jump
+          hasTripleJump: false, // Use up the triple jump
+          tripleJumpCharges: prev.tripleJumpCharges - 1, // Consume one charge
+        };
+      }
+      return prev;
+    });
+  }, []);
+
+  // Shoot fireball logic
+  const shootFireball = useCallback(() => {
+    setGameState(prev => {
+      if (prev.fireballCount > 0) {
+        const newProjectile: Projectile = {
+          x: 150, // Start from dino position
+          y: GAME_HEIGHT - DINO_SIZE + prev.dinoY + DINO_SIZE / 2, // Center of dino
+          velocityX: PROJECTILE_SPEED,
+          velocityY: 0,
+        };
+        
+        return {
+          ...prev,
+          projectiles: [...prev.projectiles, newProjectile],
+          fireballCount: prev.fireballCount - 1,
         };
       }
       return prev;
@@ -305,6 +401,15 @@ export default function DinoGameClient() {
       }
     }
   }, [keys, gameState.isGameRunning, gameState.isGameOver, jump]);
+
+  // Handle shooting input
+  useEffect(() => {
+    if (keys.has('KeyX')) {
+      if (gameState.isGameRunning && !gameState.isGameOver) {
+        shootFireball();
+      }
+    }
+  }, [keys, gameState.isGameRunning, gameState.isGameOver, shootFireball]);
 
   // Handle touch input for mobile
   useEffect(() => {
@@ -430,6 +535,7 @@ export default function DinoGameClient() {
             newState.dinoVelocity = 0;
             newState.isJumping = false;
             newState.hasDoubleJump = true; // Reset double jump when landing
+            newState.hasTripleJump = newState.tripleJumpCharges > 0; // Reset triple jump if charges available
           }
         }
 
@@ -447,14 +553,211 @@ export default function DinoGameClient() {
           });
         }
 
-        // Check collisions
+        // Update fireballs
+        newState.fireballs = newState.fireballs
+          .map(fireball => ({ ...fireball, x: fireball.x - OBSTACLE_SPEED }))
+          .filter(fireball => fireball.x + FIREBALL_SIZE > 0 && !fireball.collected);
+
+        // Spawn new fireballs (only after score threshold)
+        if (newState.score >= ADVANCED_FEATURES_SCORE_THRESHOLD && Math.random() < FIREBALL_SPAWN_RATE) {
+          // Determine fireball type based on random chance
+          const rand = Math.random();
+          let fireballType: 'single' | 'bundle5' | 'bundle10';
+          let fireballValue: number;
+          
+          if (rand < 0.65) {
+            fireballType = 'single';
+            fireballValue = 1;
+          } else if (rand < 0.85) {
+            fireballType = 'bundle5';
+            fireballValue = 5;
+          } else {
+            fireballType = 'bundle10';
+            fireballValue = 10;
+          }
+          
+          newState.fireballs.push({
+            x: 800,
+            y: GAME_HEIGHT - 60 - Math.random() * 100, // Random height
+            collected: false,
+            type: fireballType,
+            value: fireballValue,
+          });
+        }
+
+        // Update kangaroos
+        newState.kangaroos = newState.kangaroos
+          .map(kangaroo => {
+            let updatedKangaroo = { ...kangaroo };
+            updatedKangaroo.x -= OBSTACLE_SPEED;
+            
+            // Kangaroo jumping physics
+            if (updatedKangaroo.isJumping || updatedKangaroo.y < GAME_HEIGHT - updatedKangaroo.height) {
+              updatedKangaroo.velocityY += KANGAROO_GRAVITY;
+              updatedKangaroo.y += updatedKangaroo.velocityY;
+
+              if (updatedKangaroo.y >= GAME_HEIGHT - updatedKangaroo.height) {
+                updatedKangaroo.y = GAME_HEIGHT - updatedKangaroo.height;
+                updatedKangaroo.velocityY = KANGAROO_JUMP_FORCE; // Bounce back up
+                updatedKangaroo.isJumping = true;
+              }
+            }
+            
+            return updatedKangaroo;
+          })
+          .filter(kangaroo => kangaroo.x + kangaroo.width > 0);
+
+        // Spawn new kangaroos (only after score threshold)
+        if (newState.score >= ADVANCED_FEATURES_SCORE_THRESHOLD && Math.random() < KANGAROO_SPAWN_RATE) {
+          newState.kangaroos.push({
+            x: 800,
+            y: GAME_HEIGHT - KANGAROO_HEIGHT,
+            velocityY: KANGAROO_JUMP_FORCE,
+            isJumping: true,
+            width: KANGAROO_WIDTH,
+            height: KANGAROO_HEIGHT,
+          });
+        }
+
+        // Update projectiles
+        newState.projectiles = newState.projectiles
+          .map(projectile => ({
+            ...projectile,
+            x: projectile.x + projectile.velocityX,
+            y: projectile.y + projectile.velocityY,
+          }))
+          .filter(projectile => projectile.x < 800);
+
+        // Update power-ups
+        newState.powerUps = newState.powerUps
+          .map(powerUp => ({ ...powerUp, x: powerUp.x - OBSTACLE_SPEED }))
+          .filter(powerUp => powerUp.x + POWERUP_SIZE > 0 && !powerUp.collected);
+
+        // Spawn new power-ups (commonly throughout the game)
+        if (Math.random() < POWERUP_SPAWN_RATE) {
+          newState.powerUps.push({
+            x: 800,
+            y: GAME_HEIGHT - 80 - Math.random() * 120, // Random height
+            type: 'triple_jump',
+            collected: false,
+          });
+        }
+
+        // Dino rectangle for collisions
         const dinoRect = {
-          x: 100,
+          x: 100 + 8, // Move hitbox 8px to the right (narrower on left side)
           y: GAME_HEIGHT - DINO_SIZE + newState.dinoY,
-          width: DINO_SIZE - 5, // Slightly smaller hitbox for better gameplay
+          width: DINO_SIZE - 16, // Make width much narrower (remove 16px total)
           height: DINO_SIZE - 5,
         };
 
+        // Check fireball collection with precise collision detection
+        for (let index = 0; index < newState.fireballs.length; index++) {
+          const fireball = newState.fireballs[index];
+          if (fireball.collected) continue;
+          
+          const fireballRect = {
+            x: fireball.x + 2, // Slightly smaller hitbox for more generous collection
+            y: fireball.y + 2,
+            width: FIREBALL_SIZE - 4,
+            height: FIREBALL_SIZE - 4,
+          };
+          
+          // Direct rectangle collision check without using the flawed checkCollision function
+          const isColliding = (
+            dinoRect.x < fireballRect.x + fireballRect.width &&
+            dinoRect.x + dinoRect.width > fireballRect.x &&
+            dinoRect.y < fireballRect.y + fireballRect.height &&
+            dinoRect.y + dinoRect.height > fireballRect.y
+          );
+          
+          if (isColliding) {
+            newState.fireballs[index].collected = true;
+            newState.fireballCount += fireball.value; // Add the value based on type
+          }
+        }
+
+        // Check power-up collection with precise collision detection
+        // Filter out already collected power-ups first to prevent double processing
+        newState.powerUps = newState.powerUps.filter(powerUp => {
+          if (powerUp.collected) return false; // Remove collected power-ups
+          
+          const powerUpRect = {
+            x: powerUp.x + 3, // Tighter hitbox for more precise collection
+            y: powerUp.y + 3,
+            width: POWERUP_SIZE - 6,
+            height: POWERUP_SIZE - 6,
+          };
+          
+          // Direct rectangle collision check without using the flawed checkCollision function
+          const isColliding = (
+            dinoRect.x < powerUpRect.x + powerUpRect.width &&
+            dinoRect.x + dinoRect.width > powerUpRect.x &&
+            dinoRect.y < powerUpRect.y + powerUpRect.height &&
+            dinoRect.y + dinoRect.height > powerUpRect.y
+          );
+          
+          if (isColliding) {
+            if (powerUp.type === 'triple_jump') {
+              const oldCharges = newState.tripleJumpCharges;
+              newState.tripleJumpCharges += 1; // Add one triple jump charge
+              console.log(`Triple jump collected! Old charges: ${oldCharges}, New charges: ${newState.tripleJumpCharges}`);
+              
+              // Always update triple jump availability when we have charges
+              // If currently jumping and don't have double jump, enable triple jump
+              if (newState.isJumping && !newState.hasDoubleJump && !newState.hasTripleJump) {
+                newState.hasTripleJump = true;
+              }
+              // If on ground, make sure triple jump is available for next jump
+              if (!newState.isJumping) {
+                newState.hasTripleJump = newState.tripleJumpCharges > 0;
+              }
+            }
+            return false; // Remove the collected power-up
+          }
+          
+          return true; // Keep the power-up
+        });
+
+        // Check projectile-kangaroo collisions with tighter detection
+        newState.projectiles.forEach((projectile, projIndex) => {
+          newState.kangaroos.forEach((kangaroo, kangIndex) => {
+            const projectileRect = {
+              x: projectile.x,
+              y: projectile.y,
+              width: 8,
+              height: 8,
+            };
+            
+            // Make kangaroo hitbox smaller and more precise
+            const kangarooRect = {
+              x: kangaroo.x + 5, // Reduce hitbox by 5px on each side
+              y: kangaroo.y + 5, // Reduce hitbox by 5px on top/bottom
+              width: kangaroo.width - 10,
+              height: kangaroo.height - 10,
+            };
+            
+            // Additional check: projectile center must be within kangaroo bounds
+            const projectileCenterX = projectile.x + 4;
+            const projectileCenterY = projectile.y + 4;
+            
+            const isWithinKangarooBounds = (
+              projectileCenterX >= kangaroo.x + 3 &&
+              projectileCenterX <= kangaroo.x + kangaroo.width - 3 &&
+              projectileCenterY >= kangaroo.y + 3 &&
+              projectileCenterY <= kangaroo.y + kangaroo.height - 3
+            );
+            
+            if (checkCollision(projectileRect, kangarooRect) && isWithinKangarooBounds) {
+              // Remove both projectile and kangaroo
+              newState.projectiles.splice(projIndex, 1);
+              newState.kangaroos.splice(kangIndex, 1);
+              newState.score += 50; // Bonus points for killing kangaroo
+            }
+          });
+        });
+
+        // Check dino-obstacle collisions
         for (const obstacle of newState.obstacles) {
           if (checkCollision(dinoRect, obstacle)) {
             newState.isGameOver = true;
@@ -463,9 +766,41 @@ export default function DinoGameClient() {
           }
         }
 
+        // Check dino-kangaroo collisions with precise detection
+        if (!newState.isGameOver) {
+          for (const kangaroo of newState.kangaroos) {
+            const kangarooRect = {
+              x: kangaroo.x + 3, // Slightly smaller hitbox for more precise collision
+              y: kangaroo.y + 3,
+              width: kangaroo.width - 6,
+              height: kangaroo.height - 6,
+            };
+            
+            // Direct rectangle collision check without using the flawed checkCollision function
+            const isColliding = (
+              dinoRect.x < kangarooRect.x + kangarooRect.width &&
+              dinoRect.x + dinoRect.width > kangarooRect.x &&
+              dinoRect.y < kangarooRect.y + kangarooRect.height &&
+              dinoRect.y + dinoRect.height > kangarooRect.y
+            );
+            
+            if (isColliding) {
+              newState.isGameOver = true;
+              newState.isGameRunning = false;
+              break;
+            }
+          }
+        }
+
         // Update score and background (only while game is running and not game over)
         if (!newState.isGameOver && newState.isGameRunning) {
           newState.score += 1;
+          
+          // Give initial fireballs when reaching threshold
+          if (newState.score === ADVANCED_FEATURES_SCORE_THRESHOLD && newState.fireballCount === 0) {
+            newState.fireballCount = 20; // Give 20 fireballs when unlocking
+          }
+          
           // Increase game speed every 1000 points
           if (newState.score % 1000 === 0) {
             newState.gameSpeed += 0.2;
@@ -522,6 +857,199 @@ export default function DinoGameClient() {
     ctx.fillRect(x + width * 0.35, y, width * 0.1, height);
     ctx.fillRect(x + width * 0.05, y + height * 0.25, width * 0.1, height * 0.3);
     ctx.fillRect(x + width * 0.75, y + height * 0.45, width * 0.1, height * 0.2);
+  };
+
+  // Fireball drawing function
+  const drawFireball = (ctx: CanvasRenderingContext2D, x: number, y: number, type: 'single' | 'bundle5' | 'bundle10' = 'single') => {
+    const size = FIREBALL_SIZE;
+    const centerX = x + size/2;
+    const centerY = y + size/2;
+    
+    // Different colors and effects based on type
+    if (type === 'single') {
+      // Regular fireball
+      const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, size);
+      gradient.addColorStop(0, '#ff6b35');
+      gradient.addColorStop(0.5, '#ff8500');
+      gradient.addColorStop(1, 'rgba(255, 69, 0, 0.3)');
+      
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, size/2, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Inner core
+      ctx.fillStyle = '#ffff00';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, size/4, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (type === 'bundle5') {
+      // 5x bundle - larger with blue tint
+      const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, size * 0.8);
+      gradient.addColorStop(0, '#4169E1');
+      gradient.addColorStop(0.5, '#ff6b35');
+      gradient.addColorStop(1, 'rgba(65, 105, 225, 0.4)');
+      
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, size * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Inner core
+      ctx.fillStyle = '#00FFFF';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, size/3, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // "5x" text
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 10px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('5x', centerX, centerY + 3);
+    } else if (type === 'bundle10') {
+      // 10x bundle - largest with purple tint
+      const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, size);
+      gradient.addColorStop(0, '#8A2BE2');
+      gradient.addColorStop(0.5, '#ff6b35');
+      gradient.addColorStop(1, 'rgba(138, 43, 226, 0.5)');
+      
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, size * 0.8, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Inner core
+      ctx.fillStyle = '#FF00FF';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, size * 0.4, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // "10x" text
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 9px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('10x', centerX, centerY + 3);
+    }
+  };
+
+  // Kangaroo drawing function
+  const drawKangaroo = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
+    if (kangarooImageRef.current) {
+      // Save the current context state
+      ctx.save();
+      
+      // Flip horizontally to make kangaroo face left (towards dino)
+      ctx.scale(-1, 1);
+      
+      // Draw the kangaroo pixel image (flipped)
+      ctx.drawImage(
+        kangarooImageRef.current,
+        -(x + KANGAROO_WIDTH), // Adjust x position for flip
+        y,
+        KANGAROO_WIDTH,
+        KANGAROO_HEIGHT
+      );
+      
+      // Restore the context state
+      ctx.restore();
+    } else {
+      // Fallback: Draw simple kangaroo if image hasn't loaded
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(x + 8, y + 15, 20, 25);
+      
+      // Head
+      ctx.fillRect(x + 5, y + 5, 15, 15);
+      
+      // Ears
+      ctx.fillRect(x + 6, y, 3, 8);
+      ctx.fillRect(x + 16, y, 3, 8);
+      
+      // Tail (on left side since we're facing left)
+      ctx.fillRect(x, y + 20, 8, 15);
+      
+      // Legs
+      ctx.fillRect(x + 10, y + 35, 6, 10);
+      ctx.fillRect(x + 20, y + 35, 6, 10);
+      
+      // Arms
+      ctx.fillRect(x + 5, y + 20, 5, 12);
+      ctx.fillRect(x + 25, y + 20, 5, 12);
+      
+      // Eyes
+      ctx.fillStyle = '#000';
+      ctx.fillRect(x + 8, y + 8, 2, 2);
+      ctx.fillRect(x + 15, y + 8, 2, 2);
+      
+      // Highlights
+      ctx.fillStyle = '#CD853F';
+      ctx.fillRect(x + 10, y + 18, 2, 8);
+      ctx.fillRect(x + 7, y + 7, 1, 3);
+    }
+  };
+
+  // Projectile drawing function  
+  const drawProjectile = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
+    // Trail effect
+    ctx.fillStyle = 'rgba(255, 165, 0, 0.6)';
+    ctx.fillRect(x - 10, y + 2, 10, 4);
+    
+    // Main projectile
+    ctx.fillStyle = '#FF4500';
+    ctx.beginPath();
+    ctx.arc(x + 4, y + 4, 4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Core
+    ctx.fillStyle = '#FFD700';
+    ctx.beginPath();
+    ctx.arc(x + 4, y + 4, 2, 0, Math.PI * 2);
+    ctx.fill();
+  };
+
+  // Power-up drawing function
+  const drawPowerUp = (ctx: CanvasRenderingContext2D, x: number, y: number, type: 'triple_jump') => {
+    const size = POWERUP_SIZE;
+    const centerX = x + size/2;
+    const centerY = y + size/2;
+    
+    if (type === 'triple_jump') {
+      // Outer glow effect
+      const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, size);
+      gradient.addColorStop(0, 'rgba(0, 255, 255, 0.8)');
+      gradient.addColorStop(0.7, 'rgba(0, 191, 255, 0.6)');
+      gradient.addColorStop(1, 'rgba(0, 191, 255, 0.2)');
+      
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, size/2, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Main crystal/gem shape
+      ctx.fillStyle = '#00BFFF';
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY - size/3);
+      ctx.lineTo(centerX + size/4, centerY);
+      ctx.lineTo(centerX, centerY + size/3);
+      ctx.lineTo(centerX - size/4, centerY);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Inner highlight
+      ctx.fillStyle = '#87CEEB';
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY - size/5);
+      ctx.lineTo(centerX + size/6, centerY);
+      ctx.lineTo(centerX, centerY + size/5);
+      ctx.lineTo(centerX - size/6, centerY);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Triple jump indicator (three small arrows)
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 8px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('3x', centerX, centerY + 2);
+    }
   };
 
   // Render game
@@ -615,12 +1143,125 @@ export default function DinoGameClient() {
         drawCactus(ctx, obstacle.x, GAME_HEIGHT - obstacle.height, obstacle.width, obstacle.height);
       });
 
-      // Draw score with better styling
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-      ctx.fillRect(15, 15, 150, 35);
+      // Draw fireballs
+      gameState.fireballs.forEach(fireball => {
+        if (!fireball.collected) {
+          drawFireball(ctx, fireball.x, fireball.y, fireball.type);
+        }
+      });
+
+      // Draw kangaroos
+      gameState.kangaroos.forEach(kangaroo => {
+        drawKangaroo(ctx, kangaroo.x, kangaroo.y);
+      });
+
+      // Draw projectiles
+      gameState.projectiles.forEach(projectile => {
+        drawProjectile(ctx, projectile.x, projectile.y);
+      });
+
+      // Draw power-ups
+      gameState.powerUps.forEach(powerUp => {
+        if (!powerUp.collected) {
+          drawPowerUp(ctx, powerUp.x, powerUp.y, powerUp.type);
+        }
+      });
+
+      // Draw completely static overlaid UI - all positions are FIXED
+      const hasAdvancedFeatures = gameState.score >= ADVANCED_FEATURES_SCORE_THRESHOLD;
+      
+      // Save canvas state and reset all transformations
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset to identity matrix
+      ctx.textAlign = 'left'; // Ensure consistent text alignment
+      ctx.textBaseline = 'alphabetic'; // Ensure consistent baseline
+      
+      // Set up shadows for all text
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+      ctx.shadowBlur = 4;
+      
+      // FIXED POSITION 1: Score (always visible)
       ctx.fillStyle = '#fff';
       ctx.font = 'bold 20px Arial';
-      ctx.fillText(`Score: ${gameState.score}`, 80, 38);
+      ctx.fillText(`Score: ${gameState.score}`, 20, 35);
+      
+      // FIXED POSITION 2: Fireball count (always reserve space)
+      ctx.shadowOffsetX = 1;
+      ctx.shadowOffsetY = 1;
+      ctx.shadowBlur = 3;
+      
+      // Always draw fireball icon (grayed out if locked)
+      ctx.fillStyle = hasAdvancedFeatures ? '#ff6b35' : '#666';
+      ctx.beginPath();
+      ctx.arc(40, 60, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = hasAdvancedFeatures ? '#ffff00' : '#999';
+      ctx.beginPath();
+      ctx.arc(40, 60, 4, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Always show fireball count (0 if locked)
+      ctx.fillStyle = hasAdvancedFeatures ? '#fff' : '#999';
+      ctx.font = 'bold 16px Arial';
+      ctx.fillText(`x ${hasAdvancedFeatures ? gameState.fireballCount : 0}`, 55, 65);
+      
+      // FIXED POSITION 3: Triple jump (always reserve space)
+      // Always draw crystal icon (grayed out if no charges)
+      const hasCharges = gameState.tripleJumpCharges > 0;
+      ctx.fillStyle = hasCharges ? '#00BFFF' : '#666';
+      ctx.beginPath();
+      ctx.moveTo(35, 85);
+      ctx.lineTo(43, 90);
+      ctx.lineTo(35, 95);
+      ctx.lineTo(27, 90);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = hasCharges ? '#87CEEB' : '#999';
+      ctx.beginPath();
+      ctx.moveTo(35, 87);
+      ctx.lineTo(41, 90);
+      ctx.lineTo(35, 93);
+      ctx.lineTo(29, 90);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Always show triple jump count
+      ctx.fillStyle = hasCharges ? '#fff' : '#999';
+      ctx.font = 'bold 14px Arial';
+      ctx.fillText(`Triple Jumps: ${gameState.tripleJumpCharges}`, 50, 95);
+      
+      // Reset shadow for other elements
+      ctx.shadowColor = 'transparent';
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      ctx.shadowBlur = 0;
+      
+      // Show unlock message when approaching threshold
+      if (gameState.score >= 800 && gameState.score < ADVANCED_FEATURES_SCORE_THRESHOLD) {
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.9)';
+        ctx.fillRect(250, 15, 180, 30);
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${ADVANCED_FEATURES_SCORE_THRESHOLD - gameState.score} to unlock!`, 340, 35);
+        ctx.textAlign = 'left';
+      }
+      
+      // Show unlock notification
+      if (gameState.score >= ADVANCED_FEATURES_SCORE_THRESHOLD && gameState.score < ADVANCED_FEATURES_SCORE_THRESHOLD + 100) {
+        ctx.fillStyle = 'rgba(0, 255, 0, 0.9)';
+        ctx.fillRect(250, 15, 200, 30);
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Fireballs and Kangaroos Unlocked!', 350, 35);
+        ctx.textAlign = 'left';
+      }
+      
+      // Restore canvas state
+      ctx.restore();
     }
 
     // Draw countdown
@@ -855,11 +1496,11 @@ export default function DinoGameClient() {
                     <div className="absolute inset-0 flex flex-col items-center justify-center z-20 bg-black/60 rounded-lg sm:rounded-xl">
                       <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-white mb-2 text-center px-2">
                         <span className="bg-gradient-to-r from-green-400 via-emerald-500 to-teal-400 bg-clip-text text-transparent">
-                          Desert Runner
+                          Denso Runner
                         </span>
                       </h1>
                       <p className="text-xs sm:text-sm text-gray-300 mb-4 text-center max-w-md px-4">
-                        Jump through the endless desert, collect XP, and prove your reflexes
+                        Jump and survive! Advanced features unlock at 1000 points!
                       </p>
                     </div>
                   )}
@@ -942,7 +1583,7 @@ export default function DinoGameClient() {
                     </div>
                   ) : isConnected && isAuthenticated && !gameState.isGameRunning && !gameState.isGameOver && gameStartCountdown === 0 ? (
                     <div className="space-y-3">
-                      <p className="text-xs sm:text-sm text-gray-400 px-2">TAP SCREEN, SPACE or ↑ to jump • Press again for DOUBLE JUMP</p>
+                      <p className="text-xs sm:text-sm text-gray-400 px-2">JUMP: TAP/SPACE/↑ • DOUBLE JUMP: Press again in air. Press X to shoot fireballs!</p>
                       <div className="text-xs text-center text-green-400 mb-2">
                         <span className="flex items-center justify-center gap-1">
                           <Image src="/pixel/tick-pixel.png" alt="Success" width={16} height={16} />
@@ -956,7 +1597,7 @@ export default function DinoGameClient() {
                         >
                           <span className="flex items-center gap-1">
                             <Image src="/pixel/cactus-pixel.png" alt="Cactus" width={16} height={16} />
-                            Start Desert Run
+                            Start Denso Run
                           </span>
                         </Button>
                         <div className="flex gap-2">
@@ -1014,7 +1655,7 @@ export default function DinoGameClient() {
                       </div>
                     </div>
                   ) : (
-                    <p className="text-gray-300 text-xs sm:text-sm px-2">TAP SCREEN, SPACE or ↑ to jump! Press again for double jump!</p>
+                    <p className="text-gray-300 text-xs sm:text-sm px-2">JUMP: TAP/SPACE/↑ • DOUBLE JUMP: Press again in air • SHOOT: X key!</p>
                   )}
                 </div>
               </div>
@@ -1221,7 +1862,7 @@ export default function DinoGameClient() {
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-2xl font-bold text-white flex items-center gap-2">
                   <PixelIcon src="cactus-pixel.png" alt="Cactus" size={24} />
-                  Desert Runner Guide
+                  Denso Runner Guide
                 </h3>
                 <button
                   onClick={() => setShowRulesModal(false)}
@@ -1249,8 +1890,28 @@ export default function DinoGameClient() {
                       <span>TAP/Press again in air for DOUBLE JUMP</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-green-400 mt-1">•</span>
-                      <span>Avoid hitting the desert cacti</span>
+                      <span className="text-cyan-400 mt-1">•</span>
+                      <span>Collect blue crystals for one-use TRIPLE JUMP charges</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-yellow-400 mt-1">•</span>
+                      <span>Reach 1000 points to unlock advanced features</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-400 mt-1">•</span>
+                      <span>Press X to shoot fireballs (after 1000 points)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-orange-400 mt-1">•</span>
+                      <span>Collect fireballs: Singles (+1), Blue bundles (+5), Purple bundles (+10)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-red-400 mt-1">•</span>
+                      <span>Avoid cacti and bouncing kangaroos (appear after 1000 points)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-400 mt-1">•</span>
+                      <span>Shoot kangaroos for bonus points (+50)</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-green-400 mt-1">•</span>
@@ -1264,6 +1925,10 @@ export default function DinoGameClient() {
                     Rewards & Features
                   </h4>
                   <ul className="space-y-2 text-sm">
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-400 mt-1">•</span>
+                      <span>Start with 20 fireballs ready to shoot</span>
+                    </li>
                     <li className="flex items-start gap-2">
                       <span className="text-purple-400 mt-1">•</span>
                       <span>Earn 1 XP per 100 points survived</span>
@@ -1288,7 +1953,7 @@ export default function DinoGameClient() {
                 <p className="text-center text-gray-400 text-sm">
                   <span className="flex items-center justify-center gap-1">
                     <PixelIcon src="rocket-pixel.png" alt="Jump" />
-                    Double jump mechanic adds strategic depth to your desert adventure!
+                    Master jumping, shooting, and timing to survive the enhanced desert adventure!
                   </span>
                 </p>
               </div>
