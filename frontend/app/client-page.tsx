@@ -98,7 +98,6 @@ export default function ClientPage() {
                         <div className="absolute bottom-4 right-1/4 w-1.5 h-1.5 bg-purple-400/40 rounded-full blur-sm opacity-45"></div>
                         <div className="absolute top-1/2 left-8 w-1 h-1 bg-teal-400/35 rounded-full blur-sm opacity-40"></div>
                         <div className="absolute top-1/2 right-8 w-1 h-1 bg-cyan-400/35 rounded-full blur-sm opacity-40"></div>
-                        
                       </div>
                       
                       <h1 className="px-5 py-4 text-4xl md:text-6xl font-bold text-white mb-6 leading-tight relative overflow-visible z-10 text-center md:text-left">

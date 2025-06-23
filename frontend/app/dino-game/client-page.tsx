@@ -729,11 +729,11 @@ export default function DinoGameClient() {
   };
 
   return (
-    <div className="relative flex flex-col h-screen bg-gradient-to-b from-slate-900 via-slate-900/20 to-black overflow-hidden">
+    <div className="relative flex flex-col bg-gradient-to-b from-slate-900 via-slate-900/20 to-black overflow-hidden">
       <InteractiveBackground />
       
       {/* Static gradient overlay for depth and readability */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-900/40 to-black/60 pointer-events-none z-10"></div>
+      <div className="absolute h-screen inset-0 bg-gradient-to-b from-transparent via-slate-900/40 to-black/60 pointer-events-none z-10"></div>
       
       {/* Animated background glows */}
       <div className="absolute inset-0 w-full h-full overflow-visible pointer-events-none z-5">
