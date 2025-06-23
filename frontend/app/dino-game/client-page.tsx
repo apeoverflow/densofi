@@ -1252,7 +1252,7 @@ export default function DinoGameClient() {
       // Show unlock notification
       if (gameState.score >= ADVANCED_FEATURES_SCORE_THRESHOLD && gameState.score < ADVANCED_FEATURES_SCORE_THRESHOLD + 100) {
         ctx.fillStyle = 'rgba(0, 255, 0, 0.9)';
-        ctx.fillRect(250, 15, 200, 30);
+        ctx.fillRect(275, 15, 175, 30);
         ctx.fillStyle = '#000';
         ctx.font = 'bold 14px Arial';
         ctx.textAlign = 'center';
