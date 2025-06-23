@@ -34,12 +34,12 @@ Domain names are a growing $2.4 Billion dollar RWA (Real World Asset) market, bu
 └────────────────────┘    └──────────────────┘    └─────────────────┘
                                                           │
                                                           ▼
-                        ┌───────────────────┐    ┌──────────────────┐ 
-                        │ DensoFiUniV3Vault │◄── │ DensoFiLaunchpad │
-                        │ - Fee collection  │    │ - Bonding curve  │
-                        │ - Ownership mgmt  │    │ - Market cap     │
-                        └───────────────────┘    │ - Uniswap launch │ 
-                                                 └──────────────────┘ 
+                        ┌───────────────────┐    ┌──────────────────────┐ 
+                        │ DensoFiUniV3Vault │◄── │ DensoFiLaunchpad     │
+                        │ - Fee collection  │    │ - Bonding curve      │
+                        │ - Ownership mgmt  │    │ - Market cap         │
+                        └───────────────────┘    │ - PunchswapV3 launch │ 
+                                                 └──────────────────────┘ 
 ```
 
 ## Deployments
