@@ -3,7 +3,7 @@ export interface Domain {
   Associated_ERC20_Addr: string;
   Verified_Owner_Addr: string;
   Chain_Id: bigint;
-  NFT_Token_Id: bigint;
+  NFT_Token_Id: number;
   Expiration_Timestamp: Date;
 }
 

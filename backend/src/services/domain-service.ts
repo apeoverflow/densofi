@@ -188,7 +188,7 @@ export class DomainService {
             Associated_ERC20_Addr: '', // Empty for now
             Verified_Owner_Addr: registration.requester,
             Chain_Id: BigInt(ENV.CHAIN_ID || '11155111'),
-            NFT_Token_Id: BigInt(0), // Will be set when NFT is minted
+            NFT_Token_Id: 0, // Will be set when NFT is minted
             Expiration_Timestamp: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
             createdAt: new Date(),
             updatedAt: new Date()

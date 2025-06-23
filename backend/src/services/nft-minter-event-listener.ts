@@ -124,7 +124,7 @@ class NFTMinterEventListener {
         { Domain_Name: domainName },
         { 
           $set: {
-            NFT_Token_Id: tokenId,
+            NFT_Token_Id: Number(tokenId),
             updatedAt: new Date()
           }
         }

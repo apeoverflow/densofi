@@ -9,7 +9,6 @@ import TokenMinterABI from './abis/TokenMinter.json';
 // Import deployment addresses
 import addresses747 from './deployment-addresses/747-addresses.json';
 import addresses11155111 from './deployment-addresses/11155111-addresses.json';
-import addressesSepolia from './deployment-addresses/sepolia-addresses.json';
 
 // Supported chain IDs
 export const SUPPORTED_CHAIN_IDS = [747, 11155111] as const;
@@ -21,8 +20,6 @@ export const CHAIN_CONFIGS = {
   11155111: addresses11155111,
 } as const;
 
-// Legacy Sepolia addresses (for backward compatibility)
-export const LEGACY_CONTRACT_ADDRESSES = addressesSepolia;
 
 // Contract ABIs
 export const ABIS = {
@@ -34,12 +31,6 @@ export const ABIS = {
   TokenMinter: TokenMinterABI,
 } as const;
 
-// Legacy exports for backward compatibility
-export const DOMAIN_REGISTRATION_SEPOLIA_ADDRESS = "0x46c8e4a7237cbd04051ad563077b581f42808d00";
-export const NFT_MINTER_SEPOLIA_ADDRESS = "0x14d1f018ee2b5c89fcbdfcd63959b86bf7929942";
-export const TOKEN_MINTER_SEPOLIA_ADDRESS = "0xd852cc24d6fdd093db998d44d06e8652de86bd0e";
-export const NFT_MINTER_ABI = NFTMinterABI;
-export const TOKEN_MINTER_ABI = TokenMinterABI;
 
 // Helper functions to get contract addresses by chain
 export function getContractAddresses(chainId: SupportedChainId) {

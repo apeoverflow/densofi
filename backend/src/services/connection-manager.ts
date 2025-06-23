@@ -5,6 +5,7 @@ import { GameService } from './game-service.js';
 import { NFTMinterService } from './nft-minter-service.js';
 import { domainEventListener } from './domain-event-listener.js';
 import { nftMinterEventListener } from './nft-minter-event-listener.js';
+import { tokenMinterEventListener } from './token-minter-event-listener.js';
 import { ENV } from '../config/env.js';
 
 export interface RetryConfig {
@@ -76,6 +77,10 @@ export class ConnectionManager {
         logger.info('🎧 Starting NFT minter event listener...');
         await nftMinterEventListener.startListening();
         logger.info('✅ NFT minter event listener started successfully');
+        
+        logger.info('🎧 Starting Token minter event listener...');
+        await tokenMinterEventListener.startListening();
+        logger.info('✅ Token minter event listener started successfully');
         
         // Start processing pending events
         logger.info('⚙️ Starting processing loop...');
@@ -194,6 +199,7 @@ export class ConnectionManager {
       if (ENV.ENABLE_EVENT_LISTENERS) {
         domainEventListener.stopListening();
         nftMinterEventListener.stopListening();
+        tokenMinterEventListener.stopListening();
       }
       
       // Disconnect from MongoDB
@@ -245,6 +251,7 @@ export class ConnectionManager {
     mongodb: boolean; 
     domainEventListener: boolean; 
     nftMinterEventListener: boolean;
+    tokenMinterEventListener: boolean;
     eventListenersEnabled: boolean;
     processingLoopEnabled: boolean;
   } {
@@ -253,6 +260,7 @@ export class ConnectionManager {
         mongodb: MongoService.getDb() !== null,
         domainEventListener: ENV.ENABLE_EVENT_LISTENERS ? domainEventListener.getStatus() : false,
         nftMinterEventListener: ENV.ENABLE_EVENT_LISTENERS ? nftMinterEventListener.getStatus() : false,
+        tokenMinterEventListener: ENV.ENABLE_EVENT_LISTENERS ? tokenMinterEventListener.getStatus() : false,
         eventListenersEnabled: ENV.ENABLE_EVENT_LISTENERS,
         processingLoopEnabled: ENV.ENABLE_EVENT_LISTENERS && this.processingLoopId !== null
       };

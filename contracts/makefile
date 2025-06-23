@@ -1,6 +1,6 @@
 -include .env
 
-.PHONY: help deploy-sepolia deploy-flow verify-sepolia verify-flow test test-launchpad-fork test-launchpad-flow-fork clean get-address show-config-sepolia show-config-flow generate-abis
+.PHONY: help deploy-sepolia deploy-flow verify-sepolia verify-flow test test-launchpad-fork test-launchpad-flow-fork clean get-address show-config-sepolia show-config-flow generate-abis sync-contracts build-and-sync
 
 help:
 	@echo "Available commands:"
@@ -16,6 +16,8 @@ help:
 	@echo "  make test-launchpad-flow-fork - Run DensoFi Launchpad tests with Flow fork"
 	@echo "  make get-address     - Get your wallet address from private key"
 	@echo "  make generate-abis   - Generate ABI files for all contracts"
+	@echo "  make sync-contracts  - Sync contract ABIs and addresses to frontend and backend"
+	@echo "  make build-and-sync  - Generate ABIs and sync to frontend and backend"
 	@echo "  make clean           - Clean build artifacts"
 
 # Check if required environment variables are set
@@ -221,6 +223,62 @@ generate-abis:
 		echo "Generated abis/InitialSupplySuperchainERC20.json"; \
 	fi
 	@echo "ABI generation complete. Files saved to abis/ directory"
+
+# Sync contract ABIs and addresses to frontend and backend
+sync-contracts:
+	@echo "Syncing contract ABIs and addresses to frontend and backend..."
+	@echo ""
+	
+	# Create target directories if they don't exist
+	@mkdir -p ../frontend/constants/abis
+	@mkdir -p ../frontend/constants/deployment-addresses
+	@mkdir -p ../backend/src/constants/abis
+	@mkdir -p ../backend/src/constants/deployment-addresses
+	
+	@echo "📋 Syncing ABIs..."
+	# Copy ABIs to frontend
+	@if [ -d "abis" ]; then \
+		cp -r abis/* ../frontend/constants/abis/ 2>/dev/null || true; \
+		echo "✅ Frontend ABIs synced"; \
+	else \
+		echo "⚠️  ABIs directory not found. Run 'make generate-abis' first"; \
+	fi
+	
+	# Copy ABIs to backend
+	@if [ -d "abis" ]; then \
+		cp -r abis/* ../backend/src/constants/abis/ 2>/dev/null || true; \
+		echo "✅ Backend ABIs synced"; \
+	else \
+		echo "⚠️  ABIs directory not found. Run 'make generate-abis' first"; \
+	fi
+	
+	@echo "📍 Syncing deployment addresses..."
+	# Copy deployment addresses to frontend
+	@if [ -d "deployment-addresses" ]; then \
+		cp -r deployment-addresses/* ../frontend/constants/deployment-addresses/ 2>/dev/null || true; \
+		echo "✅ Frontend deployment addresses synced"; \
+	else \
+		echo "⚠️  No deployment addresses found"; \
+	fi
+	
+	# Copy deployment addresses to backend
+	@if [ -d "deployment-addresses" ]; then \
+		cp -r deployment-addresses/* ../backend/src/constants/deployment-addresses/ 2>/dev/null || true; \
+		echo "✅ Backend deployment addresses synced"; \
+	else \
+		echo "⚠️  No deployment addresses found"; \
+	fi
+	
+	@echo ""
+	@echo "🎉 Contract sync complete!"
+	@echo ""
+	@echo "Synced files:"
+	@echo "  ABIs: contracts/abis/* → {frontend/constants/abis/, backend/src/constants/abis/}"
+	@echo "  Addresses: contracts/deployment-addresses/* → {frontend/constants/deployment-addresses/, backend/src/constants/deployment-addresses/}"
+
+# Generate ABIs and sync to frontend and backend in one command
+build-and-sync: generate-abis sync-contracts
+	@echo "✅ Build and sync complete!"
 
 # Clean build artifacts
 clean:
