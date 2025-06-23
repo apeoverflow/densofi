@@ -114,7 +114,7 @@ function TokenMinterClient() {
           <div className="mb-4">
             <p className="text-sm text-gray-400 mb-2">Transaction Hash:</p>
             <a 
-              href={`https://sepolia.etherscan.io/tx/${transactionHash}`}
+              href={`https://evm.flowscan.io/tx/${transactionHash}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-400 text-sm break-all hover:underline"
