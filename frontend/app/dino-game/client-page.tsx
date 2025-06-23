@@ -1614,7 +1614,11 @@ export default function DinoGameClient() {
                     width={800}
                     height={360}
                     className="w-full max-w-3xl mx-auto border border-slate-600/30 rounded-lg sm:rounded-xl bg-gradient-to-b from-blue-50 to-blue-100 shadow-lg touch-none"
-                    style={{ height: '360px', minHeight: '200px' }}
+                    style={{ 
+                      height: 'min(360px, 45vw)', 
+                      minHeight: '200px',
+                      maxHeight: '360px'
+                    }}
                   />
                 </div>
                 
