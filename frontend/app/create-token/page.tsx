@@ -2118,107 +2118,136 @@ const CreateTokenContent = () => {
   // Mode Selection Screen
   if (mode === 'choose' && !hasWalletIssue && !hasBackendIssue) {
     return (
-      <div className="space-y-10">
-        <div className="text-center">
-          {/* <h3 className="text-4xl font-bold mb-6 relative">
+      <div className="space-y-8">
+        <div className="text-center mb-8">
+          <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-400 via-purple-500 to-teal-400 bg-clip-text text-transparent">
             Choose Your Path
-            <AnimatedHeadingGlow 
-              color="#8B5CF6" 
-              intensity={0.2} 
-              speed={1.2} 
-              distortionAmount={0.4}
-              size={0.5}
-              randomSeed={0.5}
-            />
-          </h3> */}
+          </h2>
+          <p className="text-gray-300 text-lg">
+            Select how you'd like to create your domain tokens
+          </p>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div 
             onClick={() => setMode('existing-nft')}
-            className="group relative cursor-pointer"
+            className="group relative cursor-pointer transform transition-all duration-500 hover:scale-[1.02]"
           >
-            <GlassCard className="p-12 h-full transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/30 border-blue-500/20 hover:border-blue-400/40 group-hover:scale-[1.02]">
-              {/* Background glow */}
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <GlassCard className="relative p-8 h-full overflow-hidden border-2 border-blue-500/30 hover:border-blue-400/60 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/40">
+              {/* Animated background gradient */}
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/5 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               
-              {/* Icon with enhanced glow */}
-              <div className="relative mb-6 flex justify-center">
-                <div className="relative">
-                  <div className="p-20 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-2xl backdrop-blur-sm border border-blue-500/20 transform transition-transform duration-300 group-hover:scale-110">
-                    <div className="w-[180px] h-[180px] rounded-lg bg-blue-500/20 flex items-center justify-center">
-                      <Image src="/pixel/game-pixel.png" alt="NFT" height={100} width={100} className="w-[120px] h-[120px]" />
+              {/* Floating orbs animation */}
+              <div className="absolute -top-4 -right-4 w-20 h-20 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-xl group-hover:scale-150 transition-transform duration-700"></div>
+              <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-gradient-to-tr from-cyan-400/15 to-blue-400/15 rounded-full blur-lg group-hover:scale-125 transition-transform duration-700 delay-100"></div>
+              
+              {/* Enhanced icon section */}
+              <div className="relative mb-8 flex justify-center">
+                <div className="relative group/icon">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/30 to-purple-500/30 rounded-2xl blur-xl group-hover:from-blue-500/50 group-hover:to-purple-500/50 transition-all duration-500"></div>
+                  <div className="relative p-6 bg-gradient-to-br from-blue-500/20 via-purple-500/10 to-blue-500/20 rounded-2xl backdrop-blur-sm border border-blue-500/30 group-hover:border-blue-400/50 transition-all duration-300 group-hover:scale-110">
+                    <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-blue-500/30 to-purple-500/30 flex items-center justify-center group-hover:from-blue-400/40 group-hover:to-purple-400/40 transition-all duration-300">
+                      <Image 
+                        src="/pixel/link-pixelated.png" 
+                        alt="NFT" 
+                        height={48} 
+                        width={48} 
+                        className="w-12 h-12 group-hover/icon:scale-110 transition-transform duration-300" 
+                      />
                     </div>
                   </div>
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-2xl -z-10 group-hover:from-blue-500/30 group-hover:to-purple-500/30 transition-all duration-300"></div>
                 </div>
               </div>
               
-              <div className="text-center relative z-10">
-                <h4 className="text-3xl font-bold mb-4 text-blue-400 group-hover:text-blue-300 transition-colors duration-300">
+              <div className="relative z-10 text-center">
+                <h3 className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-blue-300 bg-clip-text text-transparent group-hover:from-blue-300 group-hover:to-blue-200 transition-all duration-300">
                   Use Existing NFT
-                </h4>
-                <div className="w-16 h-0.5 bg-gradient-to-r from-blue-400 to-purple-400 mx-auto mb-4 opacity-50 group-hover:opacity-100 group-hover:w-24 transition-all duration-300"></div>
-                <p className="text-gray-300 group-hover:text-gray-200 transition-colors duration-300 text-lg leading-relaxed mb-6">
-                  Create tokens from a domain NFT you already own
+                </h3>
+                
+                {/* Animated underline */}
+                <div className="w-16 h-1 bg-gradient-to-r from-blue-400 to-purple-400 mx-auto mb-6 rounded-full opacity-60 group-hover:opacity-100 group-hover:w-24 group-hover:h-1.5 transition-all duration-500"></div>
+                
+                <p className="text-gray-300 group-hover:text-gray-100 transition-colors duration-300 text-lg leading-relaxed mb-6">
+                  Create tokens from domain NFTs you already own
                 </p>
                 
-                <div className="bg-blue-900/20 border border-blue-500/30 p-4 rounded-lg group-hover:bg-blue-900/30 group-hover:border-blue-400/50 transition-all duration-300">
-                  <p className="text-sm text-blue-300 group-hover:text-blue-200 transition-colors duration-300 font-medium flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-                    </svg>
-                    Already have a Domain NFT - Mint a token from it
-                  </p>
+                {/* Enhanced feature badge */}
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl blur-sm group-hover:from-blue-500/30 group-hover:to-purple-500/30 transition-all duration-300"></div>
+                  <div className="relative bg-gradient-to-r from-blue-900/40 to-purple-900/40 border border-blue-500/40 group-hover:border-blue-400/60 p-4 rounded-xl group-hover:bg-gradient-to-r group-hover:from-blue-900/60 group-hover:to-purple-900/60 transition-all duration-300">
+                    <p className="text-sm font-semibold text-blue-300 group-hover:text-blue-200 transition-colors duration-300 flex items-center gap-3">
+                      <svg className="w-5 h-5 text-blue-400 group-hover:text-blue-300 transition-colors duration-300" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                      </svg>
+                      Quick & Easy - Skip to Token Creation
+                    </p>
+                  </div>
                 </div>
               </div>
               
-              {/* Corner accent */}
-              <div className="absolute top-6 right-6 w-3 h-3 bg-blue-400/30 rounded-full group-hover:bg-blue-400/60 transition-colors duration-300"></div>
+              {/* Corner accents */}
+              <div className="absolute top-4 right-4 w-3 h-3 bg-blue-400/40 rounded-full group-hover:bg-blue-400/80 group-hover:scale-150 transition-all duration-300"></div>
+              <div className="absolute bottom-4 left-4 w-2 h-2 bg-purple-400/40 rounded-full group-hover:bg-purple-400/80 group-hover:scale-125 transition-all duration-300 delay-75"></div>
             </GlassCard>
           </div>
 
           <div 
             onClick={() => setMode('new-domain')}
-            className="group relative cursor-pointer"
+            className="group relative cursor-pointer transform transition-all duration-500 hover:scale-[1.02]"
           >
-            <GlassCard className="p-8 h-full transition-all duration-500 hover:shadow-2xl hover:shadow-green-500/30 border-green-500/20 hover:border-green-400/40 group-hover:scale-[1.02]">
-              {/* Background glow */}
-              <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-teal-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <GlassCard className="relative p-8 h-full overflow-hidden border-2 border-green-500/30 hover:border-green-400/60 transition-all duration-500 hover:shadow-2xl hover:shadow-green-500/40">
+              {/* Animated background gradient */}
+              <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 via-teal-500/5 to-green-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               
-              {/* Icon with enhanced glow */}
-              <div className="relative mb-6 flex justify-center">
-                <div className="relative">
-                  <div className="p-6 bg-gradient-to-br from-green-500/10 to-teal-500/10 rounded-2xl backdrop-blur-sm border border-green-500/20 transform transition-transform duration-300 group-hover:scale-110">
-                    <div className="w-16 h-16 rounded-lg bg-green-500/20 flex items-center justify-center">
-                      <img src="/pixel/star-pixel.png" alt="New" className="w-8 h-8" />
+              {/* Floating orbs animation */}
+              <div className="absolute -top-4 -right-4 w-20 h-20 bg-gradient-to-br from-green-400/20 to-teal-400/20 rounded-full blur-xl group-hover:scale-150 transition-transform duration-700"></div>
+              <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-gradient-to-tr from-emerald-400/15 to-green-400/15 rounded-full blur-lg group-hover:scale-125 transition-transform duration-700 delay-100"></div>
+              
+              {/* Enhanced icon section */}
+              <div className="relative mb-8 flex justify-center">
+                <div className="relative group/icon">
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-500/30 to-teal-500/30 rounded-2xl blur-xl group-hover:from-green-500/50 group-hover:to-teal-500/50 transition-all duration-500"></div>
+                  <div className="relative p-6 bg-gradient-to-br from-green-500/20 via-teal-500/10 to-green-500/20 rounded-2xl backdrop-blur-sm border border-green-500/30 group-hover:border-green-400/50 transition-all duration-300 group-hover:scale-110">
+                    <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-green-500/30 to-teal-500/30 flex items-center justify-center group-hover:from-green-400/40 group-hover:to-teal-400/40 transition-all duration-300">
+                      <img 
+                        src="/pixel/star-pixel.png" 
+                        alt="New" 
+                        className="w-12 h-12 group-hover/icon:scale-110 transition-transform duration-300" 
+                      />
                     </div>
                   </div>
-                  <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-teal-500/20 rounded-full blur-2xl -z-10 group-hover:from-green-500/30 group-hover:to-teal-500/30 transition-all duration-300"></div>
                 </div>
               </div>
               
-              <div className="text-center relative z-10">
-                <h4 className="text-3xl font-bold mb-4 text-green-400 group-hover:text-green-300 transition-colors duration-300">
+              <div className="relative z-10 text-center">
+                <h3 className="text-3xl font-bold mb-4 bg-gradient-to-r from-green-400 to-green-300 bg-clip-text text-transparent group-hover:from-green-300 group-hover:to-green-200 transition-all duration-300">
                   Register New Domain
-                </h4>
-                <div className="w-16 h-0.5 bg-gradient-to-r from-green-400 to-teal-400 mx-auto mb-4 opacity-50 group-hover:opacity-100 group-hover:w-24 transition-all duration-300"></div>
-                <p className="text-gray-300 group-hover:text-gray-200 transition-colors duration-300 text-lg leading-relaxed mb-6">
-                  Verify ownership, register domain, mint NFT, then create tokens
+                </h3>
+                
+                {/* Animated underline */}
+                <div className="w-16 h-1 bg-gradient-to-r from-green-400 to-teal-400 mx-auto mb-6 rounded-full opacity-60 group-hover:opacity-100 group-hover:w-24 group-hover:h-1.5 transition-all duration-500"></div>
+                
+                <p className="text-gray-300 group-hover:text-gray-100 transition-colors duration-300 text-lg leading-relaxed mb-6">
+                  Complete flow from verification to token creation
                 </p>
                 
-                <div className="bg-green-900/20 border border-green-500/30 p-4 rounded-lg group-hover:bg-green-900/30 group-hover:border-green-400/50 transition-all duration-300">
-                  <p className="text-sm text-green-300 group-hover:text-green-200 transition-colors duration-300 font-medium flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                    Full process - Mint domain NFT & Create Tokens
-                  </p>
+                {/* Enhanced feature badge */}
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-teal-500/20 rounded-xl blur-sm group-hover:from-green-500/30 group-hover:to-teal-500/30 transition-all duration-300"></div>
+                  <div className="relative bg-gradient-to-r from-green-900/40 to-teal-900/40 border border-green-500/40 group-hover:border-green-400/60 p-4 rounded-xl group-hover:bg-gradient-to-r group-hover:from-green-900/60 group-hover:to-teal-900/60 transition-all duration-300">
+                    <p className="text-sm font-semibold text-green-300 group-hover:text-green-200 transition-colors duration-300 flex items-center gap-3">
+                      <svg className="w-5 h-5 text-green-400 group-hover:text-green-300 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      Full Process - Verify, Register & Create
+                    </p>
+                  </div>
                 </div>
               </div>
               
-              {/* Corner accent */}
-              <div className="absolute top-6 right-6 w-3 h-3 bg-green-400/30 rounded-full group-hover:bg-green-400/60 transition-colors duration-300"></div>
+              {/* Corner accents */}
+              <div className="absolute top-4 right-4 w-3 h-3 bg-green-400/40 rounded-full group-hover:bg-green-400/80 group-hover:scale-150 transition-all duration-300"></div>
+              <div className="absolute bottom-4 left-4 w-2 h-2 bg-teal-400/40 rounded-full group-hover:bg-teal-400/80 group-hover:scale-125 transition-all duration-300 delay-75"></div>
             </GlassCard>
           </div>
         </div>
@@ -2438,66 +2467,135 @@ export default function CreateTokenPage() {
 
           {/* Features Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-            <div className="relative group">
-              <GlassCard className="p-5 text-center h-full transition-all duration-500 hover:shadow-xl hover:shadow-blue-500/20 border-blue-500/20 hover:border-blue-400/40 group-hover:scale-[1.02]">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <div className="relative group transform transition-all duration-500 hover:scale-[1.03]">
+              <GlassCard className="relative p-8 text-center h-full overflow-hidden border-2 border-blue-500/20 hover:border-blue-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/30">
+                {/* Animated background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-indigo-500/3 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                
+                {/* Floating particles */}
+                <div className="absolute top-4 right-6 w-2 h-2 bg-blue-400/40 rounded-full group-hover:animate-bounce" style={{ animationDelay: '0s' }}></div>
+                <div className="absolute top-8 right-4 w-1.5 h-1.5 bg-indigo-400/30 rounded-full group-hover:animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="absolute bottom-6 left-4 w-1 h-1 bg-blue-300/40 rounded-full group-hover:animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                
                 <div className="relative z-10">
-                  <div className="mb-6 flex justify-center transform transition-transform duration-300 group-hover:scale-110">
-                    <div className="p-4 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-xl backdrop-blur-sm border border-blue-500/20">
-                      <div className="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                        <img src="/pixel/game-pixel.png" alt="NFT" className="w-6 h-6" />
+                  {/* Enhanced icon with glow */}
+                  <div className="mb-8 flex justify-center">
+                    <div className="relative group/icon">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/40 to-indigo-500/40 rounded-2xl blur-lg group-hover:from-blue-500/60 group-hover:to-indigo-500/60 transition-all duration-500"></div>
+                      <div className="relative p-5 bg-gradient-to-br from-blue-500/15 via-indigo-500/10 to-blue-500/15 rounded-2xl backdrop-blur-sm border border-blue-500/30 group-hover:border-blue-400/50 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
+                        <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500/25 to-indigo-500/25 flex items-center justify-center group-hover:from-blue-400/35 group-hover:to-indigo-400/35 transition-all duration-300">
+                          <img 
+                            src="/pixel/link-pixelated.png" 
+                            alt="NFT" 
+                            className="w-10 h-10 group-hover/icon:scale-110 group-hover/icon:rotate-12 transition-transform duration-300" 
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <h3 className="text-2xl font-bold mb-4 text-blue-400 group-hover:text-blue-300 transition-colors duration-300">Use Existing NFT</h3>
-                  <div className="w-12 h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 mx-auto mb-4 opacity-50 group-hover:opacity-100 transition-all duration-300"></div>
-                  <p className="text-gray-300 group-hover:text-gray-200 transition-colors duration-300 leading-relaxed">
+                  
+                  <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent group-hover:from-blue-300 group-hover:to-indigo-300 transition-all duration-300">
+                    Use Existing NFT
+                  </h3>
+                  
+                  {/* Animated underline */}
+                  <div className="w-12 h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 mx-auto mb-4 rounded-full opacity-50 group-hover:opacity-100 group-hover:w-16 transition-all duration-300"></div>
+                  
+                  <p className="text-gray-300 group-hover:text-gray-100 transition-colors duration-300 leading-relaxed text-base">
                     Create tokens from domain NFTs you already own - quick and easy!
                   </p>
                 </div>
-                <div className="absolute top-4 right-4 w-2 h-2 bg-blue-400/30 rounded-full group-hover:bg-blue-400/60 transition-colors duration-300"></div>
+                
+                {/* Corner glow */}
+                <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-blue-400/10 to-transparent rounded-tl-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               </GlassCard>
             </div>
             
-            <div className="relative group">
-              <GlassCard className="p-5 text-center h-full transition-all duration-500 hover:shadow-xl hover:shadow-green-500/20 border-green-500/20 hover:border-green-400/40 group-hover:scale-[1.02]">
-                <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-teal-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <div className="relative group transform transition-all duration-500 hover:scale-[1.03]">
+              <GlassCard className="relative p-8 text-center h-full overflow-hidden border-2 border-green-500/20 hover:border-green-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-green-500/30">
+                {/* Animated background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-teal-500/3 to-green-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                
+                {/* Floating particles */}
+                <div className="absolute top-4 right-6 w-2 h-2 bg-green-400/40 rounded-full group-hover:animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="absolute top-8 right-4 w-1.5 h-1.5 bg-teal-400/30 rounded-full group-hover:animate-bounce" style={{ animationDelay: '0.3s' }}></div>
+                <div className="absolute bottom-6 left-4 w-1 h-1 bg-green-300/40 rounded-full group-hover:animate-bounce" style={{ animationDelay: '0.5s' }}></div>
+                
                 <div className="relative z-10">
-                  <div className="mb-6 flex justify-center transform transition-transform duration-300 group-hover:scale-110">
-                    <div className="p-4 bg-gradient-to-br from-green-500/10 to-teal-500/10 rounded-xl backdrop-blur-sm border border-green-500/20">
-                      <div className="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center">
-                        <img src="/pixel/star-pixel.png" alt="New" className="w-6 h-6" />
+                  {/* Enhanced icon with glow */}
+                  <div className="mb-8 flex justify-center">
+                    <div className="relative group/icon">
+                      <div className="absolute inset-0 bg-gradient-to-r from-green-500/40 to-teal-500/40 rounded-2xl blur-lg group-hover:from-green-500/60 group-hover:to-teal-500/60 transition-all duration-500"></div>
+                      <div className="relative p-5 bg-gradient-to-br from-green-500/15 via-teal-500/10 to-green-500/15 rounded-2xl backdrop-blur-sm border border-green-500/30 group-hover:border-green-400/50 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
+                        <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-green-500/25 to-teal-500/25 flex items-center justify-center group-hover:from-green-400/35 group-hover:to-teal-400/35 transition-all duration-300">
+                          <img 
+                            src="/pixel/star-pixel.png" 
+                            alt="New" 
+                            className="w-10 h-10 group-hover/icon:scale-110 group-hover/icon:rotate-12 transition-transform duration-300" 
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <h3 className="text-2xl font-bold mb-4 text-green-400 group-hover:text-green-300 transition-colors duration-300">Register New Domain</h3>
-                  <div className="w-12 h-0.5 bg-gradient-to-r from-green-400 to-teal-400 mx-auto mb-4 opacity-50 group-hover:opacity-100 transition-all duration-300"></div>
-                  <p className="text-gray-300 group-hover:text-gray-200 transition-colors duration-300 leading-relaxed">
+                  
+                  <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-green-400 to-teal-400 bg-clip-text text-transparent group-hover:from-green-300 group-hover:to-teal-300 transition-all duration-300">
+                    Register New Domain
+                  </h3>
+                  
+                  {/* Animated underline */}
+                  <div className="w-12 h-0.5 bg-gradient-to-r from-green-400 to-teal-400 mx-auto mb-4 rounded-full opacity-50 group-hover:opacity-100 group-hover:w-16 transition-all duration-300"></div>
+                  
+                  <p className="text-gray-300 group-hover:text-gray-100 transition-colors duration-300 leading-relaxed text-base">
                     Full process from domain verification to token creation.
                   </p>
                 </div>
-                <div className="absolute top-4 right-4 w-2 h-2 bg-green-400/30 rounded-full group-hover:bg-green-400/60 transition-colors duration-300"></div>
+                
+                {/* Corner glow */}
+                <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-green-400/10 to-transparent rounded-tl-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               </GlassCard>
             </div>
             
-            <div className="relative group">
-              <GlassCard className="p-5 text-center h-full transition-all duration-500 hover:shadow-xl hover:shadow-purple-500/20 border-purple-500/20 hover:border-purple-400/40 group-hover:scale-[1.02]">
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <div className="relative group transform transition-all duration-500 hover:scale-[1.03]">
+              <GlassCard className="relative p-8 text-center h-full overflow-hidden border-2 border-purple-500/20 hover:border-purple-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-purple-500/30">
+                {/* Animated background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-pink-500/3 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                
+                {/* Floating particles */}
+                <div className="absolute top-4 right-6 w-2 h-2 bg-purple-400/40 rounded-full group-hover:animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="absolute top-8 right-4 w-1.5 h-1.5 bg-pink-400/30 rounded-full group-hover:animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                <div className="absolute bottom-6 left-4 w-1 h-1 bg-purple-300/40 rounded-full group-hover:animate-bounce" style={{ animationDelay: '0.6s' }}></div>
+                
                 <div className="relative z-10">
-                  <div className="mb-6 flex justify-center transform transition-transform duration-300 group-hover:scale-110">
-                    <div className="p-4 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl backdrop-blur-sm border border-purple-500/20">
-                      <div className="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                        <img src="/pixel/rocket-pixel.png" alt="Launch" className="w-6 h-6" />
+                  {/* Enhanced icon with glow */}
+                  <div className="mb-8 flex justify-center">
+                    <div className="relative group/icon">
+                      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/40 to-pink-500/40 rounded-2xl blur-lg group-hover:from-purple-500/60 group-hover:to-pink-500/60 transition-all duration-500"></div>
+                      <div className="relative p-5 bg-gradient-to-br from-purple-500/15 via-pink-500/10 to-purple-500/15 rounded-2xl backdrop-blur-sm border border-purple-500/30 group-hover:border-purple-400/50 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
+                        <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-500/25 to-pink-500/25 flex items-center justify-center group-hover:from-purple-400/35 group-hover:to-pink-400/35 transition-all duration-300">
+                          <img 
+                            src="/pixel/rocket-pixel.png" 
+                            alt="Launch" 
+                            className="w-10 h-10 group-hover/icon:scale-110 group-hover/icon:rotate-12 transition-transform duration-300" 
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <h3 className="text-2xl font-bold mb-4 text-purple-400 group-hover:text-purple-300 transition-colors duration-300">Launch & Trade</h3>
-                  <div className="w-12 h-0.5 bg-gradient-to-r from-purple-400 to-pink-400 mx-auto mb-4 opacity-50 group-hover:opacity-100 transition-all duration-300"></div>
-                  <p className="text-gray-300 group-hover:text-gray-200 transition-colors duration-300 leading-relaxed">
+                  
+                  <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent group-hover:from-purple-300 group-hover:to-pink-300 transition-all duration-300">
+                    Launch & Trade
+                  </h3>
+                  
+                  {/* Animated underline */}
+                  <div className="w-12 h-0.5 bg-gradient-to-r from-purple-400 to-pink-400 mx-auto mb-4 rounded-full opacity-50 group-hover:opacity-100 group-hover:w-16 transition-all duration-300"></div>
+                  
+                  <p className="text-gray-300 group-hover:text-gray-100 transition-colors duration-300 leading-relaxed text-base">
                     Choose direct receipt or launchpad for your tokens.
                   </p>
                 </div>
-                <div className="absolute top-4 right-4 w-2 h-2 bg-purple-400/30 rounded-full group-hover:bg-purple-400/60 transition-colors duration-300"></div>
+                
+                {/* Corner glow */}
+                <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-purple-400/10 to-transparent rounded-tl-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               </GlassCard>
             </div>
           </div>
