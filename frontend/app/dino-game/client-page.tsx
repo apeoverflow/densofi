@@ -102,7 +102,7 @@ const KANGAROO_WIDTH = 40;
 const KANGAROO_HEIGHT = 45;
 const KANGAROO_JUMP_FORCE = -12;
 const KANGAROO_GRAVITY = 0.6;
-const PROJECTILE_SPEED = 8;
+const PROJECTILE_SPEED = 15;
 const FIREBALL_SPAWN_RATE = 0.004; // Reduced from 0.008
 const KANGAROO_SPAWN_RATE = 0.006; // Reduced from 0.012
 const POWERUP_SPAWN_RATE = 0.005; // Reduced spawn rate for one-use power-ups
@@ -798,7 +798,7 @@ export default function DinoGameClient() {
               );
               
               // If projectile is close enough to target, kill the kangaroo
-              if (distanceToTarget <= 20) { // 20px hit radius
+              if (distanceToTarget <= 35) { // 35px hit radius for more reliable hits
                 newState.projectiles.splice(projIndex, 1);
                 newState.kangaroos.splice(targetIndex, 1);
                 newState.score += 50; // Bonus points for killing kangaroo
@@ -824,23 +824,23 @@ export default function DinoGameClient() {
                 height: 8,
               };
               
-              // Make kangaroo hitbox smaller and more precise
+              // Make kangaroo hitbox more forgiving for projectiles
               const kangarooRect = {
-                x: kangaroo.x + 5, // Reduce hitbox by 5px on each side
-                y: kangaroo.y + 5, // Reduce hitbox by 5px on top/bottom
-                width: kangaroo.width - 10,
-                height: kangaroo.height - 10,
+                x: kangaroo.x, // No reduction for projectile hits
+                y: kangaroo.y,
+                width: kangaroo.width,
+                height: kangaroo.height,
               };
               
-              // Additional check: projectile center must be within kangaroo bounds
+              // Additional check: projectile center must be within kangaroo bounds (more forgiving)
               const projectileCenterX = projectile.x + 4;
               const projectileCenterY = projectile.y + 4;
               
               const isWithinKangarooBounds = (
-                projectileCenterX >= kangaroo.x + 3 &&
-                projectileCenterX <= kangaroo.x + kangaroo.width - 3 &&
-                projectileCenterY >= kangaroo.y + 3 &&
-                projectileCenterY <= kangaroo.y + kangaroo.height - 3
+                projectileCenterX >= kangaroo.x - 5 && // Expand bounds by 5px
+                projectileCenterX <= kangaroo.x + kangaroo.width + 5 &&
+                projectileCenterY >= kangaroo.y - 5 &&
+                projectileCenterY <= kangaroo.y + kangaroo.height + 5
               );
               
               // Direct rectangle collision check
@@ -874,10 +874,10 @@ export default function DinoGameClient() {
         if (!newState.isGameOver) {
           for (const kangaroo of newState.kangaroos) {
             const kangarooRect = {
-              x: kangaroo.x + 3, // Slightly smaller hitbox for more precise collision
-              y: kangaroo.y + 3,
-              width: kangaroo.width - 6,
-              height: kangaroo.height - 6,
+              x: kangaroo.x + 12, // Even bigger border for more forgiving collision
+              y: kangaroo.y + 12,
+              width: kangaroo.width - 24,
+              height: kangaroo.height - 24,
             };
             
             // Direct rectangle collision check without using the flawed checkCollision function
@@ -1356,7 +1356,7 @@ export default function DinoGameClient() {
       // Show unlock notification
       if (gameState.score >= ADVANCED_FEATURES_SCORE_THRESHOLD && gameState.score < ADVANCED_FEATURES_SCORE_THRESHOLD + 100) {
         ctx.fillStyle = 'rgba(0, 255, 0, 0.9)';
-        ctx.fillRect(275, 15, 175, 30);
+        ctx.fillRect(275, 10, 175, 40);
         ctx.fillStyle = '#000';
         ctx.font = 'bold 14px Arial';
         ctx.textAlign = 'center';
@@ -1765,8 +1765,9 @@ export default function DinoGameClient() {
                       {/* Floating Mobile Controls */}
                       {gameState.isGameRunning && !gameState.isGameOver && (
                         <>
-                          {/* Jump Button - Floating Left */}
-                          <div className="fixed bottom-32 left-4 z-50 sm:hidden">
+                          {/* Mobile Control Buttons - Under the game */}
+                          <div className="flex w-full mt-4 gap-2 sm:hidden">
+                            {/* Jump Button - Left Half */}
                             <Button
                               onClick={(e) => {
                                 e.preventDefault();
@@ -1784,15 +1785,14 @@ export default function DinoGameClient() {
                                   jump();
                                 }
                               }}
-                              className="bg-gradient-to-r from-green-500/80 to-emerald-600/80 hover:brightness-110 text-white p-4 rounded-full shadow-2xl active:scale-95 transition-all touch-none select-none border-2 border-white/20 backdrop-blur-sm"
+                              className="flex-1 h-16 bg-gradient-to-r from-green-500/80 to-emerald-600/80 hover:brightness-110 text-white px-4 rounded-xl shadow-2xl active:scale-95 transition-all touch-none select-none border-2 border-white/20 backdrop-blur-sm flex items-center justify-center gap-3"
                             >
-                              <Image src="/pixel/kangaroo-pixel.png" alt="Jump" width={32} height={32} className="drop-shadow-lg" />
+                              <Image src="/pixel/kangaroo-pixel.png" alt="Jump" width={40} height={40} className="drop-shadow-lg" />
+                              <span className="text-xl font-bold">JUMP</span>
                             </Button>
-                          </div>
 
-                          {/* Shoot Button - Floating Right */}
-                          {gameState.score >= ADVANCED_FEATURES_SCORE_THRESHOLD && (
-                            <div className="fixed bottom-32 right-4 z-50 sm:hidden">
+                            {/* Shoot Button - Right Half */}
+                            {gameState.score >= ADVANCED_FEATURES_SCORE_THRESHOLD ? (
                               <Button
                                 onClick={(e) => {
                                   e.preventDefault();
@@ -1811,17 +1811,23 @@ export default function DinoGameClient() {
                                   }
                                 }}
                                 disabled={gameState.fireballCount === 0}
-                                className="bg-gradient-to-r from-orange-500/80 to-red-600/80 hover:brightness-110 text-white p-4 rounded-full shadow-2xl active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed touch-none select-none border-2 border-white/20 backdrop-blur-sm relative"
+                                className="flex-1 h-16 bg-gradient-to-r from-orange-500/80 to-red-600/80 hover:brightness-110 text-white px-4 rounded-xl shadow-2xl active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed touch-none select-none border-2 border-white/20 backdrop-blur-sm flex items-center justify-center gap-3 relative"
                               >
-                                <Image src="/pixel/rocket-pixel.png" alt="Shoot" width={32} height={32} className="drop-shadow-lg" />
+                                <Image src="/pixel/rocket-pixel.png" alt="Shoot" width={40} height={40} className="drop-shadow-lg" />
+                                <span className="text-xl font-bold">SHOOT</span>
                                 {gameState.fireballCount > 0 && (
-                                  <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-white">
+                                  <div className="absolute -top-2 -right-2 bg-red-500 text-white text-sm font-bold rounded-full w-8 h-8 flex items-center justify-center border-2 border-white">
                                     {gameState.fireballCount}
                                   </div>
                                 )}
                               </Button>
-                            </div>
-                          )}
+                            ) : (
+                              <div className="flex-1 h-16 bg-gray-400/50 px-4 rounded-xl border-2 border-gray-300/20 backdrop-blur-sm flex items-center justify-center gap-3">
+                                <Image src="/pixel/rocket-pixel.png" alt="Shoot" width={40} height={40} className="drop-shadow-lg opacity-50" />
+                                <span className="text-xl font-bold text-gray-300">LOCKED</span>
+                              </div>
+                            )}
+                          </div>
                         </>
                       )}
                     </div>
