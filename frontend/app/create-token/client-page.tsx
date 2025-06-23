@@ -96,7 +96,7 @@ function TokenMinterClient() {
 
   if (!isConnected) {
     return (
-      <div className="w-full max-w-md bg-gray-800/50 backdrop-blur-md p-8 rounded-xl shadow-xl">
+      <div className="w-full max-w-md bg-gray-800/50 backdrop-blur-md p-8 rounded-xl shadow-xl mb-8 sm:mb-4">
         <h2 className="text-xl font-semibold mb-6">Connect Wallet</h2>
         <p className="mb-6 text-gray-300">Please connect your wallet to create tokens from domain NFTs.</p>
         <WalletConnectButton />
@@ -105,7 +105,7 @@ function TokenMinterClient() {
   }
 
   return (
-    <div className="w-full max-w-md bg-gray-800/50 backdrop-blur-md p-8 rounded-xl shadow-xl">
+    <div className="w-full max-w-md bg-gray-800/50 backdrop-blur-md p-8 rounded-xl shadow-xl mb-8 sm:mb-4">
       {showSuccess ? (
         <div className="text-center">
           <div className="mb-4 text-green-400 text-5xl">🎉</div>
