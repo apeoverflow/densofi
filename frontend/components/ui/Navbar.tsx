@@ -80,9 +80,18 @@ export default function Navbar() {
       {/* Main Navbar - Sticky */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-black/30 border-b border-white/10 shadow-lg shadow-black/20">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-          {/* Logo */}
-          <div className="text-white font-bold text-xl">
-            <Link href="/" onClick={closeMobileMenu}>Densofi</Link>
+          {/* Logo with Dino */}
+          <div className="text-white font-bold text-xl flex items-center gap-2">
+            <Link href="/" onClick={closeMobileMenu} className="flex items-center gap-2 group">
+              <span className="transition-colors duration-200 group-hover:text-blue-400">Densofi</span>
+              <Image 
+                src="/denso-pixel.png" 
+                alt="Denso Dino" 
+                width={32} 
+                height={32}
+                className="transition-transform duration-200 group-hover:scale-110 pb-3" 
+              />
+            </Link>
           </div>
 
           {/* Desktop Navigation */}

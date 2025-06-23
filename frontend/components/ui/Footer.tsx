@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
 export default function Footer() {
@@ -13,7 +14,16 @@ export default function Footer() {
           <div className="container mx-auto px-4">
             <div className="grid md:grid-cols-3 gap-8 mb-8">
               <div>
-                <h3 className="text-xl font-bold text-white mb-4">Denso.fi</h3>
+                <div className="flex items-center gap-2 mb-4">
+                  <h3 className="text-xl font-bold text-white">Densofi</h3>
+                  <Image 
+                    src="/denso-pixel.png" 
+                    alt="Denso Dino" 
+                    width={42} 
+                    height={42}
+                    className="opacity-90 hover:opacity-100 transition-opacity duration-200 pb-4" 
+                  />
+                </div>
                 <p className="text-gray-400">Unlocking value and utility for domain names through fractional ownership and tokenization.</p>
               </div>
               <div>
