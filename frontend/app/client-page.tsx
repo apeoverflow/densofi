@@ -99,22 +99,11 @@ export default function ClientPage() {
                         <div className="absolute top-1/2 left-8 w-1 h-1 bg-teal-400/35 rounded-full blur-sm opacity-40"></div>
                         <div className="absolute top-1/2 right-8 w-1 h-1 bg-cyan-400/35 rounded-full blur-sm opacity-40"></div>
                         
-                        {/* Static rings within bounds */}
-                        <div className="absolute inset-6 border border-blue-400/10 rounded-full opacity-25"></div>
-                        <div className="absolute inset-12 border border-purple-400/8 rounded-full opacity-20"></div>
                       </div>
                       
-                      <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight relative overflow-visible z-10 text-center md:text-left">
+                      <h1 className="p-2 text-4xl md:text-6xl font-bold text-white mb-6 leading-tight relative overflow-visible z-10 text-center md:text-left">
                         <span className="relative z-10">Unlocking price discovery and liquidity for domain names</span>
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-500 to-teal-400 bg-clip-text text-transparent blur-sm opacity-30"></div>
-                        <AnimatedHeadingGlow 
-                          color="#60A5FA" 
-                          intensity={0.15} 
-                          speed={0.8} 
-                          distortionAmount={0.5}
-                          size={0.7}
-                          randomSeed={1}
-                        />
                       </h1>
                     </div>
                     <div className="text-lg text-gray-300 space-y-4 mb-8 text-center md:text-left">
@@ -197,6 +186,14 @@ export default function ClientPage() {
                   <div className="container mx-auto px-4 h-full">
                     <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 text-center relative z-10 overflow-visible min-h-[120px] flex items-center justify-center">
                     <span className="relative z-10">How It Works</span>
+                    <AnimatedHeadingGlow 
+                      color="#8B5CF6" 
+                      intensity={0.25} 
+                      speed={0.9} 
+                      distortionAmount={0.7}
+                      size={0.6}
+                      randomSeed={0.8}
+                    />
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-500 to-teal-400 bg-clip-text text-transparent blur-md opacity-70"></div>
                   </h2>
                   <p className="text-lg md:text-xl text-gray-300 text-center mb-16 max-w-3xl mx-auto leading-relaxed relative z-10">
@@ -536,15 +533,15 @@ export default function ClientPage() {
                   <div className="flex justify-center items-center mb-6">
                     <h2 className="text-3xl md:text-4xl font-bold text-white relative overflow-visible min-h-[120px] flex items-center justify-center">
                       <span className="relative z-10">Featured Tokens</span>
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-500 to-teal-400 bg-clip-text text-transparent blur-sm opacity-30"></div>
                       <AnimatedHeadingGlow 
-                        color="#F59E0B" 
-                        intensity={0.18} 
-                        speed={1.5} 
-                        distortionAmount={0.35}
-                        size={0.4}
-                        randomSeed={0.3}
+                        color="#8B5CF6" 
+                        intensity={1.0} 
+                        speed={0.9} 
+                        distortionAmount={0.7}
+                        size={0.6}
+                        randomSeed={0.8}
                       />
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-500 to-teal-400 bg-clip-text text-transparent blur-sm opacity-30"></div>
                     </h2>
                   </div>
                   <div className="grid md:grid-cols-3 gap-6">
