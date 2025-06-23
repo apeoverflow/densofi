@@ -66,37 +66,37 @@ interface StepProps {
 // Step component to show completed/pending steps with glass card styling - mobile optimized
 const Step = ({ title, completed, active, children }: StepProps) => {
   return (
-    <div className="mb-4 sm:mb-6 lg:mb-8 relative group">
+    <div className="mb-3 sm:mb-4 lg:mb-6 relative group">
       <GlassCard className={`relative transition-all duration-500 ${active ? 'shadow-xl shadow-blue-500/20 border-blue-500/30' : completed ? 'shadow-lg shadow-green-500/10 border-green-500/20' : 'border-white/5'} ${active ? 'hover:shadow-2xl hover:shadow-blue-500/30' : ''}`}>
         {/* Background glow effect */}
         <div className={`absolute inset-0 rounded-xl opacity-0 transition-opacity duration-500 ${active ? 'group-hover:opacity-100 bg-gradient-to-br from-blue-500/5 to-indigo-500/5' : completed ? 'bg-gradient-to-br from-green-500/3 to-emerald-500/3' : ''}`}></div>
 
-        <div className="relative z-10 p-3 sm:p-4 lg:p-6">
-          <div className="flex items-center mb-3 sm:mb-4 lg:mb-6">
-            <div className={`w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center mr-3 sm:mr-4 transition-all duration-300 ${completed ? 'bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/40' : active ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/40' : 'bg-slate-700/50'} ${active ? 'group-hover:scale-110' : ''}`}>
+        <div className="relative z-10 p-2 sm:p-3 lg:p-4">
+          <div className="flex items-center mb-2 sm:mb-3 lg:mb-4">
+            <div className={`w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 rounded-full flex items-center justify-center mr-2 sm:mr-3 transition-all duration-300 ${completed ? 'bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/40' : active ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/40' : 'bg-slate-700/50'} ${active ? 'group-hover:scale-110' : ''}`}>
               {completed ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               ) : (
-                <div className={`w-2 h-2 sm:w-2.5 sm:h-2.5 lg:w-3 lg:h-3 rounded-full transition-all duration-300 ${active ? 'bg-blue-200 group-hover:bg-white' : 'bg-gray-400'}`} />
+                <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 lg:w-2.5 lg:h-2.5 rounded-full transition-all duration-300 ${active ? 'bg-blue-200 group-hover:bg-white' : 'bg-gray-400'}`} />
               )}
             </div>
             <div className="flex-1">
-              <h3 className={`text-lg sm:text-xl font-bold transition-colors duration-300 ${completed ? 'text-green-400' : active ? 'text-white group-hover:text-blue-300' : 'text-gray-400'}`}>
+              <h3 className={`text-base sm:text-lg lg:text-xl font-bold transition-colors duration-300 ${completed ? 'text-green-400' : active ? 'text-white group-hover:text-blue-300' : 'text-gray-400'}`}>
                 {title}
               </h3>
-              <div className={`w-12 sm:w-14 lg:w-16 h-0.5 mt-1 sm:mt-2 transition-all duration-300 ${completed ? 'bg-gradient-to-r from-green-400 to-emerald-400' : active ? 'bg-gradient-to-r from-blue-400 to-indigo-400 group-hover:w-16 sm:group-hover:w-20 lg:group-hover:w-24' : 'bg-gray-600'}`}></div>
+              <div className={`w-8 sm:w-10 lg:w-12 h-0.5 mt-1 transition-all duration-300 ${completed ? 'bg-gradient-to-r from-green-400 to-emerald-400' : active ? 'bg-gradient-to-r from-blue-400 to-indigo-400 group-hover:w-10 sm:group-hover:w-12 lg:group-hover:w-16' : 'bg-gray-600'}`}></div>
             </div>
           </div>
 
-          <div className="ml-11 sm:ml-14 lg:ml-16">
+          <div className="ml-8 sm:ml-11 lg:ml-13">
             {children}
           </div>
         </div>
 
         {/* Corner accent */}
-        <div className={`absolute top-3 sm:top-4 right-3 sm:right-4 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-colors duration-300 ${completed ? 'bg-green-400/60' : active ? 'bg-blue-400/30 group-hover:bg-blue-400/60' : 'bg-gray-600/30'}`}></div>
+        <div className={`absolute top-2 sm:top-3 right-2 sm:right-3 w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full transition-colors duration-300 ${completed ? 'bg-green-400/60' : active ? 'bg-blue-400/30 group-hover:bg-blue-400/60' : 'bg-gray-600/30'}`}></div>
       </GlassCard>
     </div>
   );
@@ -1387,41 +1387,44 @@ const Modal = ({ isOpen, onClose, children }: ModalProps) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-0 sm:p-2 lg:p-4">
       {/* Backdrop with enhanced blur */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
 
-      {/* Modal container with mobile-optimized glass effect */}
-      <div className="relative w-full max-w-sm sm:max-w-2xl lg:max-w-5xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
-        <GlassCard className="relative overflow-hidden shadow-2xl shadow-blue-500/20">
-          {/* Animated background glow inside modal - reduced on mobile */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-5 sm:top-10 left-1/4 w-32 sm:w-48 lg:w-64 h-32 sm:h-48 lg:h-64 bg-gradient-to-r from-blue-900/30 via-indigo-800/40 to-purple-900/35 rounded-full blur-2xl sm:blur-3xl animate-pulse opacity-40" style={{ animationDuration: '6s' }}></div>
-            <div className="absolute bottom-5 sm:bottom-10 right-1/4 w-28 sm:w-42 lg:w-56 h-28 sm:h-42 lg:h-56 bg-gradient-to-l from-teal-900/25 via-cyan-800/35 to-blue-900/30 rounded-full blur-xl sm:blur-2xl animate-pulse opacity-35" style={{ animationDuration: '8s', animationDelay: '2s' }}></div>
-            <div className="hidden sm:block absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 lg:w-72 h-48 lg:h-72 bg-gradient-to-br from-purple-900/25 via-blue-800/35 to-indigo-900/30 rounded-full blur-2xl lg:blur-3xl animate-pulse opacity-30" style={{ animationDuration: '10s', animationDelay: '1s' }}></div>
+      {/* Modal container - full screen on mobile, centered on larger screens */}
+      <div className="relative w-full h-full sm:w-auto sm:h-auto sm:max-w-md md:max-w-lg lg:max-w-4xl xl:max-w-5xl sm:max-h-[90vh] lg:max-h-[85vh] overflow-hidden sm:rounded-xl lg:rounded-2xl">
+        <GlassCard className="relative h-full sm:h-auto overflow-hidden shadow-none sm:shadow-2xl sm:shadow-blue-500/20 rounded-none sm:rounded-xl lg:rounded-2xl">
+          {/* Animated background glow inside modal - hidden on mobile for performance */}
+          <div className="hidden sm:block absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-5 lg:top-10 left-1/4 w-24 lg:w-32 h-24 lg:h-32 bg-gradient-to-r from-blue-900/15 via-indigo-800/20 to-purple-900/15 rounded-full blur-xl animate-pulse opacity-20" style={{ animationDuration: '6s' }}></div>
+            <div className="absolute bottom-5 lg:bottom-10 right-1/4 w-20 lg:w-28 h-20 lg:h-28 bg-gradient-to-l from-teal-900/10 via-cyan-800/15 to-blue-900/10 rounded-full blur-lg animate-pulse opacity-15" style={{ animationDuration: '8s', animationDelay: '2s' }}></div>
+            <div className="hidden lg:block absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-gradient-to-br from-purple-900/10 via-blue-800/15 to-indigo-900/10 rounded-full blur-xl animate-pulse opacity-10" style={{ animationDuration: '10s', animationDelay: '1s' }}></div>
           </div>
 
-          {/* Mobile-optimized Header */}
-          <div className="sticky top-0 bg-slate-900/90 backdrop-blur-xl border-b border-white/10 p-3 sm:p-4 lg:p-6 flex justify-between items-center relative z-10">
+          {/* Mobile-first Header */}
+          <div className="sticky top-0 bg-slate-900/98 sm:bg-slate-900/95 backdrop-blur-xl border-b border-white/10 p-3 sm:p-4 flex justify-between items-center relative z-10 min-h-[56px] sm:min-h-auto">
             <div className="relative">
-              <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white relative">
-                <span className="hidden sm:inline">Create Domain Token</span>
-                <span className="sm:hidden">Create Token</span>
+              <h2 className="text-xl sm:text-xl lg:text-2xl font-bold text-white">
+                <span className="block sm:hidden">Create Token</span>
+                <span className="hidden sm:block">Create Domain Token</span>
               </h2>
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white transition-all duration-300 p-2 sm:p-3 rounded-full hover:bg-white/10 group"
+              className="text-gray-400 hover:text-white transition-all duration-300 p-2 rounded-full hover:bg-white/10 group flex-shrink-0"
+              aria-label="Close modal"
             >
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 lg:w-6 lg:h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
 
-          {/* Mobile-optimized Content */}
-          <div className="p-3 sm:p-4 lg:p-8 overflow-y-auto max-h-[calc(95vh-60px)] sm:max-h-[calc(90vh-80px)] lg:max-h-[calc(95vh-120px)] relative z-10">
-            {children}
+          {/* Mobile-optimized Content with proper scrolling */}
+          <div className="p-3 sm:p-4 lg:p-6 overflow-y-auto h-[calc(100vh-56px)] sm:h-auto sm:max-h-[calc(90vh-80px)] lg:max-h-[calc(85vh-100px)] relative z-10">
+            <div className="space-y-4 sm:space-y-6">
+              {children}
+            </div>
           </div>
         </GlassCard>
       </div>
@@ -1934,7 +1937,7 @@ const TokenCreationStep = ({ domain, nftId }: { domain: string; nftId: number })
             <p className="text-gray-300 text-sm">
               Your NFT is approved. You can now create your domain token using the {creationMethod} method.
             </p>
-            {creationMethod === 'direct' && fixedFee && (
+            {creationMethod === 'direct' && fixedFee !== undefined && (
               <p className="text-xs text-gray-400 mt-2">
                 This will cost {formatFeeHelper(fixedFee)} ETH and you'll receive all 1,000,000 tokens immediately.
               </p>
@@ -1974,7 +1977,7 @@ const TokenCreationStep = ({ domain, nftId }: { domain: string; nftId: number })
                 <p>Domain: <span className="font-mono text-blue-400">{domain}</span></p>
                 <p>NFT ID: <span className="font-mono text-purple-400">#{nftId}</span></p>
                 <p>Method: <span className="font-mono text-green-400">{creationMethod}</span></p>
-                {creationMethod === 'direct' && fixedFee && (
+                {creationMethod === 'direct' && fixedFee !== undefined && (
                   <p>Fee: <span className="font-mono text-yellow-400">{formatFeeHelper(fixedFee)} ETH</span></p>
                 )}
               </div>
@@ -2094,22 +2097,22 @@ const CreateTokenContent = () => {
   // Mode Selection Screen
   if (mode === 'choose' && !hasWalletIssue && !hasBackendIssue) {
     return (
-      <div className="space-y-8">
-        <div className="text-center mb-8">
-          <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-400 via-purple-500 to-teal-400 bg-clip-text text-transparent">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="text-center mb-4 sm:mb-6">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-4 bg-gradient-to-r from-blue-400 via-purple-500 to-teal-400 bg-clip-text text-transparent">
             Choose Your Path
           </h2>
-          <p className="text-gray-300 text-lg">
+          <p className="text-gray-300 text-sm sm:text-base lg:text-lg">
             Select how you'd like to create your domain tokens
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 md:gap-8">
           <div
             onClick={() => setMode('existing-nft')}
-            className="group relative cursor-pointer transform transition-all duration-500 hover:scale-[1.02]"
+            className="group relative cursor-pointer transform transition-all duration-500 hover:scale-[1.02] active:scale-[0.98]"
           >
-            <GlassCard className="relative p-8 h-full overflow-hidden border-2 border-blue-500/30 hover:border-blue-400/60 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/40">
+            <GlassCard className="relative p-4 sm:p-6 lg:p-8 h-full overflow-hidden border-2 border-blue-500/30 hover:border-blue-400/60 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/40">
               {/* Animated background gradient */}
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/5 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
@@ -2118,17 +2121,17 @@ const CreateTokenContent = () => {
               <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-gradient-to-tr from-cyan-400/15 to-blue-400/15 rounded-full blur-lg group-hover:scale-125 transition-transform duration-700 delay-100"></div>
 
               {/* Enhanced icon section */}
-              <div className="relative mb-8 flex justify-center">
+              <div className="relative mb-4 sm:mb-6 lg:mb-8 flex justify-center">
                 <div className="relative group/icon">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/30 to-purple-500/30 rounded-2xl blur-xl group-hover:from-blue-500/50 group-hover:to-purple-500/50 transition-all duration-500"></div>
-                  <div className="relative p-6 bg-gradient-to-br from-blue-500/20 via-purple-500/10 to-blue-500/20 rounded-2xl backdrop-blur-sm border border-blue-500/30 group-hover:border-blue-400/50 transition-all duration-300 group-hover:scale-110">
-                    <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-blue-500/30 to-purple-500/30 flex items-center justify-center group-hover:from-blue-400/40 group-hover:to-purple-400/40 transition-all duration-300">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/30 to-purple-500/30 rounded-lg sm:rounded-xl lg:rounded-2xl blur-lg sm:blur-xl group-hover:from-blue-500/50 group-hover:to-purple-500/50 transition-all duration-500"></div>
+                  <div className="relative p-3 sm:p-4 lg:p-6 bg-gradient-to-br from-blue-500/20 via-purple-500/10 to-blue-500/20 rounded-lg sm:rounded-xl lg:rounded-2xl backdrop-blur-sm border border-blue-500/30 group-hover:border-blue-400/50 transition-all duration-300 group-hover:scale-110">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-md sm:rounded-lg lg:rounded-xl bg-gradient-to-br from-blue-500/30 to-purple-500/30 flex items-center justify-center group-hover:from-blue-400/40 group-hover:to-purple-400/40 transition-all duration-300">
                       <Image
                         src="/pixel/link-pixelated.png"
                         alt="NFT"
                         height={48}
                         width={48}
-                        className="w-12 h-12 group-hover/icon:scale-110 transition-transform duration-300"
+                        className="w-6 h-6 sm:w-8 sm:h-8 lg:w-12 lg:h-12 group-hover/icon:scale-110 transition-transform duration-300"
                       />
                     </div>
                   </div>
@@ -2136,26 +2139,27 @@ const CreateTokenContent = () => {
               </div>
 
               <div className="relative z-10 text-center">
-                <h3 className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-blue-300 bg-clip-text text-transparent group-hover:from-blue-300 group-hover:to-blue-200 transition-all duration-300">
+                <h3 className="text-lg sm:text-2xl lg:text-3xl font-bold mb-2 sm:mb-4 bg-gradient-to-r from-blue-400 to-blue-300 bg-clip-text text-transparent group-hover:from-blue-300 group-hover:to-blue-200 transition-all duration-300">
                   Use Existing NFT
                 </h3>
 
                 {/* Animated underline */}
-                <div className="w-16 h-1 bg-gradient-to-r from-blue-400 to-purple-400 mx-auto mb-6 rounded-full opacity-60 group-hover:opacity-100 group-hover:w-24 group-hover:h-1.5 transition-all duration-500"></div>
+                <div className="w-12 sm:w-16 h-0.5 sm:h-1 bg-gradient-to-r from-blue-400 to-purple-400 mx-auto mb-3 sm:mb-6 rounded-full opacity-60 group-hover:opacity-100 group-hover:w-16 sm:group-hover:w-24 group-hover:h-1 sm:group-hover:h-1.5 transition-all duration-500"></div>
 
-                <p className="text-gray-300 group-hover:text-gray-100 transition-colors duration-300 text-lg leading-relaxed mb-6">
+                <p className="text-gray-300 group-hover:text-gray-100 transition-colors duration-300 text-sm sm:text-base lg:text-lg leading-relaxed mb-3 sm:mb-6">
                   Create tokens from domain NFTs you already own
                 </p>
 
                 {/* Enhanced feature badge */}
                 <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl blur-sm group-hover:from-blue-500/30 group-hover:to-purple-500/30 transition-all duration-300"></div>
-                  <div className="relative bg-gradient-to-r from-blue-900/40 to-purple-900/40 border border-blue-500/40 group-hover:border-blue-400/60 p-4 rounded-xl group-hover:bg-gradient-to-r group-hover:from-blue-900/60 group-hover:to-purple-900/60 transition-all duration-300">
-                    <p className="text-sm font-semibold text-blue-300 group-hover:text-blue-200 transition-colors duration-300 flex items-center gap-3">
-                      <svg className="w-5 h-5 text-blue-400 group-hover:text-blue-300 transition-colors duration-300" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg sm:rounded-xl blur-sm group-hover:from-blue-500/30 group-hover:to-purple-500/30 transition-all duration-300"></div>
+                  <div className="relative bg-gradient-to-r from-blue-900/40 to-purple-900/40 border border-blue-500/40 group-hover:border-blue-400/60 p-2 sm:p-3 lg:p-4 rounded-lg sm:rounded-xl group-hover:bg-gradient-to-r group-hover:from-blue-900/60 group-hover:to-purple-900/60 transition-all duration-300">
+                    <p className="text-xs sm:text-sm font-semibold text-blue-300 group-hover:text-blue-200 transition-colors duration-300 flex items-center gap-2 sm:gap-3">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 group-hover:text-blue-300 transition-colors duration-300 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
                       </svg>
-                      Quick & Easy - Skip to Token Creation
+                      <span className="hidden sm:inline">Quick & Easy - Skip to Token Creation</span>
+                      <span className="sm:hidden">Quick & Easy</span>
                     </p>
                   </div>
                 </div>
@@ -2169,9 +2173,9 @@ const CreateTokenContent = () => {
 
           <div
             onClick={() => setMode('new-domain')}
-            className="group relative cursor-pointer transform transition-all duration-500 hover:scale-[1.02]"
+            className="group relative cursor-pointer transform transition-all duration-500 hover:scale-[1.02] active:scale-[0.98]"
           >
-            <GlassCard className="relative p-8 h-full overflow-hidden border-2 border-green-500/30 hover:border-green-400/60 transition-all duration-500 hover:shadow-2xl hover:shadow-green-500/40">
+            <GlassCard className="relative p-4 sm:p-6 lg:p-8 h-full overflow-hidden border-2 border-green-500/30 hover:border-green-400/60 transition-all duration-500 hover:shadow-2xl hover:shadow-green-500/40">
               {/* Animated background gradient */}
               <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 via-teal-500/5 to-green-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
@@ -2234,16 +2238,16 @@ const CreateTokenContent = () => {
   // Existing NFT flow
   if (mode === 'existing-nft') {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+        <div className="flex items-center justify-between mb-3 sm:mb-4 lg:mb-6">
           <button
             onClick={() => setMode('choose')}
-            className="text-gray-400 hover:text-white flex items-center gap-2"
+            className="text-gray-400 hover:text-white flex items-center gap-2 p-2 rounded-lg hover:bg-white/10 transition-all duration-200"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            Back to options
+            <span className="text-sm sm:text-base">Back to options</span>
           </button>
         </div>
 
@@ -2260,17 +2264,17 @@ const CreateTokenContent = () => {
 
   // New domain flow (starts at step 3, shows 1&2 only if issues)
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {mode === 'new-domain' && (
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-3 sm:mb-4 lg:mb-6">
           <button
             onClick={() => setMode('choose')}
-            className="text-gray-400 hover:text-white flex items-center gap-2"
+            className="text-gray-400 hover:text-white flex items-center gap-2 p-2 rounded-lg hover:bg-white/10 transition-all duration-200"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            Back to options
+            <span className="text-sm sm:text-base">Back to options</span>
           </button>
         </div>
       )}
@@ -2401,11 +2405,11 @@ export default function CreateTokenPage() {
         <div className="absolute bottom-10 sm:bottom-20 right-5 sm:right-10 w-38 sm:w-76 h-38 sm:h-76 bg-gradient-to-bl from-indigo-900/35 via-purple-800/45 to-blue-900/40 rounded-full blur-2xl sm:blur-3xl animate-pulse opacity-45" style={{ animationDuration: '6.2s', animationDelay: '3s' }}></div>
       </div>
 
-      <main className="relative z-20 flex-grow container mx-auto px-4 py-8 sm:py-12 lg:py-20">
+      <main className="relative z-20 flex-grow container mx-auto px-4 py-6 sm:py-8 lg:py-12">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-8 sm:mb-12 lg:mb-16">
+          <div className="text-center mb-6 sm:mb-8 lg:mb-10">
             {/* Mobile-optimized heading */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-4 sm:mb-6 lg:mb-8 relative py-4 sm:py-6 lg:py-[40px]">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-3 sm:mb-4 lg:mb-6 relative py-2 sm:py-4 lg:py-6">
               <span className="relative z-10 leading-tight">
                 <span className="block sm:inline">Create Domain</span>
                 <span className="block sm:inline sm:ml-3">Token</span>
@@ -2418,48 +2422,40 @@ export default function CreateTokenPage() {
                 size={0.6}
                 randomSeed={0.8}
               />
-              <AnimatedHeadingGlow
-                color="#60A5FA"
-                intensity={0.7}
-                speed={0.8}
-                distortionAmount={0.5}
-                size={0.6}
-                randomSeed={1}
-              />
               <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-500 to-teal-400 bg-clip-text text-transparent blur-sm opacity-30"></div>
             </h1>
             
             {/* Mobile-optimized description */}
-            <p className="text-lg sm:text-xl lg:text-2xl text-gray-300 max-w-4xl mx-auto mb-6 sm:mb-8 lg:mb-12 leading-relaxed px-2">
+            <p className="text-base sm:text-lg lg:text-xl text-gray-300 max-w-3xl mx-auto mb-4 sm:mb-6 lg:mb-8 leading-relaxed px-2">
               Transform your domain into a tradeable token. Choose to register a new domain or use an existing domain NFT to create tokens for trading.
             </p>
 
             {/* Mobile-optimized button */}
             <div className="relative group inline-block">
-              <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 rounded-2xl sm:rounded-3xl blur-lg opacity-30 group-hover:opacity-60 transition-all duration-500 animate-pulse"></div>
+              <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 rounded-xl sm:rounded-2xl blur-lg opacity-30 group-hover:opacity-60 transition-all duration-500 animate-pulse"></div>
               <Button
                 onClick={() => setIsModalOpen(true)}
-                className="relative bg-slate-800/80 hover:bg-slate-700/80 text-white px-6 sm:px-8 lg:px-16 py-3 sm:py-4 lg:py-8 text-lg sm:text-xl lg:text-2xl font-bold rounded-2xl sm:rounded-3xl shadow-2xl hover:shadow-4xl transition-all duration-500 transform hover:scale-105 hover:-translate-y-1 backdrop-blur-sm group-hover:shadow-purple-500/40"
+                className="relative bg-slate-800/80 hover:bg-slate-700/80 text-white px-4 sm:px-6 lg:px-8 py-2 sm:py-3 lg:py-4 text-base sm:text-lg lg:text-xl font-bold rounded-xl sm:rounded-2xl shadow-2xl hover:shadow-4xl transition-all duration-500 transform hover:scale-105 hover:-translate-y-1 backdrop-blur-sm group-hover:shadow-purple-500/40"
                 style={{
                   borderImage: 'linear-gradient(45deg, #3b82f6, #8b5cf6, #06b6d4) 1',
                   background: 'linear-gradient(45deg, #3b82f644, #8b5cf644, #06b6d444) border-box, rgba(30, 41, 59, 0.8) '
                 }}
               >
-                <span className="relative z-10 flex items-center gap-2 sm:gap-3">
+                <span className="relative z-10 flex items-center gap-2">
                   Get Started
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
                 </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-400/0 via-purple-400/10 to-cyan-400/0 rounded-2xl sm:rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-400/0 via-purple-400/10 to-cyan-400/0 rounded-xl sm:rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               </Button>
             </div>
           </div>
 
           {/* Mobile-optimized Features Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mb-8 sm:mb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
             <div className="relative group transform transition-all duration-500 hover:scale-[1.02] sm:hover:scale-[1.03]">
-              <GlassCard className="relative p-4 sm:p-6 lg:p-8 text-center h-full overflow-hidden border-2 border-blue-500/20 hover:border-blue-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/30">
+              <GlassCard className="relative p-3 sm:p-4 lg:p-6 text-center h-full overflow-hidden border-2 border-blue-500/20 hover:border-blue-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/30">
                 {/* Animated background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-indigo-500/3 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
@@ -2470,29 +2466,29 @@ export default function CreateTokenPage() {
 
                 <div className="relative z-10">
                   {/* Mobile-optimized icon */}
-                  <div className="mb-4 sm:mb-6 lg:mb-8 flex justify-center">
+                  <div className="mb-3 sm:mb-4 lg:mb-6 flex justify-center">
                     <div className="relative group/icon">
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/40 to-indigo-500/40 rounded-xl sm:rounded-2xl blur-md sm:blur-lg group-hover:from-blue-500/60 group-hover:to-indigo-500/60 transition-all duration-500"></div>
-                      <div className="relative p-3 sm:p-4 lg:p-5 bg-gradient-to-br from-blue-500/15 via-indigo-500/10 to-blue-500/15 rounded-xl sm:rounded-2xl backdrop-blur-sm border border-blue-500/30 group-hover:border-blue-400/50 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
-                        <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-500/25 to-indigo-500/25 flex items-center justify-center group-hover:from-blue-400/35 group-hover:to-indigo-400/35 transition-all duration-300">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/40 to-indigo-500/40 rounded-lg sm:rounded-xl blur-sm sm:blur-md group-hover:from-blue-500/60 group-hover:to-indigo-500/60 transition-all duration-500"></div>
+                      <div className="relative p-2 sm:p-3 lg:p-4 bg-gradient-to-br from-blue-500/15 via-indigo-500/10 to-blue-500/15 rounded-lg sm:rounded-xl backdrop-blur-sm border border-blue-500/30 group-hover:border-blue-400/50 transition-all duration-300 group-hover:scale-110">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-md sm:rounded-lg bg-gradient-to-br from-blue-500/25 to-indigo-500/25 flex items-center justify-center group-hover:from-blue-400/35 group-hover:to-indigo-400/35 transition-all duration-300">
                           <img
                             src="/pixel/link-pixelated.png"
                             alt="NFT"
-                            className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 group-hover/icon:scale-110 group-hover/icon:rotate-12 transition-transform duration-300"
+                            className="w-4 h-4 sm:w-6 sm:h-6 lg:w-8 lg:h-8 group-hover/icon:scale-110 transition-transform duration-300"
                           />
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <h3 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 sm:mb-3 lg:mb-4 bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent group-hover:from-blue-300 group-hover:to-indigo-300 transition-all duration-300">
+                  <h3 className="text-base sm:text-lg lg:text-xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent group-hover:from-blue-300 group-hover:to-indigo-300 transition-all duration-300">
                     Use Existing NFT
                   </h3>
 
                   {/* Animated underline */}
-                  <div className="w-8 sm:w-10 lg:w-12 h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 mx-auto mb-2 sm:mb-3 lg:mb-4 rounded-full opacity-50 group-hover:opacity-100 group-hover:w-12 sm:group-hover:w-14 lg:group-hover:w-16 transition-all duration-300"></div>
+                  <div className="w-6 sm:w-8 lg:w-10 h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 mx-auto mb-2 sm:mb-3 rounded-full opacity-50 group-hover:opacity-100 group-hover:w-8 sm:group-hover:w-10 lg:group-hover:w-12 transition-all duration-300"></div>
 
-                  <p className="text-gray-300 group-hover:text-gray-100 transition-colors duration-300 leading-relaxed text-sm sm:text-base">
+                  <p className="text-gray-300 group-hover:text-gray-100 transition-colors duration-300 leading-relaxed text-xs sm:text-sm">
                     Create tokens from domain NFTs you already own - quick and easy!
                   </p>
                 </div>
@@ -2503,7 +2499,7 @@ export default function CreateTokenPage() {
             </div>
 
             <div className="relative group transform transition-all duration-500 hover:scale-[1.02] sm:hover:scale-[1.03]">
-              <GlassCard className="relative p-4 sm:p-6 lg:p-8 text-center h-full overflow-hidden border-2 border-green-500/20 hover:border-green-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-green-500/30">
+              <GlassCard className="relative p-3 sm:p-4 lg:p-6 text-center h-full overflow-hidden border-2 border-green-500/20 hover:border-green-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-green-500/30">
                 {/* Animated background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-teal-500/3 to-green-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
@@ -2547,7 +2543,7 @@ export default function CreateTokenPage() {
             </div>
 
             <div className="relative group transform transition-all duration-500 hover:scale-[1.02] sm:hover:scale-[1.03] sm:col-span-2 lg:col-span-1">
-              <GlassCard className="relative p-4 sm:p-6 lg:p-8 text-center h-full overflow-hidden border-2 border-purple-500/20 hover:border-purple-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-purple-500/30">
+              <GlassCard className="relative p-3 sm:p-4 lg:p-6 text-center h-full overflow-hidden border-2 border-purple-500/20 hover:border-purple-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-purple-500/30">
                 {/* Animated background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-pink-500/3 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 

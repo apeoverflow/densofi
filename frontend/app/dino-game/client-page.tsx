@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useAccount, useSignMessage } from 'wagmi';
+import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import { WalletConnectButton } from "@/components/WalletConnectButton";
 import { InteractiveBackground } from "@/components/ui/InteractiveBackground";
@@ -50,6 +51,11 @@ const GRAVITY = 0.75;
 const OBSTACLE_SPEED = 6;
 const SPAWN_RATE = 0.015;
 const GROUND_HEIGHT = GAME_HEIGHT + 20;
+
+// Helper component for pixel icons
+const PixelIcon = ({ src, alt, size = 16 }: { src: string; alt: string; size?: number }) => (
+  <Image src={`/pixel/${src}`} alt={alt} width={size} height={size} />
+);
 
 export default function DinoGameClient() {
   const { address, isConnected } = useAccount();
@@ -221,7 +227,7 @@ export default function DinoGameClient() {
 
   // Load sprite image
   useEffect(() => {
-    const img = new Image();
+    const img = new window.Image();
     img.src = '/running-sprite.png';
     img.onload = () => {
       spriteImageRef.current = img;
@@ -913,7 +919,10 @@ export default function DinoGameClient() {
                             variant="outline"
                             className="border-white/20 hover:bg-white/10 text-xs sm:text-sm px-3 py-2"
                           >
-                            📖 Rules
+                            <span className="flex items-center gap-1">
+                              <PixelIcon src="book-pixel.png" alt="Rules" />
+                              Rules
+                            </span>
                           </Button>
                           <Button 
                             onClick={() => {
@@ -923,7 +932,10 @@ export default function DinoGameClient() {
                             variant="outline"
                             className="border-white/20 hover:bg-white/10 text-xs sm:text-sm px-3 py-2"
                           >
-                            📊 Stats
+                            <span className="flex items-center gap-1">
+                              <PixelIcon src="graph-pixel.png" alt="Stats" />
+                              Stats
+                            </span>
                           </Button>
                         </div>
                       </div>
@@ -932,14 +944,20 @@ export default function DinoGameClient() {
                     <div className="space-y-3">
                       <p className="text-xs sm:text-sm text-gray-400 px-2">TAP SCREEN, SPACE or ↑ to jump • Press again for DOUBLE JUMP</p>
                       <div className="text-xs text-center text-green-400 mb-2">
-                        ✅ Wallet Connected & Authenticated - Ready to Play!
+                        <span className="flex items-center justify-center gap-1">
+                          <Image src="/pixel/tick-pixel.png" alt="Success" width={16} height={16} />
+                          Wallet Connected & Authenticated - Ready to Play!
+                        </span>
                       </div>
                       <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center items-center">
                         <Button 
                           onClick={startGame}
                           className="bg-gradient-to-r from-green-500 to-emerald-600 hover:brightness-110 hover:shadow-lg hover:shadow-green-500/25 transition-all text-sm px-4 py-2"
                         >
-                          🌵 Start Desert Run
+                          <span className="flex items-center gap-1">
+                            <Image src="/pixel/cactus-pixel.png" alt="Cactus" width={16} height={16} />
+                            Start Desert Run
+                          </span>
                         </Button>
                         <div className="flex gap-2">
                           <Button 
@@ -947,7 +965,10 @@ export default function DinoGameClient() {
                             variant="outline"
                             className="border-white/20 hover:bg-white/10 text-xs sm:text-sm px-3 py-2"
                           >
-                            📖 Rules
+                            <span className="flex items-center gap-1">
+                              <PixelIcon src="book-pixel.png" alt="Rules" />
+                              Rules
+                            </span>
                           </Button>
                           <Button 
                             onClick={() => {
@@ -957,7 +978,10 @@ export default function DinoGameClient() {
                             variant="outline"
                             className="border-white/20 hover:bg-white/10 text-xs sm:text-sm px-3 py-2"
                           >
-                            📊 Stats
+                            <span className="flex items-center gap-1">
+                              <PixelIcon src="graph-pixel.png" alt="Stats" />
+                              Stats
+                            </span>
                           </Button>
                         </div>
                       </div>
@@ -1007,7 +1031,10 @@ export default function DinoGameClient() {
             
             <div className="relative z-10">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-2xl font-bold text-white">📊 Game Statistics</h3>
+                <h3 className="text-2xl font-bold text-white flex items-center gap-2">
+                  <PixelIcon src="graph-pixel.png" alt="Statistics" size={24} />
+                  Game Statistics
+                </h3>
                 <button
                   onClick={() => setShowStatsModal(false)}
                   className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
@@ -1028,7 +1055,10 @@ export default function DinoGameClient() {
                   {/* Debug/Troubleshooting Info */}
                   {(!gameStats && !leaderboard.length) && !statsLoading && (
                     <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-lg p-4 mb-6">
-                      <h4 className="text-yellow-400 font-semibold mb-2">🔧 Troubleshooting</h4>
+                      <h4 className="text-yellow-400 font-semibold mb-2 flex items-center gap-2">
+                        <PixelIcon src="spanner-pixel.png" alt="Troubleshooting" />
+                        Troubleshooting
+                      </h4>
                       <p className="text-yellow-200 text-sm mb-2">
                         No game data found. This could mean:
                       </p>
@@ -1049,7 +1079,8 @@ export default function DinoGameClient() {
                     {/* Leaderboard */}
                     <div>
                                                 <h4 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                            🏆 Top Players
+                            <PixelIcon src="trophey-pixel.png" alt="Trophy" />
+                            Top Players
                           </h4>
                       <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg border border-slate-700/50 overflow-hidden">
                         <div className="max-h-80 overflow-y-auto">
@@ -1084,7 +1115,10 @@ export default function DinoGameClient() {
                             </div>
                           ) : (
                             <div className="p-8 text-center text-gray-400">
-                              <p className="mb-2">📊 No leaderboard data available</p>
+                              <p className="mb-2 flex items-center justify-center gap-1">
+                                <PixelIcon src="graph-pixel.png" alt="Stats" />
+                                No leaderboard data available
+                              </p>
                               <p className="text-sm text-gray-500">
                                 {statsLoading ? 'Loading...' : 'Be the first to play and earn XP!'}
                               </p>
@@ -1097,7 +1131,8 @@ export default function DinoGameClient() {
                     {/* Player Personal Stats & History */}
                     <div>
                       <h4 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                        📈 {isAuthenticated ? 'Your Statistics' : 'Personal Stats'}
+                        <PixelIcon src="line-graph-pixel.png" alt="Statistics" />
+                        {isAuthenticated ? 'Your Statistics' : 'Personal Stats'}
                       </h4>
                       
                       {isAuthenticated && playerStats ? (
@@ -1184,7 +1219,10 @@ export default function DinoGameClient() {
             
             <div className="relative z-10">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-2xl font-bold text-white">🌵 Desert Runner Guide</h3>
+                <h3 className="text-2xl font-bold text-white flex items-center gap-2">
+                  <PixelIcon src="cactus-pixel.png" alt="Cactus" size={24} />
+                  Desert Runner Guide
+                </h3>
                 <button
                   onClick={() => setShowRulesModal(false)}
                   className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
@@ -1198,7 +1236,8 @@ export default function DinoGameClient() {
               <div className="grid md:grid-cols-2 gap-6 text-gray-300">
                 <div>
                   <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
-                    🎮 Controls
+                    <PixelIcon src="game-pixel.png" alt="Controls" />
+                    Controls
                   </h4>
                   <ul className="space-y-2 text-sm">
                     <li className="flex items-start gap-2">
@@ -1221,7 +1260,8 @@ export default function DinoGameClient() {
                 </div>
                 <div>
                   <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
-                    🏆 Rewards & Features
+                    <PixelIcon src="trophey-pixel.png" alt="Rewards" />
+                    Rewards & Features
                   </h4>
                   <ul className="space-y-2 text-sm">
                     <li className="flex items-start gap-2">
@@ -1246,7 +1286,10 @@ export default function DinoGameClient() {
               
               <div className="mt-6 pt-4 border-t border-slate-700/50">
                 <p className="text-center text-gray-400 text-sm">
-                  🦘 Double jump mechanic adds strategic depth to your desert adventure!
+                  <span className="flex items-center justify-center gap-1">
+                    <PixelIcon src="rocket-pixel.png" alt="Jump" />
+                    Double jump mechanic adds strategic depth to your desert adventure!
+                  </span>
                 </p>
               </div>
             </div>
