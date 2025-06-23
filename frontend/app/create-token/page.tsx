@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { ReactNode } from 'react';
@@ -23,6 +24,8 @@ import {NFT_MINTER_SEPOLIA_ADDRESS as CONTRACT_ADDRESS} from "../../constants/co
 import { InteractiveBackground } from "@/components/ui/InteractiveBackground";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { AnimatedHeadingGlow } from "@/components/ui/AnimatedHeadingGlow";
+
+
 
 // Environment variable for backend service URL
 import config from '@/lib/config';
@@ -158,7 +161,11 @@ const BackendValidationStep = ({ onComplete }: { onComplete: () => void }) => {
   if (validationComplete) {
     return (
       <div className="text-center">
-        <div className="mb-4 text-green-400 text-5xl">✅</div>
+        <div className="mb-4 flex justify-center">
+          <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center border-2 border-green-400">
+            <img src="/pixel/star-pixel.png" alt="Success" className="w-8 h-8" />
+          </div>
+        </div>
         <h3 className="text-xl font-bold mb-2">Backend Validation Complete!</h3>
         <p className="mb-4 text-gray-300">
           Your wallet has been authenticated and validated by our backend service.
@@ -472,7 +479,11 @@ const DomainVerificationStep = ({ onComplete }: { onComplete: (domain: string) =
   if (verificationComplete) {
     return (
       <div className="text-center">
-        <div className="mb-4 text-green-400 text-5xl">✅</div>
+        <div className="mb-4 flex justify-center">
+          <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center border-2 border-green-400">
+            <img src="/pixel/star-pixel.png" alt="Success" className="w-8 h-8" />
+          </div>
+        </div>
         <h3 className="text-xl font-bold mb-2">Domain Ownership Verified!</h3>
         <p className="mb-4 text-gray-300">
           Your ownership of <span className="font-bold text-blue-400">{verifiedDomain}</span> has been confirmed.
@@ -566,13 +577,33 @@ const DomainVerificationStep = ({ onComplete }: { onComplete: (domain: string) =
                   <div className="flex items-center justify-between">
                     <span className="text-gray-400">Wallet:</span>
                     <span className={address ? 'text-green-400' : 'text-red-400'}>
-                      {address ? '✓ Connected' : '✗ Not connected'}
+                      {address ? (
+                        <span className="flex items-center gap-1">
+                          <img src="/pixel/star-pixel.png" alt="Success" className="w-3 h-3" />
+                          Connected
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <img src="/pixel/diamond-pixel.png" alt="Error" className="w-3 h-3" />
+                          Not connected
+                        </span>
+                      )}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-400">Frontend Auth:</span>
                     <span className={isAuthenticated ? 'text-green-400' : 'text-red-400'}>
-                      {isAuthenticated ? '✓ Authenticated' : '✗ Not authenticated'}
+                      {isAuthenticated ? (
+                        <span className="flex items-center gap-1">
+                          <img src="/pixel/star-pixel.png" alt="Success" className="w-3 h-3" />
+                          Authenticated
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <img src="/pixel/diamond-pixel.png" alt="Error" className="w-3 h-3" />
+                          Not authenticated
+                        </span>
+                      )}
                     </span>
                   </div>
                 </div>
@@ -584,14 +615,38 @@ const DomainVerificationStep = ({ onComplete }: { onComplete: (domain: string) =
                       isBackendAuthenticated === null ? 'text-gray-400' :
                       isBackendAuthenticated ? 'text-green-400' : 'text-red-400'
                     }>
-                      {isBackendAuthenticated === null ? '⏳ Checking...' :
-                       isBackendAuthenticated ? '✓ Verified' : '✗ Required'}
+                      {isBackendAuthenticated === null ? (
+                        <span className="flex items-center gap-1">
+                          <img src="/pixel/link-pixelated.png" alt="Loading" className="w-3 h-3 animate-pulse" />
+                          Checking...
+                        </span>
+                      ) : isBackendAuthenticated ? (
+                        <span className="flex items-center gap-1">
+                          <img src="/pixel/star-pixel.png" alt="Success" className="w-3 h-3" />
+                          Verified
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <img src="/pixel/diamond-pixel.png" alt="Error" className="w-3 h-3" />
+                          Required
+                        </span>
+                      )}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-400">Can Verify:</span>
                     <span className={canVerify && isBackendAuthenticated ? 'text-green-400' : 'text-red-400'}>
-                      {canVerify && isBackendAuthenticated ? '✓ Ready' : '✗ Not ready'}
+                      {canVerify && isBackendAuthenticated ? (
+                        <span className="flex items-center gap-1">
+                          <img src="/pixel/star-pixel.png" alt="Success" className="w-3 h-3" />
+                          Ready
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <img src="/pixel/diamond-pixel.png" alt="Error" className="w-3 h-3" />
+                          Not ready
+                        </span>
+                      )}
                     </span>
                   </div>
                 </div>
@@ -806,7 +861,11 @@ const DomainRegistrationStep = ({ domain, onComplete }: { domain: string; onComp
   if (registrationComplete) {
     return (
       <div className="text-center">
-        <div className="mb-4 text-green-400 text-5xl">✅</div>
+        <div className="mb-4 flex justify-center">
+          <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center border-2 border-green-400">
+            <img src="/pixel/star-pixel.png" alt="Success" className="w-8 h-8" />
+          </div>
+        </div>
         <h3 className="text-xl font-bold mb-2">Domain Registration Complete!</h3>
         <p className="mb-4 text-gray-300">
           Your domain <span className="font-bold text-blue-400">{domain}</span> has been registered.
@@ -876,7 +935,10 @@ const DomainRegistrationStep = ({ domain, onComplete }: { domain: string; onComp
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="bg-green-900/30 border border-green-700/50 p-4 rounded-md">
-        <h4 className="text-green-400 font-bold mb-2">✅ Domain Verified & Ready for Registration</h4>
+        <h4 className="text-green-400 font-bold mb-2 flex items-center gap-2">
+          <img src="/pixel/star-pixel.png" alt="Success" className="w-4 h-4" />
+          Domain Verified & Ready for Registration
+        </h4>
         <p className="text-gray-300 text-sm mb-2">
           Domain ownership has been verified for: <span className="font-bold text-blue-400">{domain}</span>
         </p>
@@ -916,13 +978,13 @@ const DomainRegistrationStep = ({ domain, onComplete }: { domain: string; onComp
             <div className="flex items-center gap-2 mt-3">
               <div className="animate-pulse w-2 h-2 bg-green-500 rounded-full"></div>
               <p className="text-green-400 text-sm">
-                📡 Listening for registration events...
+                🔄 Listening for registration events...
               </p>
             </div>
           )}
           {isConfirmed && (
             <p className="text-yellow-400 text-sm mt-2">
-              ⏳ Transaction confirmed, waiting for registration event...
+              ⌛ Transaction confirmed, waiting for registration event...
             </p>
           )}
         </div>
@@ -1004,8 +1066,8 @@ const NFTMintingStep = ({ domain, onComplete }: { domain: string; onComplete: (n
           const backendData = await backendResponse.json();
           console.log('📋 Backend NFT response:', backendData);
           
-          if (backendData.nfts && Array.isArray(backendData.nfts)) {
-            foundNfts = backendData.nfts.map((nft: any) => ({
+          if (backendData.success && backendData.data && backendData.data.nfts && Array.isArray(backendData.data.nfts)) {
+            foundNfts = backendData.data.nfts.map((nft: any) => ({
               id: {
                 tokenId: nft.tokenId.toString()
               },
@@ -1159,7 +1221,11 @@ const NFTMintingStep = ({ domain, onComplete }: { domain: string; onComplete: (n
   if (mintingComplete && mintedNftId) {
     return (
       <div className="text-center">
-        <div className="mb-4 text-green-400 text-5xl">🎉</div>
+        <div className="mb-4 flex justify-center">
+          <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center border-2 border-green-400">
+            <img src="/pixel/game-pixel.png" alt="NFT" className="w-8 h-8" />
+          </div>
+        </div>
         <h3 className="text-xl font-bold mb-2">NFT Minted Successfully!</h3>
         <p className="mb-4 text-gray-300">
           NFT for domain <span className="font-bold text-blue-400">{domain}</span> has been minted.
@@ -1207,7 +1273,7 @@ const NFTMintingStep = ({ domain, onComplete }: { domain: string; onComplete: (n
             <div className="flex items-center gap-2 mt-3">
               <div className="animate-pulse w-2 h-2 bg-green-500 rounded-full"></div>
               <p className="text-green-400 text-sm">
-                📡 Listening for domain mintable events...
+                Listening for domain mintable events...
               </p>
             </div>
           )}
@@ -1243,12 +1309,12 @@ const NFTMintingStep = ({ domain, onComplete }: { domain: string; onComplete: (n
           </p>
           {isConfirming && (
             <p className="text-yellow-400 text-sm mt-2">
-              ⏳ Transaction confirming...
+              Transaction confirming...
             </p>
           )}
           {isConfirmed && !isSearchingForNFT && (
             <p className="text-yellow-400 text-sm mt-2">
-              ⏳ Transaction confirmed, waiting for NFT minting event...
+              Transaction confirmed, waiting for NFT minting event...
             </p>
           )}
           {isSearchingForNFT && (
@@ -1256,7 +1322,7 @@ const NFTMintingStep = ({ domain, onComplete }: { domain: string; onComplete: (n
               <div className="flex items-center gap-2 mb-2">
                 <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
                 <p className="text-blue-400 text-sm">
-                  🔍 Searching for your newly minted NFT... (attempt {searchAttempts}/10)
+                  Searching for your newly minted NFT... (attempt {searchAttempts}/10)
                 </p>
               </div>
               <p className="text-xs text-gray-400">
@@ -1409,8 +1475,8 @@ const NFTSelectionStep = ({ onComplete }: { onComplete: (nftId: number, domain: 
           const backendData = await backendResponse.json();
           console.log("📋 Backend NFT response:", backendData);
           
-          if (backendData.nfts && Array.isArray(backendData.nfts)) {
-            formattedNfts = backendData.nfts.map((nft: any) => ({
+          if (backendData.success && backendData.data && backendData.data.nfts && Array.isArray(backendData.data.nfts)) {
+            formattedNfts = backendData.data.nfts.map((nft: any) => ({
               id: {
                 tokenId: nft.tokenId
               },
@@ -1539,8 +1605,12 @@ const NFTSelectionStep = ({ onComplete }: { onComplete: (nftId: number, domain: 
           <p className="text-xs text-gray-400 mt-2">Checking contract: {CONTRACT_ADDRESS}</p>
         </div>
       ) : error ? (
-        <div className="text-center py-12">
-          <div className="text-6xl mb-4">⚠️</div>
+                      <div className="text-center py-12">
+          <div className="mb-4 flex justify-center">
+            <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center border-2 border-red-400">
+              <img src="/pixel/diamond-pixel.png" alt="Warning" className="w-8 h-8" />
+            </div>
+          </div>
           <h4 className="text-xl font-bold mb-2 text-red-400">Error Loading NFTs</h4>
           <p className="text-gray-300 mb-4">
             {error}
@@ -1562,7 +1632,11 @@ const NFTSelectionStep = ({ onComplete }: { onComplete: (nftId: number, domain: 
         </div>
       ) : nfts.length === 0 ? (
         <div className="text-center py-12">
-          <div className="text-6xl mb-4">📄</div>
+          <div className="mb-4 flex justify-center">
+            <div className="w-16 h-16 rounded-full bg-gray-500/20 flex items-center justify-center border-2 border-gray-400">
+              <img src="/pixel/link-pixelated.png" alt="Document" className="w-8 h-8" />
+            </div>
+          </div>
           <h4 className="text-xl font-bold mb-2">No Domain NFTs Found</h4>
           <p className="text-gray-300 mb-4">
             You don't have any domain NFTs yet. Create your first domain below!
@@ -1614,7 +1688,9 @@ const NFTSelectionStep = ({ onComplete }: { onComplete: (nftId: number, domain: 
                   />
                 ) : (
                   <div className="w-full h-32 bg-gray-800 rounded-md mb-3 flex items-center justify-center">
-                    <span className="text-3xl">🏠</span>
+                    <div className="w-8 h-8 rounded bg-gray-600 flex items-center justify-center">
+                      <img src="/pixel/game-pixel.png" alt="NFT" className="w-6 h-6" />
+                    </div>
                   </div>
                 )}
                 <h5 className="font-bold text-white truncate mb-1">
@@ -1624,8 +1700,9 @@ const NFTSelectionStep = ({ onComplete }: { onComplete: (nftId: number, domain: 
                   ID: {nft.id.tokenId}
                 </p>
                 {selectedNft === nft.id.tokenId && (
-                  <div className="mt-2 text-blue-400 text-sm font-medium">
-                    ✓ Selected
+                  <div className="mt-2 text-blue-400 text-sm font-medium flex items-center gap-1">
+                    <img src="/pixel/star-pixel.png" alt="Selected" className="w-3 h-3" />
+                    Selected
                   </div>
                 )}
               </div>
@@ -1746,7 +1823,11 @@ const TokenCreationStep = ({ domain, nftId }: { domain: string; nftId: number })
   if (tokenCreated) {
     return (
       <div className="text-center">
-        <div className="mb-4 text-green-400 text-5xl">🚀</div>
+        <div className="mb-4 flex justify-center">
+          <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center border-2 border-green-400">
+            <img src="/pixel/rocket-pixel.png" alt="Token" className="w-8 h-8" />
+          </div>
+        </div>
         <h3 className="text-xl font-bold mb-2">Token Created Successfully!</h3>
         <p className="mb-4 text-gray-300">
           Token for <span className="font-bold text-blue-400">{domain}</span> has been created!
@@ -1844,9 +1925,10 @@ const TokenCreationStep = ({ domain, nftId }: { domain: string; nftId: number })
                 </div>
               )}
               {isApprovalConfirmed && (
-                <p className="text-green-400 text-sm mt-2">
-                  ✅ Approval confirmed! You can now create your token.
-                </p>
+                                  <p className="text-green-400 text-sm mt-2 flex items-center gap-1">
+                    <img src="/pixel/star-pixel.png" alt="Success" className="w-3 h-3" />
+                    Approval confirmed! You can now create your token.
+                  </p>
               )}
             </div>
           )}
@@ -1931,8 +2013,9 @@ const TokenCreationStep = ({ domain, nftId }: { domain: string; nftId: number })
               )}
               {isTokenConfirmed && !tokenCreated && (
                 <div className="space-y-2 mt-3">
-                  <p className="text-green-400 text-sm">
-                    ✅ Transaction confirmed! Checking for token address...
+                  <p className="text-green-400 text-sm flex items-center gap-1">
+                    <img src="/pixel/star-pixel.png" alt="Success" className="w-3 h-3" />
+                    Transaction confirmed! Checking for token address...
                   </p>
                   <div className="flex items-center gap-2">
                     <div className="animate-spin w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full"></div>
@@ -2055,14 +2138,18 @@ const CreateTokenContent = () => {
             onClick={() => setMode('existing-nft')}
             className="group relative cursor-pointer"
           >
-            <GlassCard className="p-8 h-full transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/30 border-blue-500/20 hover:border-blue-400/40 group-hover:scale-[1.02]">
+            <GlassCard className="p-12 h-full transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/30 border-blue-500/20 hover:border-blue-400/40 group-hover:scale-[1.02]">
               {/* Background glow */}
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               
               {/* Icon with enhanced glow */}
               <div className="relative mb-6 flex justify-center">
                 <div className="relative">
-                  <div className="text-7xl mb-2 transform transition-transform duration-300 group-hover:scale-110">🏠</div>
+                  <div className="p-20 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-2xl backdrop-blur-sm border border-blue-500/20 transform transition-transform duration-300 group-hover:scale-110">
+                    <div className="w-[180px] h-[180px] rounded-lg bg-blue-500/20 flex items-center justify-center">
+                      <Image src="/pixel/game-pixel.png" alt="NFT" height={100} width={100} className="w-[120px] h-[120px]" />
+                    </div>
+                  </div>
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-2xl -z-10 group-hover:from-blue-500/30 group-hover:to-purple-500/30 transition-all duration-300"></div>
                 </div>
               </div>
@@ -2077,8 +2164,11 @@ const CreateTokenContent = () => {
                 </p>
                 
                 <div className="bg-blue-900/20 border border-blue-500/30 p-4 rounded-lg group-hover:bg-blue-900/30 group-hover:border-blue-400/50 transition-all duration-300">
-                  <p className="text-sm text-blue-300 group-hover:text-blue-200 transition-colors duration-300 font-medium">
-                    ⚡ Already have a Domain NFT - Mint a token from it
+                  <p className="text-sm text-blue-300 group-hover:text-blue-200 transition-colors duration-300 font-medium flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                    </svg>
+                    Already have a Domain NFT - Mint a token from it
                   </p>
                 </div>
               </div>
@@ -2099,7 +2189,11 @@ const CreateTokenContent = () => {
               {/* Icon with enhanced glow */}
               <div className="relative mb-6 flex justify-center">
                 <div className="relative">
-                  <div className="text-7xl mb-2 transform transition-transform duration-300 group-hover:scale-110">🌟</div>
+                  <div className="p-6 bg-gradient-to-br from-green-500/10 to-teal-500/10 rounded-2xl backdrop-blur-sm border border-green-500/20 transform transition-transform duration-300 group-hover:scale-110">
+                    <div className="w-16 h-16 rounded-lg bg-green-500/20 flex items-center justify-center">
+                      <img src="/pixel/star-pixel.png" alt="New" className="w-8 h-8" />
+                    </div>
+                  </div>
                   <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-teal-500/20 rounded-full blur-2xl -z-10 group-hover:from-green-500/30 group-hover:to-teal-500/30 transition-all duration-300"></div>
                 </div>
               </div>
@@ -2114,8 +2208,11 @@ const CreateTokenContent = () => {
                 </p>
                 
                 <div className="bg-green-900/20 border border-green-500/30 p-4 rounded-lg group-hover:bg-green-900/30 group-hover:border-green-400/50 transition-all duration-300">
-                  <p className="text-sm text-green-300 group-hover:text-green-200 transition-colors duration-300 font-medium">
-                    🔒 Full process - Mint domain NFT & Create Tokens
+                  <p className="text-sm text-green-300 group-hover:text-green-200 transition-colors duration-300 font-medium flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    Full process - Mint domain NFT & Create Tokens
                   </p>
                 </div>
               </div>
@@ -2210,7 +2307,10 @@ const CreateTokenContent = () => {
             active={!domainVerified}
           >
             {domainVerified ? (
-              <p className="text-green-400">✅ Domain "{verifiedDomain}" ownership verified successfully!</p>
+              <p className="text-green-400 flex items-center gap-2">
+              <img src="/pixel/star-pixel.png" alt="Success" className="w-4 h-4" />
+              Domain "{verifiedDomain}" ownership verified successfully!
+            </p>
             ) : (
               <SafeDomainVerificationWrapper onComplete={handleDomainVerified} />
             )}
@@ -2224,7 +2324,10 @@ const CreateTokenContent = () => {
             {!domainVerified ? (
               <p className="text-gray-400">Complete previous step to proceed</p>
             ) : currentStep > 4 ? (
-              <p className="text-green-400">✅ Domain "{registeredDomain}" registered successfully!</p>
+              <p className="text-green-400 flex items-center gap-2">
+                <img src="/pixel/star-pixel.png" alt="Success" className="w-4 h-4" />
+                Domain "{registeredDomain}" registered successfully!
+              </p>
             ) : (
               <DomainRegistrationStep domain={verifiedDomain} onComplete={handleDomainRegistered} />
             )}
@@ -2238,7 +2341,10 @@ const CreateTokenContent = () => {
             {currentStep < 5 ? (
               <p className="text-gray-400">Complete previous steps to proceed</p>
             ) : currentStep > 5 ? (
-              <p className="text-green-400">✅ NFT #{mintedNftId} minted successfully!</p>
+              <p className="text-green-400 flex items-center gap-2">
+                <img src="/pixel/game-pixel.png" alt="NFT" className="w-4 h-4" />
+                NFT #{mintedNftId} minted successfully!
+              </p>
             ) : (
               <NFTMintingStep domain={registeredDomain} onComplete={handleNFTMinted} />
             )}
@@ -2336,7 +2442,13 @@ export default function CreateTokenPage() {
               <GlassCard className="p-5 text-center h-full transition-all duration-500 hover:shadow-xl hover:shadow-blue-500/20 border-blue-500/20 hover:border-blue-400/40 group-hover:scale-[1.02]">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 <div className="relative z-10">
-                  <div className="text-5xl mb-6 transform transition-transform duration-300 group-hover:scale-110">🏠</div>
+                  <div className="mb-6 flex justify-center transform transition-transform duration-300 group-hover:scale-110">
+                    <div className="p-4 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-xl backdrop-blur-sm border border-blue-500/20">
+                      <div className="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                        <img src="/pixel/game-pixel.png" alt="NFT" className="w-6 h-6" />
+                      </div>
+                    </div>
+                  </div>
                   <h3 className="text-2xl font-bold mb-4 text-blue-400 group-hover:text-blue-300 transition-colors duration-300">Use Existing NFT</h3>
                   <div className="w-12 h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 mx-auto mb-4 opacity-50 group-hover:opacity-100 transition-all duration-300"></div>
                   <p className="text-gray-300 group-hover:text-gray-200 transition-colors duration-300 leading-relaxed">
@@ -2351,7 +2463,13 @@ export default function CreateTokenPage() {
               <GlassCard className="p-5 text-center h-full transition-all duration-500 hover:shadow-xl hover:shadow-green-500/20 border-green-500/20 hover:border-green-400/40 group-hover:scale-[1.02]">
                 <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-teal-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 <div className="relative z-10">
-                  <div className="text-5xl mb-6 transform transition-transform duration-300 group-hover:scale-110">🌟</div>
+                  <div className="mb-6 flex justify-center transform transition-transform duration-300 group-hover:scale-110">
+                    <div className="p-4 bg-gradient-to-br from-green-500/10 to-teal-500/10 rounded-xl backdrop-blur-sm border border-green-500/20">
+                      <div className="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center">
+                        <img src="/pixel/star-pixel.png" alt="New" className="w-6 h-6" />
+                      </div>
+                    </div>
+                  </div>
                   <h3 className="text-2xl font-bold mb-4 text-green-400 group-hover:text-green-300 transition-colors duration-300">Register New Domain</h3>
                   <div className="w-12 h-0.5 bg-gradient-to-r from-green-400 to-teal-400 mx-auto mb-4 opacity-50 group-hover:opacity-100 transition-all duration-300"></div>
                   <p className="text-gray-300 group-hover:text-gray-200 transition-colors duration-300 leading-relaxed">
@@ -2366,7 +2484,13 @@ export default function CreateTokenPage() {
               <GlassCard className="p-5 text-center h-full transition-all duration-500 hover:shadow-xl hover:shadow-purple-500/20 border-purple-500/20 hover:border-purple-400/40 group-hover:scale-[1.02]">
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 <div className="relative z-10">
-                  <div className="text-5xl mb-6 transform transition-transform duration-300 group-hover:scale-110">🚀</div>
+                  <div className="mb-6 flex justify-center transform transition-transform duration-300 group-hover:scale-110">
+                    <div className="p-4 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl backdrop-blur-sm border border-purple-500/20">
+                      <div className="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                        <img src="/pixel/rocket-pixel.png" alt="Launch" className="w-6 h-6" />
+                      </div>
+                    </div>
+                  </div>
                   <h3 className="text-2xl font-bold mb-4 text-purple-400 group-hover:text-purple-300 transition-colors duration-300">Launch & Trade</h3>
                   <div className="w-12 h-0.5 bg-gradient-to-r from-purple-400 to-pink-400 mx-auto mb-4 opacity-50 group-hover:opacity-100 transition-all duration-300"></div>
                   <p className="text-gray-300 group-hover:text-gray-200 transition-colors duration-300 leading-relaxed">

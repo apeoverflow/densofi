@@ -241,31 +241,53 @@ export class NFTMinterService {
 
           // If balance > 0, user owns this NFT
           if (balance > 0n) {
-                         // Try to get domain name for this token ID
-             let domainName = `Domain #${tokenId}`;
-             try {
-               const tokenName = await WalletService.readContract(
-                 this.contractAddress,
-                 NFT_MINTER_ABI,
-                 'getTokenNameFromId',
-                 [tokenId]
-               ) as string;
-               
-               if (tokenName && tokenName !== '' && tokenName !== '0x') {
-                 domainName = tokenName;
-               }
-             } catch (nameError) {
-               logger.warn(`Could not get token name for token ID ${tokenId}:`, nameError);
-               // Keep default name
-             }
+            // Try to get domain name for this token ID
+            let domainName = `Domain #${tokenId}`;
+            let metadataUri = '';
+            
+            try {
+              const tokenName = await WalletService.readContract(
+                this.contractAddress,
+                NFT_MINTER_ABI,
+                'getTokenNameFromId',
+                [tokenId]
+              ) as string;
+              
+              logger.info(`📛 Token ${tokenId} name from contract: "${tokenName}"`);
+              
+              if (tokenName && tokenName.trim() && tokenName !== '' && tokenName !== '0x' && tokenName !== '0') {
+                domainName = tokenName.trim();
+                logger.info(`✅ Using domain name from contract: ${domainName}`);
+              } else {
+                logger.warn(`⚠️ Empty or invalid token name for token ${tokenId}: "${tokenName}"`);
+              }
+            } catch (nameError) {
+              logger.warn(`Could not get token name for token ID ${tokenId}:`, nameError);
+            }
+
+            // Try to get metadata URI for additional info
+            try {
+              metadataUri = await WalletService.readContract(
+                this.contractAddress,
+                NFT_MINTER_ABI,
+                'uri',
+                [tokenId]
+              ) as string;
+              
+              if (metadataUri) {
+                logger.info(`🔗 Token ${tokenId} metadata URI: ${metadataUri}`);
+              }
+            } catch (uriError) {
+              logger.warn(`Could not get URI for token ${tokenId}:`, uriError);
+            }
 
             nfts.push({
               tokenId: tokenId.toString(),
               balance: balance.toString(),
               domainName,
-              title: `Domain NFT #${tokenId}`,
+              title: domainName.startsWith('Domain #') ? `Domain NFT #${tokenId}` : domainName,
               description: `NFT representing ownership rights for ${domainName}`,
-              image: "" // Could be generated based on domain or token ID
+              image: metadataUri || "" // Use metadata URI if available
             });
           }
         } catch (error) {

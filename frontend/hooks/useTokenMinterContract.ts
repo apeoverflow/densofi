@@ -43,6 +43,7 @@ export function useTokenMinterContract() {
 
   // Get token address for an NFT ID
   const getTokenAddress = (nftId: number) => {
+
     return useReadContract({
       ...contractConfig,
       functionName: 'getTokenAddress',

@@ -124,7 +124,8 @@ export default function ClientPage() {
                     <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
                       <Link href="/create-token" className="flex-1 sm:flex-none">
                         <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-indigo-600 hover:brightness-110 hover:shadow-lg hover:shadow-blue-500/25 transition-all text-base font-semibold px-8 py-4">
-                          🚀 Create Token
+                          <img src="/pixel/rocket-pixel.png" alt="Rocket" className="w-5 h-5 mr-2" />
+                          Create Token
                         </Button>
                       </Link>
                       <Link href="/dino-game" className="flex-1 sm:flex-none">
@@ -132,7 +133,8 @@ export default function ClientPage() {
                           size="lg" 
                           className="w-full sm:w-auto bg-gradient-to-r from-green-500 to-emerald-600 hover:brightness-110 hover:shadow-lg hover:shadow-green-500/25 transition-all text-base font-semibold px-8 py-4"
                         >
-                          🎮 Play Dino Game
+                          <img src="/pixel/game-pixel.png" alt="Game" className="w-5 h-5 mr-2" />
+                          Play Dino Game
                         </Button>
                       </Link>
                       <Link href="/tokens" className="flex-1 sm:flex-none">
@@ -142,7 +144,8 @@ export default function ClientPage() {
                         className="w-full sm:w-auto border-white/20 hover:bg-white/10 hover:border-white/30 hover:shadow-lg hover:shadow-white/10 transition-all text-base font-semibold px-8 py-4"
                         onClick={() => setIsTokenModalOpen(true)}
                       >
-                        💎 View Launched Tokens
+                        <img src="/pixel/diamond-pixel.png" alt="Diamond" className="w-5 h-5 mr-2" />
+                        View Launched Tokens
                       </Button>
                       </Link>
                     </div>

@@ -878,7 +878,8 @@ export default function DinoGameClient() {
                           variant="outline"
                           className="border-white/20 hover:bg-white/10 text-xs sm:text-sm px-3 py-2"
                         >
-                          📖 Rules
+                          <img src="/pixel/link-pixelated.png" alt="Book" className="w-4 h-4 mr-1" />
+                          Rules
                         </Button>
                         <Button 
                           onClick={() => {
@@ -888,7 +889,8 @@ export default function DinoGameClient() {
                           variant="outline"
                           className="border-white/20 hover:bg-white/10 text-xs sm:text-sm px-3 py-2"
                         >
-                          📊 Stats
+                          <img src="/pixel/link-pixelated.png" alt="Stats" className="w-4 h-4 mr-1" />
+                          Stats
                         </Button>
                       </div>
                     </div>
@@ -1046,9 +1048,9 @@ export default function DinoGameClient() {
                   <div className="grid md:grid-cols-2 gap-8">
                     {/* Leaderboard */}
                     <div>
-                      <h4 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                        🏆 Top Players
-                      </h4>
+                                                <h4 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                            🏆 Top Players
+                          </h4>
                       <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg border border-slate-700/50 overflow-hidden">
                         <div className="max-h-80 overflow-y-auto">
                           {leaderboard.length > 0 ? (

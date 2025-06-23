@@ -7,8 +7,9 @@ import ClientLayout from "./client-layout";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NODE_ENV === 'production' ? 'https://densofi.com' : 'http://localhost:3000'),
   title: {
-    default: "Denso.fi - Fractional Domain Tokenization Platform",
+    default: "Densofi - Fractional Domain Tokenization Platform",
     template: "%s | Denso.fi"
   },
   description: "Transform domain names into tradeable tokens on the blockchain. Denso.fi enables fractional ownership, liquidity pools, and decentralized domain trading through innovative tokenization technology.",
@@ -51,13 +52,13 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://denso.fi",
-    siteName: "Denso.fi",
-    title: "Denso.fi - Fractional Domain Tokenization Platform",
+    url: "https://densofi.com",
+    siteName: "Densofi",
+    title: "Densofi - Fractional Domain Tokenization Platform",
     description: "Transform domain names into tradeable tokens on the blockchain. Enable fractional ownership, liquidity pools, and decentralized domain trading.",
     images: [
       {
-        url: "/images/og-image.png", // You'll need to create this
+        url: "/preview-img.png",
         width: 1200,
         height: 630,
         alt: "Denso.fi - Fractional Domain Tokenization Platform",
@@ -67,14 +68,14 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    site: "@densofi", // Replace with your actual Twitter handle
+    site: "@densofi",
     creator: "@densofi",
-    title: "Denso.fi - Fractional Domain Tokenization Platform",
+    title: "Densofi - Fractional Domain Tokenization Platform",
     description: "Transform domain names into tradeable tokens on the blockchain. Enable fractional ownership, liquidity pools, and decentralized domain trading.",
-    images: ["/images/twitter-card.png"], // You'll need to create this
+    images: ["/preview-img.png"],
   },
   alternates: {
-    canonical: "https://denso.fi",
+    canonical: "https://densofi.com",
   },
   category: "technology",
   classification: "Blockchain, DeFi, Domain Trading",
