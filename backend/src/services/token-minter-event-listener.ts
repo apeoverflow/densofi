@@ -1,6 +1,6 @@
 import { parseAbiItem } from 'viem';
 import { publicClient, supportsEventFiltering, supportsEventListening, needsPollingForEvents } from './viem-client.js';
-import { CONTRACT_ADDRESSES, TOKEN_MINTER_ABI, NFT_MINTER_ABI } from '../config/contracts.js';
+import { CONTRACT_ADDRESSES, TOKEN_MINTER_ABI, NFT_MINTER_ABI, getContractAddresses, hasValidContractConfig } from '../config/contracts.js';
 import { ENV } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 import { DomainService } from './domain-service.js';
@@ -177,39 +177,131 @@ class TokenMinterEventListener {
   }
 
   /**
-   * Start listening for Token minter events
+   * Polling-based event listening for networks like Flow
    */
-  async startListening(): Promise<void> {
-    if (this.isListening) {
-      logger.warn('Token Minter event listener is already running');
+  private async pollForEvents(): Promise<void> {
+    if (!hasValidContractConfig()) {
+      logger.error(`Token Minter contract address not configured for polling on Chain ID ${ENV.CHAIN_ID}`);
       return;
     }
 
-    // Check if event listening is enabled
-    if (!ENV.ENABLE_EVENT_LISTENERS) {
-      logger.info('🔇 Token Minter event listeners are DISABLED (ENABLE_EVENT_LISTENERS=false)');
-      return;
-    }
-
-    // Check if the current network supports event listening
-    if (!supportsEventListening()) {
-      logger.warn(`⚠️  Token Minter event listening not supported on Chain ID ${ENV.CHAIN_ID}`);
-      logger.warn('   Token Minter event listeners will be skipped for this network.');
-      logger.warn('   Supported networks: Sepolia (11155111), Flow (747)');
-      return;
-    }
-
-    if (!('addresses' in CONTRACT_ADDRESSES) || !CONTRACT_ADDRESSES.addresses?.tokenMinter) {
-      throw new Error('Token Minter contract address not configured');
-    }
-
-    const contractAddress = CONTRACT_ADDRESSES.addresses.tokenMinter as `0x${string}`;
+    const addresses = getContractAddresses()!;
+    const contractAddress = addresses.addresses.tokenMinter as `0x${string}`;
 
     try {
-      logger.info(`🎧 Starting Token Minter event listeners for Chain ID ${ENV.CHAIN_ID}`);
+      // Get current block number
+      const currentBlock = await publicClient.getBlockNumber();
+      
+      // If this is the first poll, start from recent blocks (last 1000 blocks or current block)
+      if (this.lastProcessedBlock === BigInt(0)) {
+        this.lastProcessedBlock = currentBlock > BigInt(1000) ? currentBlock - BigInt(1000) : BigInt(1);
+        logger.info(`🔍 Starting Token minter event polling from block ${this.lastProcessedBlock} (current: ${currentBlock})`);
+      }
 
-      // Watch for TokenCreated events
-      this.unwatchTokenCreated = publicClient.watchEvent({
+      // Only poll if there are new blocks
+      if (currentBlock <= this.lastProcessedBlock) {
+        return;
+      }
+
+      const fromBlock = this.lastProcessedBlock + BigInt(1);
+      const toBlock = currentBlock;
+
+      logger.debug(`📊 Polling Token minter events from block ${fromBlock} to ${toBlock}`);
+
+      // Get TokenCreated events
+      const tokenCreatedEvents = await publicClient.getLogs({
+        address: contractAddress,
+        event: parseAbiItem('event TokenCreated(uint256 indexed nftId, address tokenAddress, string tokenName, bool receivedDirectly, uint256 feeAmount)'),
+        fromBlock,
+        toBlock,
+      });
+
+      // Get NFTReceived events
+      const nftReceivedEvents = await publicClient.getLogs({
+        address: contractAddress,
+        event: parseAbiItem('event NFTReceived(uint256 indexed tokenId, address from)'),
+        fromBlock,
+        toBlock,
+      });
+
+      // Get FixedFeeUpdated events
+      const fixedFeeUpdatedEvents = await publicClient.getLogs({
+        address: contractAddress,
+        event: parseAbiItem('event FixedFeeUpdated(uint256 newFee)'),
+        fromBlock,
+        toBlock,
+      });
+
+      // Get LaunchpadContractUpdated events
+      const launchpadContractUpdatedEvents = await publicClient.getLogs({
+        address: contractAddress,
+        event: parseAbiItem('event LaunchpadContractUpdated(address newLaunchpad)'),
+        fromBlock,
+        toBlock,
+      });
+
+      // Get ProceedsWithdrawn events
+      const proceedsWithdrawnEvents = await publicClient.getLogs({
+        address: contractAddress,
+        event: parseAbiItem('event ProceedsWithdrawn(address to, uint256 amount)'),
+        fromBlock,
+        toBlock,
+      });
+
+      // Process TokenCreated events
+      for (const log of tokenCreatedEvents) {
+        if (log.args) {
+          await this.onTokenCreated(log.args as TokenCreatedEvent, log);
+        }
+      }
+
+      // Process NFTReceived events
+      for (const log of nftReceivedEvents) {
+        if (log.args) {
+          await this.onNFTReceived(log.args as NFTReceivedEvent, log);
+        }
+      }
+
+      // Process FixedFeeUpdated events
+      for (const log of fixedFeeUpdatedEvents) {
+        if (log.args) {
+          await this.onFixedFeeUpdated(log.args as FixedFeeUpdatedEvent, log);
+        }
+      }
+
+      // Process LaunchpadContractUpdated events
+      for (const log of launchpadContractUpdatedEvents) {
+        if (log.args) {
+          await this.onLaunchpadContractUpdated(log.args as LaunchpadContractUpdatedEvent, log);
+        }
+      }
+
+      // Process ProceedsWithdrawn events
+      for (const log of proceedsWithdrawnEvents) {
+        if (log.args) {
+          await this.onProceedsWithdrawn(log.args as ProceedsWithdrawnEvent, log);
+        }
+      }
+
+      // Update the last processed block
+      this.lastProcessedBlock = toBlock;
+
+      if (tokenCreatedEvents.length > 0 || nftReceivedEvents.length > 0 || fixedFeeUpdatedEvents.length > 0 || launchpadContractUpdatedEvents.length > 0 || proceedsWithdrawnEvents.length > 0) {
+        logger.info(`📈 Token Minter: Processed ${tokenCreatedEvents.length} TokenCreated, ${nftReceivedEvents.length} NFTReceived, ${fixedFeeUpdatedEvents.length} FixedFeeUpdated, ${launchpadContractUpdatedEvents.length} LaunchpadContractUpdated, ${proceedsWithdrawnEvents.length} ProceedsWithdrawn events up to block ${toBlock}`);
+      }
+
+    } catch (error) {
+      logger.error('Error polling for Token minter events:', error);
+      await ConnectionManager.handleConnectionError(error, 'Token minter event polling');
+    }
+  }
+
+  /**
+   * Start filter-based event listening (for Ethereum networks)
+   */
+  private async startFilterBasedListening(contractAddress: `0x${string}`): Promise<void> {
+    // Watch for TokenCreated events
+    this.unwatchTokenCreated = publicClient.watchEvent({
         address: contractAddress,
         event: parseAbiItem('event TokenCreated(uint256 indexed nftId, address tokenAddress, string tokenName, bool receivedDirectly, uint256 feeAmount)'),
         pollingInterval: ENV.POLLING_INTERVAL,
@@ -298,8 +390,64 @@ class TokenMinterEventListener {
         }
       });
 
+      logger.info(`🎧 Started filter-based listening for Token minter events on contract: ${contractAddress}`);
+    }
+
+  /**
+   * Start polling-based event listening (for Flow network)
+   */
+  private startPollingBasedListening(): void {
+    this.pollingInterval = setInterval(async () => {
+      await this.pollForEvents();
+    }, ENV.POLLING_INTERVAL);
+
+    logger.info(`🔄 Started polling-based Token minter event listening (interval: ${ENV.POLLING_INTERVAL}ms)`);
+  }
+
+  /**
+   * Start listening for Token minter events
+   */
+  async startListening(): Promise<void> {
+    if (this.isListening) {
+      logger.warn('Token Minter event listener is already running');
+      return;
+    }
+
+    // Check if event listening is enabled
+    if (!ENV.ENABLE_EVENT_LISTENERS) {
+      logger.info('🔇 Token Minter event listeners are DISABLED (ENABLE_EVENT_LISTENERS=false)');
+      return;
+    }
+
+    // Check if the current network supports event listening
+    if (!supportsEventListening()) {
+      logger.warn(`⚠️  Token Minter event listening not supported on Chain ID ${ENV.CHAIN_ID}`);
+      logger.warn('   Token Minter event listeners will be skipped for this network.');
+      logger.warn('   Supported networks: Sepolia (11155111), Flow (747)');
+      return;
+    }
+
+    if (!hasValidContractConfig()) {
+      throw new Error(`Token Minter contract address not configured for Chain ID ${ENV.CHAIN_ID}`);
+    }
+
+    const addresses = getContractAddresses()!;
+    const contractAddress = addresses.addresses.tokenMinter as `0x${string}`;
+
+    try {
+      logger.info(`🎧 Starting Token Minter event listeners for Chain ID ${ENV.CHAIN_ID}`);
+      
+      if (needsPollingForEvents()) {
+        // Use polling for Flow network
+        logger.info('🔄 Using polling-based event listening for Flow network');
+        this.startPollingBasedListening();
+      } else if (supportsEventFiltering()) {
+        // Use filter-based listening for Ethereum networks
+        logger.info('📡 Using filter-based event listening');
+        await this.startFilterBasedListening(contractAddress);
+      }
+
       this.isListening = true;
-      logger.info(`🎧 Started listening for Token minter events on contract: ${contractAddress}`);
       logger.info(`📊 Polling interval: ${ENV.POLLING_INTERVAL}ms`);
 
     } catch (error) {
@@ -318,6 +466,7 @@ class TokenMinterEventListener {
     }
 
     try {
+      // Stop filter-based listeners
       if (this.unwatchTokenCreated) {
         this.unwatchTokenCreated();
         this.unwatchTokenCreated = null;
@@ -341,6 +490,12 @@ class TokenMinterEventListener {
       if (this.unwatchProceedsWithdrawn) {
         this.unwatchProceedsWithdrawn();
         this.unwatchProceedsWithdrawn = null;
+      }
+
+      // Stop polling-based listener
+      if (this.pollingInterval) {
+        clearInterval(this.pollingInterval);
+        this.pollingInterval = null;
       }
 
       this.isListening = false;

@@ -61,7 +61,7 @@ deploy-sepolia: check-env-sepolia
 deploy-flow: check-env-flow
 	@echo "Deploying to Flow..."
 	@mkdir -p deployment-addresses
-	@forge script script/DeployContracts.s.sol --rpc-url $(FLOW_RPC_URL) --broadcast --legacy -vvv
+	@forge script script/SimpleDeployContracts.s.sol --rpc-url $(FLOW_RPC_URL) --broadcast --legacy -vvv
 	@echo "Deployment complete. Addresses saved to deployment-addresses/747-addresses.json"
 
 # Verify contracts on Sepolia

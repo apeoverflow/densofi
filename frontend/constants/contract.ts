@@ -87,3 +87,47 @@ export function getChainName(chainId: SupportedChainId): string {
       return `Chain ${chainId}`;
   }
 }
+
+// Contract address getters that work with any supported chain
+export const CONTRACT_ADDRESSES = {
+  getDomainRegistration: (chainId: SupportedChainId) => getContractAddress(chainId, 'domainRegistration'),
+  getNFTMinter: (chainId: SupportedChainId) => getContractAddress(chainId, 'nftMinter'),
+  getTokenMinter: (chainId: SupportedChainId) => getContractAddress(chainId, 'tokenMinter'),
+  getLaunchpad: (chainId: SupportedChainId) => getContractAddress(chainId, 'launchpad'),
+} as const;
+
+// Convenience function to get all contract addresses for a specific chain
+export function getAllContractAddresses(chainId: SupportedChainId) {
+  return {
+    domainRegistration: CONTRACT_ADDRESSES.getDomainRegistration(chainId),
+    nftMinter: CONTRACT_ADDRESSES.getNFTMinter(chainId),
+    tokenMinter: CONTRACT_ADDRESSES.getTokenMinter(chainId),
+    launchpad: CONTRACT_ADDRESSES.getLaunchpad(chainId),
+  };
+}
+
+// Legacy exports for backward compatibility (these will work with the connected network)
+// Note: These are now functions that require chainId parameter
+export const DOMAIN_REGISTRATION_ADDRESS = (chainId: SupportedChainId) => getContractAddress(chainId, 'domainRegistration');
+export const NFT_MINTER_ADDRESS = (chainId: SupportedChainId) => getContractAddress(chainId, 'nftMinter');
+export const TOKEN_MINTER_ADDRESS = (chainId: SupportedChainId) => getContractAddress(chainId, 'tokenMinter');
+export const LAUNCHPAD_ADDRESS = (chainId: SupportedChainId) => getContractAddress(chainId, 'launchpad');
+
+// If you need static addresses for specific networks (for backward compatibility)
+export const STATIC_ADDRESSES = {
+  sepolia: {
+    domainRegistration: getContractAddress(11155111, 'domainRegistration'),
+    nftMinter: getContractAddress(11155111, 'nftMinter'),
+    tokenMinter: getContractAddress(11155111, 'tokenMinter'),
+    launchpad: getContractAddress(11155111, 'launchpad'),
+  },
+  flow: {
+    domainRegistration: getContractAddress(747, 'domainRegistration'),
+    nftMinter: getContractAddress(747, 'nftMinter'),
+    tokenMinter: getContractAddress(747, 'tokenMinter'),
+    launchpad: getContractAddress(747, 'launchpad'),
+  },
+} as const;
+
+// For immediate backward compatibility with existing code
+export const NFT_MINTER_SEPOLIA_ADDRESS = STATIC_ADDRESSES.sepolia.nftMinter;

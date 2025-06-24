@@ -972,7 +972,12 @@ const DomainRegistrationStep = ({ domain, onComplete }: { domain: string; onComp
         <div className="bg-blue-900/30 border border-blue-700/50 p-4 rounded-md">
           <h4 className="text-blue-400 font-bold mb-2">Transaction Submitted</h4>
           <p className="text-gray-300 text-sm mb-2">
-            Transaction Hash: <code className="bg-slate-800 px-2 py-1 rounded text-xs">{transactionHash}</code>
+            Transaction Hash: <a 
+              href={`https://evm.flowscan.io/tx/${transactionHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-slate-800 px-2 py-1 rounded text-xs text-blue-400 hover:text-blue-300 hover:bg-slate-700 transition-colors duration-200 font-mono"
+            >{transactionHash}</a>
           </p>
           {isListeningForEvents && (
             <div className="flex items-center gap-2 mt-3">
@@ -1305,7 +1310,12 @@ const NFTMintingStep = ({ domain, onComplete }: { domain: string; onComplete: (n
         <div className="bg-purple-900/30 border border-purple-700/50 p-4 rounded-md">
           <h4 className="text-purple-400 font-bold mb-2">NFT Mint Transaction Submitted</h4>
           <p className="text-gray-300 text-sm mb-2">
-            Transaction Hash: <code className="bg-slate-800 px-2 py-1 rounded text-xs">{txHash}</code>
+            Transaction Hash: <a 
+              href={`https://evm.flowscan.io/tx/${txHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-slate-800 px-2 py-1 rounded text-xs text-blue-400 hover:text-blue-300 hover:bg-slate-700 transition-colors duration-200 font-mono"
+            >{txHash}</a>
           </p>
           {isConfirming && (
             <p className="text-yellow-400 text-sm mt-2">
@@ -1832,7 +1842,12 @@ const TokenCreationStep = ({ domain, nftId }: { domain: string; nftId: number })
         </div>
         {tokenTxHash && (
           <p className="text-sm text-gray-400 mt-4">
-            Transaction: <span className="font-mono text-blue-400">{tokenTxHash}</span>
+            Transaction: <a 
+              href={`https://evm.flowscan.io/tx/${tokenTxHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono text-blue-400 hover:text-blue-300 hover:underline transition-colors duration-200"
+            >{tokenTxHash}</a>
           </p>
         )}
       </div>
@@ -1899,7 +1914,12 @@ const TokenCreationStep = ({ domain, nftId }: { domain: string; nftId: number })
             <div className="bg-yellow-900/30 border border-yellow-700/50 p-4 rounded-md mt-4">
               <h4 className="text-yellow-400 font-bold mb-2">Approval Transaction Submitted</h4>
               <p className="text-gray-300 text-sm mb-2">
-                Transaction Hash: <code className="bg-slate-800 px-2 py-1 rounded text-xs">{approvalTxHash}</code>
+                Transaction Hash: <a 
+                  href={`https://evm.flowscan.io/tx/${approvalTxHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-slate-800 px-2 py-1 rounded text-xs text-blue-400 hover:text-blue-300 hover:bg-slate-700 transition-colors duration-200 font-mono"
+                >{approvalTxHash}</a>
               </p>
               {isApprovalProcessing && (
                 <div className="flex items-center gap-2 mt-3">
@@ -1951,13 +1971,16 @@ const TokenCreationStep = ({ domain, nftId }: { domain: string; nftId: number })
 
           <Button
             onClick={handleCreateToken}
-            disabled={isTokenProcessing}
+            disabled={isTokenProcessing || isWaitingForToken || tokenCreated}
             className={`w-full ${creationMethod === 'direct'
                 ? 'bg-blue-600 hover:bg-blue-700'
                 : 'bg-purple-600 hover:bg-purple-700'
-              }`}
+              } ${(isTokenProcessing || isWaitingForToken || tokenCreated) ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            {isTokenProcessing ? 'Creating Token...' : `Create Token (${creationMethod})`}
+            {isTokenProcessing ? 'Creating Token...' : 
+             isWaitingForToken ? 'Deploying Token...' : 
+             tokenCreated ? 'Token Created!' : 
+             `Create Token (${creationMethod})`}
           </Button>
 
           {/* Token Creation Transaction Status */}
@@ -1971,7 +1994,12 @@ const TokenCreationStep = ({ domain, nftId }: { domain: string; nftId: number })
                 Token Creation Transaction Submitted
               </h4>
               <p className="text-gray-300 text-sm mb-2">
-                Transaction Hash: <code className="bg-slate-800 px-2 py-1 rounded text-xs">{tokenTxHash}</code>
+                Transaction Hash: <a 
+                  href={`https://evm.flowscan.io/tx/${tokenTxHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-slate-800 px-2 py-1 rounded text-xs text-blue-400 hover:text-blue-300 hover:bg-slate-700 transition-colors duration-200 font-mono"
+                >{tokenTxHash}</a>
               </p>
               <div className="text-xs text-gray-400 space-y-1 mb-3">
                 <p>Domain: <span className="font-mono text-blue-400">{domain}</span></p>

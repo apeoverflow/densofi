@@ -10,6 +10,7 @@ import { WalletAuthButton } from "@/components/WalletAuthButton";
 import { useWalletAuth } from "@/hooks/useWalletAuth";
 import { useAuthenticatedFetch } from "@/hooks/useAuthenticatedFetch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AuthErrorHandler } from "@/components/AuthErrorHandler";
 import config from '@/lib/config';
 
 interface Obstacle {
@@ -1494,27 +1495,21 @@ export default function DinoGameClient() {
           
 
 
-          {/* Authentication Status Alert */}
-          {authError && (
-            <Alert className="mb-4 border-red-500/50 bg-red-900/20">
-              <AlertDescription className="text-red-400">
-                Authentication Error: {authError}
-              </AlertDescription>
-            </Alert>
-          )}
+          {/* Authentication Status Alert with Reset Option */}
+          <AuthErrorHandler error={authError} />
           
           {xpSubmissionResult && (
-            <Alert className={`mb-4 ${xpSubmissionResult.startsWith('Error:') 
-              ? 'border-red-500/50 bg-red-900/20' 
-              : 'border-green-500/50 bg-green-900/20'
-            }`}>
-              <AlertDescription className={xpSubmissionResult.startsWith('Error:') 
-                ? 'text-red-400' 
-                : 'text-green-400'
-              }>
-                {xpSubmissionResult}
-              </AlertDescription>
-            </Alert>
+            <>
+              {xpSubmissionResult.startsWith('Error:') ? (
+                <AuthErrorHandler error={xpSubmissionResult} />
+              ) : (
+                <Alert className="mb-4 border-green-500/50 bg-green-900/20">
+                  <AlertDescription className="text-green-400">
+                    {xpSubmissionResult}
+                  </AlertDescription>
+                </Alert>
+              )}
+            </>
           )}
           
           {/* Enhanced Stats Section */}

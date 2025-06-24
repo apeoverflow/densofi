@@ -40,6 +40,24 @@ export const CONTRACT_ADDRESSES: ContractAddresses | {} =
   ? flowContractAddresses 
   : {};
 
+// Helper function to get contract addresses safely
+export function getContractAddresses(): ContractAddresses | null {
+  if ('addresses' in CONTRACT_ADDRESSES) {
+    return CONTRACT_ADDRESSES as ContractAddresses;
+  }
+  return null;
+}
+
+// Helper function to check if we have valid contract configuration
+export function hasValidContractConfig(): boolean {
+  const addresses = getContractAddresses();
+  return addresses !== null && 
+         !!addresses.addresses.domainRegistration && 
+         !!addresses.addresses.nftMinter && 
+         !!addresses.addresses.tokenMinter && 
+         !!addresses.addresses.launchpad;
+}
+
 
 export const DOMAIN_REGISTRATION_ABI = domainRegistrationAbi as Abi; 
 export const NFT_MINTER_ABI = nftMinterAbi as Abi;

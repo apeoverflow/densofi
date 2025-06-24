@@ -12,6 +12,7 @@ interface WalletAuthContextType {
   expiresAt: string | null;
   authenticate: () => Promise<void>;
   logout: () => void;
+  resetAuth: () => void;
   getAuthHeaders: () => Record<string, string> | {};
   needsAuthentication: boolean;
   isWalletConnected: boolean;

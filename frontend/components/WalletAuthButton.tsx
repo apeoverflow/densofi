@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useWalletAuth } from '@/hooks/useWalletAuth';
 import { WalletConnectButton } from './WalletConnectButton';
-import { CheckCircle, Shield, Loader2, AlertCircle } from 'lucide-react';
+import { CheckCircle, Shield, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface WalletAuthButtonProps {
@@ -27,6 +27,7 @@ export function WalletAuthButton({
     connectedAddress,
     authenticate,
     logout,
+    resetAuth,
   } = useWalletAuth();
 
   const [isAuthenticating, setIsAuthenticating] = useState(false);
@@ -46,6 +47,10 @@ export function WalletAuthButton({
 
   const handleLogout = () => {
     logout();
+  };
+
+  const handleResetAuth = () => {
+    resetAuth();
   };
 
   // Show wallet connect button if wallet is not connected
@@ -84,8 +89,17 @@ export function WalletAuthButton({
         {error && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {error}
+            <AlertDescription className="flex items-center justify-between">
+              <span>{error}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResetAuth}
+                className="ml-3 text-xs bg-red-600/20 hover:bg-red-600/30 border-red-500/50"
+              >
+                <RefreshCw className="mr-1 h-3 w-3" />
+                Reset Auth
+              </Button>
             </AlertDescription>
           </Alert>
         )}

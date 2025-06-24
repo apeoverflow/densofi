@@ -1,6 +1,6 @@
 import { parseAbiItem, formatEther } from 'viem';
 import { publicClient, supportsEventFiltering, supportsEventListening, needsPollingForEvents } from './viem-client.js';
-import { CONTRACT_ADDRESSES, DOMAIN_REGISTRATION_ABI } from '../config/contracts.js';
+import { CONTRACT_ADDRESSES, DOMAIN_REGISTRATION_ABI, getContractAddresses, hasValidContractConfig } from '../config/contracts.js';
 import { ENV } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 import { DomainService } from './domain-service.js';
@@ -73,12 +73,13 @@ class DomainEventListener {
    * Polling-based event listening for networks like Flow
    */
   private async pollForEvents(): Promise<void> {
-    if (!('addresses' in CONTRACT_ADDRESSES) || !CONTRACT_ADDRESSES.addresses?.domainRegistration) {
-      logger.error('Domain Registration contract address not configured for polling');
+    if (!hasValidContractConfig()) {
+      logger.error(`Domain Registration contract address not configured for polling on Chain ID ${ENV.CHAIN_ID}`);
       return;
     }
 
-    const contractAddress = CONTRACT_ADDRESSES.addresses.domainRegistration as `0x${string}`;
+    const addresses = getContractAddresses()!;
+    const contractAddress = addresses.addresses.domainRegistration as `0x${string}`;
 
     try {
       // Get current block number
@@ -220,11 +221,12 @@ class DomainEventListener {
       return;
     }
 
-    if (!('addresses' in CONTRACT_ADDRESSES) || !CONTRACT_ADDRESSES.addresses?.domainRegistration) {
-      throw new Error('Domain Registration contract address not configured');
+    if (!hasValidContractConfig()) {
+      throw new Error(`Domain Registration contract address not configured for Chain ID ${ENV.CHAIN_ID}`);
     }
 
-    const contractAddress = CONTRACT_ADDRESSES.addresses.domainRegistration as `0x${string}`;
+    const addresses = getContractAddresses()!;
+    const contractAddress = addresses.addresses.domainRegistration as `0x${string}`;
 
     try {
       logger.info(`🎧 Starting event listeners for Chain ID ${ENV.CHAIN_ID}`);

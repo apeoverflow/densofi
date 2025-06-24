@@ -329,6 +329,26 @@ export function useWalletAuth() {
     localStorage.removeItem('wallet-auth');
   }, []);
 
+  const resetAuth = useCallback(() => {
+    console.log('Resetting wallet authentication...');
+    
+    // Clear all auth-related localStorage items
+    localStorage.removeItem('wallet-auth');
+    
+    // Reset auth state
+    setAuthState({
+      isAuthenticated: false,
+      isLoading: false,
+      error: null,
+      sessionId: null,
+      walletAddress: null,
+      expiresAt: null,
+    });
+    
+    // Refresh the page to ensure clean state
+    window.location.reload();
+  }, []);
+
   const forceRefreshAuthState = useCallback(() => {
     console.log('Force refreshing auth state...');
     const storedAuth = localStorage.getItem('wallet-auth');
@@ -376,6 +396,7 @@ export function useWalletAuth() {
     ...authState,
     authenticate,
     logout,
+    resetAuth,
     forceRefreshAuthState,
     getAuthHeaders,
     needsAuthentication,
