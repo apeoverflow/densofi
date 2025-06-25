@@ -129,7 +129,7 @@ export default function DinoGameClient() {
   const [keys, setKeys] = useState<Set<string>>(new Set<string>());
   const [totalXP, setTotalXP] = useState(0);
   const [isClaimingXP, setIsClaimingXP] = useState(false);
-  const [xpSubmissionResult, setXpSubmissionResult] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
   const [playerStats, setPlayerStats] = useState<any>(null);
   const [currentRank, setCurrentRank] = useState<number | string>('Unranked');
   const [showStatsModal, setShowStatsModal] = useState(false);
@@ -146,6 +146,15 @@ export default function DinoGameClient() {
   const [gameStartCountdown, setGameStartCountdown] = useState(0);
   const [backgroundOffset, setBackgroundOffset] = useState(0);
   const [showRulesModal, setShowRulesModal] = useState(false);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => {
+        setToast(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   // Load player stats from server when authenticated
   useEffect(() => {
@@ -1350,20 +1359,20 @@ export default function DinoGameClient() {
         ctx.fillStyle = '#000';
         ctx.font = 'bold 14px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(`${ADVANCED_FEATURES_SCORE_THRESHOLD - gameState.score} to unlock!`, 340, 35);
+        ctx.fillText(`${ADVANCED_FEATURES_SCORE_THRESHOLD - gameState.score} - Fireballs! (press x)`, 340, 35);
         ctx.textAlign = 'left';
       }
       
-      // Show unlock notification
-      if (gameState.score >= ADVANCED_FEATURES_SCORE_THRESHOLD && gameState.score < ADVANCED_FEATURES_SCORE_THRESHOLD + 100) {
-        ctx.fillStyle = 'rgba(0, 255, 0, 0.9)';
-        ctx.fillRect(275, 10, 175, 40);
-        ctx.fillStyle = '#000';
-        ctx.font = 'bold 14px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('Fireballs and Kangaroos Unlocked!', 350, 35);
-        ctx.textAlign = 'left';
-      }
+      // // Show unlock notification
+      // if (gameState.score >= ADVANCED_FEATURES_SCORE_THRESHOLD && gameState.score < ADVANCED_FEATURES_SCORE_THRESHOLD + 100) {
+      //   ctx.fillStyle = 'rgba(0, 255, 0, 0.9)';
+      //   ctx.fillRect(275, 10, 175, 40);
+      //   ctx.fillStyle = '#000';
+      //   ctx.font = 'bold 14px Arial';
+      //   ctx.textAlign = 'center';
+      //   ctx.fillText('Fireballs and Kangaroos Unlocked!', 350, 35);
+      //   ctx.textAlign = 'left';
+      // }
       
       // Restore canvas state
       ctx.restore();
@@ -1397,11 +1406,12 @@ export default function DinoGameClient() {
     if (!isConnected || !address || gameState.score === 0) return;
 
     setIsClaimingXP(true);
-    setXpSubmissionResult(null);
+    setToast(null);
     
     try {
       if (!isAuthenticated) {
-        alert('Please authenticate your wallet first!');
+        setToast({ message: 'Please authenticate your wallet to claim XP!', type: 'error' });
+        setIsClaimingXP(false);
         return;
       }
 
@@ -1434,11 +1444,11 @@ export default function DinoGameClient() {
         setTotalXP(newTotalXP);
         
         // Show enhanced success message
-        let message = `Successfully earned ${xpEarned} XP! Total: ${newTotalXP}`;
+        let message = `Successfully earned ${xpEarned} XP!`;
         if (newHighScore) {
           message += ' 🎉 NEW HIGH SCORE!';
         }
-        setXpSubmissionResult(message); 
+        setToast({ message, type: 'success' }); 
         
         // Refresh player stats to get updated rank
         if (address && authenticatedFetch) {
@@ -1468,7 +1478,7 @@ export default function DinoGameClient() {
     } catch (error) {
       console.error('Failed to claim XP:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to claim XP. Please try again.';
-      setXpSubmissionResult(`Error: ${errorMessage}`);
+      setToast({ message: errorMessage, type: 'error' });
     } finally {
       setIsClaimingXP(false);
     }
@@ -1478,6 +1488,22 @@ export default function DinoGameClient() {
     <div className="relative flex flex-col bg-gradient-to-b from-slate-900 via-slate-900/20 to-black overflow-hidden">
       <InteractiveBackground />
       
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed top-28 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4">
+          <div className={`
+            text-center
+            rounded-xl p-4 border backdrop-blur-sm shadow-2xl flex items-center gap-3
+            transition-all duration-300 animate-in fade-in slide-in-from-top-10
+            ${toast.type === 'success' ? 'bg-green-900/80 border-green-500/50 text-green-300' : 'bg-red-900/80 border-red-500/50 text-red-300'}
+          `}>
+            {toast.type === 'success' && <PixelIcon src="trophey-pixel.png" alt="Success" size={24} />}
+            {toast.type === 'error' && <PixelIcon src="spanner-pixel.png" alt="Error" size={24} />}
+            <p className="font-bold flex-1">{toast.message}</p>
+          </div>
+        </div>
+      )}
+
       {/* Static gradient overlay for depth and readability */}
       <div className="absolute h-screen inset-0 bg-gradient-to-b from-transparent via-slate-900/40 to-black/60 pointer-events-none z-10"></div>
       
@@ -1498,19 +1524,6 @@ export default function DinoGameClient() {
           {/* Authentication Status Alert with Reset Option */}
           <AuthErrorHandler error={authError} />
           
-          {xpSubmissionResult && (
-            <>
-              {xpSubmissionResult.startsWith('Error:') ? (
-                <AuthErrorHandler error={xpSubmissionResult} />
-              ) : (
-                <Alert className="mb-4 border-green-500/50 bg-green-900/20">
-                  <AlertDescription className="text-green-400">
-                    {xpSubmissionResult}
-                  </AlertDescription>
-                </Alert>
-              )}
-            </>
-          )}
           
           {/* Enhanced Stats Section */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-2 mb-2 mt-2">
