@@ -324,14 +324,14 @@ export default function DinoGameClient() {
   // Handle keyboard input
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyX') {
+      if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyZ') {
         e.preventDefault();
         setKeys(prev => new Set(prev).add(e.code));
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyX') {
+      if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyZ') {
         setKeys(prev => {
           const newKeys = new Set(prev);
           newKeys.delete(e.code);
@@ -470,7 +470,7 @@ export default function DinoGameClient() {
 
   // Handle shooting input
   useEffect(() => {
-    if (keys.has('KeyX')) {
+    if (keys.has('KeyZ')) {
       if (gameState.isGameRunning && !gameState.isGameOver) {
         shootFireball();
       }
