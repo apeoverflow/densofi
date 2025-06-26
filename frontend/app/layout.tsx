@@ -96,6 +96,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+
+
+      {/* <!-- Google tag (gtag.js) --> */}
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZL8QRZ5TEV"></script>
+      <script dangerouslySetInnerHTML={{
+        __html: `
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+
+          gtag('config', 'G-ZL8QRZ5TEV');
+        `,
+      }}></script>
+
       {/* Add suppressHydrationWarning to body to ignore hydration mismatch on data-channel-name */}
       <body 
         suppressHydrationWarning={true}
