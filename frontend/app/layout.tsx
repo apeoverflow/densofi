@@ -2,6 +2,7 @@ import "./globals.css";
 import { Inter } from "next/font/google";
 import { Metadata } from "next";
 import ClientLayout from "./client-layout";
+import Script from "next/script";
 
 // Use cache-busting technique for Inter font
 const inter = Inter({ subsets: ["latin"] });
@@ -96,28 +97,28 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-
-
-      {/* <!-- Google tag (gtag.js) --> */}
-      <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZL8QRZ5TEV"></script>
-      <script dangerouslySetInnerHTML={{
-        __html: `
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-
-          gtag('config', 'G-ZL8QRZ5TEV');
-        `,
-      }}></script>
-
       {/* Add suppressHydrationWarning to body to ignore hydration mismatch on data-channel-name */}
-      <body 
+      <body
         suppressHydrationWarning={true}
         className={`${inter.className} antialiased bg-gradient-to-br from-slate-900 to-gray-900 min-h-screen`}
       >
-        <ClientLayout>
-          {children}
-        </ClientLayout>
+        {/* <!-- Google tag (gtag.js) --> */}
+        <Script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-ZL8QRZ5TEV"
+        ></Script>
+        <Script
+          id="gtag-init"
+          dangerouslySetInnerHTML={{
+            __html: `
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-ZL8QRZ5TEV');
+        `,
+          }}
+        ></Script>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );

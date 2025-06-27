@@ -1699,7 +1699,7 @@ export default function DinoGameClient() {
                     </div>
                   ) : isConnected && isAuthenticated && !gameState.isGameRunning && !gameState.isGameOver && gameStartCountdown === 0 ? (
                     <div className="space-y-3">
-                      <p className="text-xs sm:text-sm text-gray-400 px-2">JUMP: TAP/SPACE/↑ • DOUBLE JUMP: Press again in air. Press X to shoot fireballs!</p>
+                      <p className="text-xs sm:text-sm text-gray-400 px-2">JUMP: TAP/SPACE/↑ • DOUBLE JUMP: Press again in air. Press Z to shoot fireballs!</p>
                       <div className="text-xs text-center text-green-400 mb-2">
                         <span className="flex items-center justify-center gap-1">
                           <Image src="/pixel/tick-pixel.png" alt="Success" width={16} height={16} />
@@ -2086,7 +2086,7 @@ export default function DinoGameClient() {
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-blue-400 mt-1">•</span>
-                      <span>Press X to shoot fireballs (after 1000 points)</span>
+                      <span>Press Z to shoot fireballs (after 1000 points)</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-orange-400 mt-1">•</span>
