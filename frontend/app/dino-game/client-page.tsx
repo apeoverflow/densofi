@@ -1359,7 +1359,7 @@ export default function DinoGameClient() {
         ctx.fillStyle = '#000';
         ctx.font = 'bold 14px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(`${ADVANCED_FEATURES_SCORE_THRESHOLD - gameState.score} - Fireballs! (press x)`, 340, 35);
+        ctx.fillText(`${ADVANCED_FEATURES_SCORE_THRESHOLD - gameState.score} - Fireballs! (press z)`, 340, 35);
         ctx.textAlign = 'left';
       }
       
