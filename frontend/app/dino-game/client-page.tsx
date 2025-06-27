@@ -321,9 +321,6 @@ export default function DinoGameClient() {
     }
   }, [gameState.isGameRunning, gameState.isGameOver, gameState.isJumping]);
 
-  useEffect(() => {
-    console.log('keys', keys);
-  }, [keys]);
 
   // Handle keyboard input
   useEffect(() => {
