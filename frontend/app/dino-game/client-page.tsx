@@ -1772,7 +1772,7 @@ export default function DinoGameClient() {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <p className="text-gray-300 text-xs sm:text-sm px-2">JUMP: TAP/SPACE/↑ • DOUBLE JUMP: Press again in air • SHOOT: X key!</p>
+                      <p className="text-gray-300 text-xs sm:text-sm px-2">JUMP: TAP/SPACE/↑ • DOUBLE JUMP: Press again in air • SHOOT: Z key!</p>
                       
                       {/* Floating Mobile Controls */}
                       {gameState.isGameRunning && !gameState.isGameOver && (
