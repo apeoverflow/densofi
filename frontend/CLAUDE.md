@@ -1,7 +1,7 @@
-# Denso.fi Project Overview
+# Densofi Project Overview
 
 ## Project Purpose
-Denso.fi is a platform for unlocking price discovery and liquidity for domain names through fractional tokenization.
+Densofi is a platform for unlocking price discovery and liquidity for domain names through fractional tokenization.
 
 ## Key Features
 - Convert domain names into ERC20 tokens for fractional ownership

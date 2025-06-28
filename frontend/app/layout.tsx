@@ -11,9 +11,9 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NODE_ENV === 'production' ? 'https://densofi.com' : 'http://localhost:3000'),
   title: {
     default: "Densofi - Fractional Domain Tokenization Platform",
-    template: "%s | Denso.fi"
+    template: "%s | Densofi"
   },
-  description: "Transform domain names into tradeable tokens on the blockchain. Denso.fi enables fractional ownership, liquidity pools, and decentralized domain trading through innovative tokenization technology.",
+  description: "Transform domain names into tradeable tokens on the blockchain. Densofi enables fractional ownership, liquidity pools, and decentralized domain trading through innovative tokenization technology.",
   keywords: [
     "domain tokenization",
     "fractional domain ownership", 
@@ -26,9 +26,9 @@ export const metadata: Metadata = {
     "domain investment",
     "decentralized domains"
   ],
-  authors: [{ name: "Denso.fi Team" }],
-  creator: "Denso.fi",
-  publisher: "Denso.fi",
+  authors: [{ name: "Densofi Team" }],
+  creator: "Densofi",
+  publisher: "Densofi",
   robots: {
     index: true,
     follow: true,
@@ -42,14 +42,13 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/dino.svg", type: "image/svg+xml" },
-      { url: "/dino.png", sizes: "32x32", type: "image/png" },
-      { url: "/dino-beefed-up.png", sizes: "192x192", type: "image/png" }
+      { url: "/favicon/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon/favicon.ico", sizes: "any", type: "image/x-icon" },
     ],
-    shortcut: "/dino.svg",
-    apple: "/dino-beefed-up.png",
+    apple: '/favicon/apple-touch-icon.png',
   },
-  manifest: "/manifest.json",
+  manifest: '/favicon/site.webmanifest',
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -62,7 +61,7 @@ export const metadata: Metadata = {
         url: "/preview-img.png",
         width: 1200,
         height: 630,
-        alt: "Denso.fi - Fractional Domain Tokenization Platform",
+        alt: "Densofi - Fractional Domain Tokenization Platform",
         type: "image/png"
       }
     ],
@@ -83,7 +82,7 @@ export const metadata: Metadata = {
   other: {
     "apple-mobile-web-app-capable": "yes",
     "apple-mobile-web-app-status-bar-style": "black-translucent",
-    "apple-mobile-web-app-title": "Denso.fi",
+    "apple-mobile-web-app-title": "Densofi",
     "theme-color": "#1e293b",
     "msapplication-TileColor": "#1e293b",
     "msapplication-config": "/browserconfig.xml",

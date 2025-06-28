@@ -42,7 +42,7 @@ export default function Footer() {
               </div>
             </div>
             <div className="pt-6 border-t border-white/10 text-center text-gray-500 text-sm">
-              <p>© 2025 Denso.fi. All rights reserved.</p>
+              <p>© 2025 Densofi. All rights reserved.</p>
             </div>
           </div>
         </footer>

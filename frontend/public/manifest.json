@@ -1,6 +1,6 @@
 {
-    "name": "Denso.fi - Fractional Domain Tokenization",
-    "short_name": "Denso.fi",
+    "name": "Densofi - Fractional Domain Tokenization",
+    "short_name": "Densofi",
     "description": "Transform domain names into tradeable tokens on the blockchain",
     "start_url": "/",
     "display": "standalone",

@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { TokenSubdomainsClient } from './client-page';
 
 export const metadata: Metadata = {
-  title: 'Register Subdomains | Denso.fi',
+  title: 'Register Subdomains | Densofi',
   description: 'Register subdomains by staking your domain tokens',
 };
 

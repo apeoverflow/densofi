@@ -2,8 +2,8 @@ import { Metadata } from "next";
 import NFTMinterClient from "./client-page";
 
 export const metadata: Metadata = {
-  title: "Mint Domain NFT | Denso.fi",
-  description: "Mint domain NFTs on Denso.fi",
+  title: "Mint Domain NFT | Densofi",
+  description: "Mint domain NFTs on Densofi",
 };
 
 export default function MintNFTPage() {

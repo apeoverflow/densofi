@@ -2,7 +2,7 @@ User-agent: *
 Allow: /
 
 # Sitemaps
-Sitemap: https://denso.fi/sitemap.xml
+Sitemap: https://Densofi/sitemap.xml
 
 # Crawl-delay for all bots (optional, remove if not needed)
 Crawl-delay: 1
