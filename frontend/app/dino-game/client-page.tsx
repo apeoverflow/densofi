@@ -1642,7 +1642,7 @@ export default function DinoGameClient() {
                           variant="outline"
                           className="border-white/20 hover:bg-white/10 text-xs sm:text-sm px-3 py-2"
                         >
-                          <img src="/pixel/link-pixelated.png" alt="Book" className="w-4 h-4 mr-1" />
+                          <img src="/pixel/book-pixel.png" alt="Book" className="w-4 h-4 mr-1" />
                           Rules
                         </Button>
                         <Button 
@@ -1653,7 +1653,7 @@ export default function DinoGameClient() {
                           variant="outline"
                           className="border-white/20 hover:bg-white/10 text-xs sm:text-sm px-3 py-2"
                         >
-                          <img src="/pixel/link-pixelated.png" alt="Stats" className="w-4 h-4 mr-1" />
+                          <img src="/pixel/graph-pixel.png" alt="Stats" className="w-4 h-4 mr-1" />
                           Stats
                         </Button>
                       </div>
