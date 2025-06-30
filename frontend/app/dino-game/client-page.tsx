@@ -68,6 +68,8 @@ interface GameState {
   gameSpeed: number;
   isGameOver: boolean;
   isGameRunning: boolean;
+  animationFrame: number;
+  animationCounter: number;
 }
 
 const INITIAL_GAME_STATE: GameState = {
@@ -84,9 +86,11 @@ const INITIAL_GAME_STATE: GameState = {
   powerUps: [],
   fireballCount: 0, // Start with 0 fireballs, get them after unlock
   score: 0,
-  gameSpeed: 2,
+  gameSpeed: 6, // Changed from 2 to 6 to match OBSTACLE_SPEED
   isGameOver: false,
   isGameRunning: false,
+  animationFrame: 0,
+  animationCounter: 0,
 };
 
 const DINO_SIZE = 50;
@@ -95,7 +99,7 @@ const OBSTACLE_HEIGHT = 50;
 const GAME_HEIGHT = 350;
 const JUMP_FORCE = -17;
 const GRAVITY = 0.75;
-const OBSTACLE_SPEED = 6;
+const OBSTACLE_SPEED = 6; // This will now be controlled by gameState.gameSpeed
 const SPAWN_RATE = 0.015;
 const GROUND_HEIGHT = GAME_HEIGHT + 20;
 const FIREBALL_SIZE = 20;
@@ -138,11 +142,10 @@ export default function DinoGameClient() {
   const [playerHistory, setPlayerHistory] = useState<any[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
   const gameLoopRef = useRef<number | undefined>(undefined);
+  const lastTimeRef = useRef<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const spriteImageRef = useRef<HTMLImageElement | null>(null);
   const kangarooImageRef = useRef<HTMLImageElement | null>(null);
-  const [animationFrame, setAnimationFrame] = useState(0);
-  const animationCounterRef = useRef(0);
   const [gameStartCountdown, setGameStartCountdown] = useState(0);
   const [backgroundOffset, setBackgroundOffset] = useState(0);
   const [showRulesModal, setShowRulesModal] = useState(false);
@@ -309,18 +312,6 @@ export default function DinoGameClient() {
       kangarooImageRef.current = kangarooImg;
     };
   }, []);
-
-  // Handle sprite animation - integrated with game loop
-  const updateAnimation = useCallback(() => {
-    if (gameState.isGameRunning && !gameState.isGameOver && !gameState.isJumping) {
-      animationCounterRef.current += 1;
-      if (animationCounterRef.current >= 8) { // Change frame every 8 game ticks for smooth animation
-        setAnimationFrame(prev => (prev + 1) % 2); // Toggle between frame 0 and 1
-        animationCounterRef.current = 0;
-      }
-    }
-  }, [gameState.isGameRunning, gameState.isGameOver, gameState.isJumping]);
-
 
   // Handle keyboard input
   useEffect(() => {
@@ -529,9 +520,8 @@ export default function DinoGameClient() {
     }
     
     setGameStartCountdown(3);
-    setAnimationFrame(0);
-    animationCounterRef.current = 0;
     setBackgroundOffset(0);
+    lastTimeRef.current = null;
     
     // Countdown sequence
     const countdownInterval = setInterval(() => {
@@ -558,10 +548,9 @@ export default function DinoGameClient() {
   // Reset game
   const resetGame = useCallback(() => {
     setGameState(INITIAL_GAME_STATE);
-    setAnimationFrame(0);
-    animationCounterRef.current = 0;
     setGameStartCountdown(0);
     setBackgroundOffset(0);
+    lastTimeRef.current = null;
   }, []);
 
   // Collision detection
@@ -588,18 +577,28 @@ export default function DinoGameClient() {
     if (!gameState.isGameRunning || gameState.isGameOver) {
       if (gameLoopRef.current) {
         cancelAnimationFrame(gameLoopRef.current);
+        lastTimeRef.current = null;
       }
       return;
     }
 
-    const gameLoop = () => {
+    const gameLoop = (timestamp: number) => {
+      if (!lastTimeRef.current) {
+        lastTimeRef.current = timestamp;
+        gameLoopRef.current = requestAnimationFrame(gameLoop);
+        return;
+      }
+      const deltaTime = timestamp - lastTimeRef.current;
+      lastTimeRef.current = timestamp;
+      const dt = deltaTime / (1000 / 60); // Normalize to 60fps
+
       setGameState(prev => {
         let newState = { ...prev };
 
         // Update dino physics
         if (newState.isJumping || newState.dinoY < 0) {
-          newState.dinoVelocity += GRAVITY;
-          newState.dinoY += newState.dinoVelocity;
+          newState.dinoVelocity += GRAVITY * dt;
+          newState.dinoY += newState.dinoVelocity * dt;
 
           if (newState.dinoY >= 0) {
             newState.dinoY = 0;
@@ -612,7 +611,7 @@ export default function DinoGameClient() {
 
         // Update obstacles
         newState.obstacles = newState.obstacles
-          .map(obstacle => ({ ...obstacle, x: obstacle.x - OBSTACLE_SPEED }))
+          .map(obstacle => ({ ...obstacle, x: obstacle.x - newState.gameSpeed * dt }))
           .filter(obstacle => obstacle.x + obstacle.width > 0);
 
         // Spawn new obstacles
@@ -626,7 +625,7 @@ export default function DinoGameClient() {
 
         // Update fireballs
         newState.fireballs = newState.fireballs
-          .map(fireball => ({ ...fireball, x: fireball.x - OBSTACLE_SPEED }))
+          .map(fireball => ({ ...fireball, x: fireball.x - newState.gameSpeed * dt }))
           .filter(fireball => fireball.x + FIREBALL_SIZE > 0 && !fireball.collected);
 
         // Spawn new fireballs (only after score threshold)
@@ -660,12 +659,12 @@ export default function DinoGameClient() {
         newState.kangaroos = newState.kangaroos
           .map(kangaroo => {
             let updatedKangaroo = { ...kangaroo };
-            updatedKangaroo.x -= OBSTACLE_SPEED;
+            updatedKangaroo.x -= newState.gameSpeed * dt;
             
             // Kangaroo jumping physics
             if (updatedKangaroo.isJumping || updatedKangaroo.y < GAME_HEIGHT - updatedKangaroo.height) {
-              updatedKangaroo.velocityY += KANGAROO_GRAVITY;
-              updatedKangaroo.y += updatedKangaroo.velocityY;
+              updatedKangaroo.velocityY += KANGAROO_GRAVITY * dt;
+              updatedKangaroo.y += updatedKangaroo.velocityY * dt;
 
               if (updatedKangaroo.y >= GAME_HEIGHT - updatedKangaroo.height) {
                 updatedKangaroo.y = GAME_HEIGHT - updatedKangaroo.height;
@@ -694,14 +693,14 @@ export default function DinoGameClient() {
         newState.projectiles = newState.projectiles
           .map(projectile => ({
             ...projectile,
-            x: projectile.x + projectile.velocityX,
-            y: projectile.y + projectile.velocityY,
+            x: projectile.x + projectile.velocityX * dt,
+            y: projectile.y + projectile.velocityY * dt,
           }))
           .filter(projectile => projectile.x < 800);
 
         // Update power-ups
         newState.powerUps = newState.powerUps
-          .map(powerUp => ({ ...powerUp, x: powerUp.x - OBSTACLE_SPEED }))
+          .map(powerUp => ({ ...powerUp, x: powerUp.x - newState.gameSpeed * dt }))
           .filter(powerUp => powerUp.x + POWERUP_SIZE > 0 && !powerUp.collected);
 
         // Spawn new power-ups (commonly throughout the game)
@@ -909,27 +908,35 @@ export default function DinoGameClient() {
 
         // Update score and background (only while game is running and not game over)
         if (!newState.isGameOver && newState.isGameRunning) {
-          newState.score += 1;
+          newState.score += 1 * dt;
           
           // Give initial fireballs when reaching threshold
-          if (newState.score === ADVANCED_FEATURES_SCORE_THRESHOLD && newState.fireballCount === 0) {
+          if (newState.score >= ADVANCED_FEATURES_SCORE_THRESHOLD && newState.fireballCount === 0) {
             newState.fireballCount = 20; // Give 20 fireballs when unlocking
           }
           
           // Increase game speed every 1000 points
-          if (newState.score % 1000 === 0) {
-            newState.gameSpeed += 0.2;
+          const scoreForSpeed = Math.floor(newState.score / 1000);
+          const oldScoreForSpeed = Math.floor(prev.score / 1000);
+          if (scoreForSpeed > oldScoreForSpeed) {
+            newState.gameSpeed += 0.2 * (scoreForSpeed - oldScoreForSpeed);
           }
         }
 
         // Call animation update
-        updateAnimation();
+        if (newState.isGameRunning && !newState.isGameOver && !newState.isJumping) {
+            newState.animationCounter += dt;
+            if (newState.animationCounter >= 8) {
+                newState.animationFrame = (newState.animationFrame + 1) % 2;
+                newState.animationCounter -= 8;
+            }
+        }
 
         return newState;
       });
 
       // Update background offset for scrolling effect
-      setBackgroundOffset(prev => prev + 2);
+      setBackgroundOffset(prev => prev + (gameState.gameSpeed / 3) * (deltaTime / (1000/60)));
 
       // Continue the game loop
       gameLoopRef.current = requestAnimationFrame(gameLoop);
@@ -943,7 +950,7 @@ export default function DinoGameClient() {
         cancelAnimationFrame(gameLoopRef.current);
       }
     };
-  }, [gameState.isGameRunning, gameState.isGameOver, updateAnimation, checkCollision]);
+  }, [gameState.isGameRunning, gameState.isGameOver, checkCollision]);
 
   // Cloud drawing function
   const drawCloud = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
@@ -1223,7 +1230,7 @@ export default function DinoGameClient() {
         // Calculate sprite frame (2 frames side by side)
         const spriteWidth = spriteImageRef.current.width / 2;
         const spriteHeight = spriteImageRef.current.height;
-        const currentFrame = gameState.isJumping ? 0 : animationFrame;
+        const currentFrame = gameState.isJumping ? 0 : gameState.animationFrame;
         
         // Draw shadow
         ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
@@ -1300,7 +1307,7 @@ export default function DinoGameClient() {
       // FIXED POSITION 1: Score (always visible)
       ctx.fillStyle = '#fff';
       ctx.font = 'bold 20px Arial';
-      ctx.fillText(`Score: ${gameState.score}`, 20, 35);
+      ctx.fillText(`Score: ${Math.floor(gameState.score)}`, 20, 35);
       
       // FIXED POSITION 2: Fireball count (always reserve space)
       ctx.shadowOffsetX = 1;
@@ -1360,7 +1367,7 @@ export default function DinoGameClient() {
         ctx.fillStyle = '#000';
         ctx.font = 'bold 14px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(`${ADVANCED_FEATURES_SCORE_THRESHOLD - gameState.score} - Fireballs! (press z)`, 340, 35);
+        ctx.fillText(`${Math.floor(ADVANCED_FEATURES_SCORE_THRESHOLD - gameState.score)} - Fireballs! (press z)`, 340, 35);
         ctx.textAlign = 'left';
       }
       
@@ -1400,7 +1407,7 @@ export default function DinoGameClient() {
       ctx.textAlign = 'center';
       ctx.fillText('Game Over!', canvas.width / 2, canvas.height / 2 - 30);
     }
-  }, [gameState, animationFrame, gameStartCountdown, backgroundOffset]);
+  }, [gameState, gameStartCountdown, backgroundOffset]);
 
   // Claim XP function
   const claimXP = async () => {
@@ -1486,7 +1493,7 @@ export default function DinoGameClient() {
   };
 
   return (
-    <div className="relative flex flex-col bg-gradient-to-b from-slate-900 via-slate-900/20 to-black overflow-hidden">
+    <div className="relative w-full h-[85vh] flex flex-col bg-gradient-to-b from-slate-900 via-slate-900/20 to-black overflow-hidden">
       <InteractiveBackground />
       
       {/* Toast Notification */}
@@ -1541,7 +1548,7 @@ export default function DinoGameClient() {
               <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-md p-2 border border-slate-700/50 hover:border-orange-500/30 transition-all duration-300 backdrop-blur-sm">
                 <div className="relative z-10 text-center">
                   <p className="text-xs text-gray-400 mb-0.5">Current Score</p>
-                  <p className="text-sm sm:text-base font-bold text-orange-400">{gameState.score}</p>
+                  <p className="text-sm sm:text-base font-bold text-orange-400">{Math.floor(gameState.score)}</p>
                 </div>
               </div>
             </div>
@@ -1750,7 +1757,7 @@ export default function DinoGameClient() {
                   ) : gameState.isGameOver ? (
                     <div className="space-y-3">
                       <p className="text-gray-300 text-sm px-2">
-                        Game Over! You scored {gameState.score} points.
+                        Game Over! You scored {Math.floor(gameState.score)} points.
                       </p>
                       <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
                         <Button 
