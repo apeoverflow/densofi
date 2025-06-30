@@ -222,28 +222,28 @@ export default function ClientPage() {
                       </div>
                     </div>
                     
-                    <div className="grid md:grid-cols-3 gap-12">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
                       {/* Step 1 */}
                       <div className="relative group">
-                        <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-8 border border-slate-700/50 hover:border-blue-500/30 transition-all duration-500 backdrop-blur-sm hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-2">
+                        <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-4 md:p-8 border border-slate-700/50 hover:border-blue-500/30 transition-all duration-500 backdrop-blur-sm hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-2">
                           {/* Background glow */}
                           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                           
                           {/* Step number */}
-                          <div className="relative mb-6 flex justify-center">
+                          <div className="relative md:mb-6 flex justify-center">
                             <div className="relative">
                               <AnimatedNumberCircle number="1" color="#3B82F6" size={1} randomSeed={0.7} />
-                              <div className="absolute inset-0 w-20 h-20 mx-auto bg-gradient-to-r from-blue-500/15 to-indigo-500/15 rounded-full blur-xl -z-10 group-hover:from-blue-500/25 group-hover:to-indigo-500/25 transition-all duration-500"></div>
+                              <div className="absolute inset-0 w-12 h-12 md:w-20 md:h-20 mx-auto bg-gradient-to-r from-blue-500/15 to-indigo-500/15 rounded-full blur-xl -z-10 group-hover:from-blue-500/25 group-hover:to-indigo-500/25 transition-all duration-500"></div>
                             </div>
                           </div>
                           
                           {/* Content */}
                           <div className="relative z-10 text-center">
-                            <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-blue-300 transition-colors duration-300">
+                            <h3 className="text-xl md:text-2xl font-bold text-white mb-4 group-hover:text-blue-300 transition-colors duration-300">
                               Verify & Mint
                             </h3>
                             <div className="w-12 h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 mx-auto mb-4 opacity-50 group-hover:opacity-100 transition-opacity duration-300"></div>
-                            <p className="text-gray-300 leading-relaxed group-hover:text-gray-200 transition-colors duration-300">
+                            <p className="text-sm md:text-base text-gray-300 leading-relaxed group-hover:text-gray-200 transition-colors duration-300">
                               Use ENS or DNS TXT records to prove ownership, then mint both NFT representation and fractional ERC20 tokens of your domain.
                             </p>
                           </div>
@@ -255,25 +255,25 @@ export default function ClientPage() {
 
                       {/* Step 2 */}
                       <div className="relative group">
-                        <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-8 border border-slate-700/50 hover:border-teal-500/30 transition-all duration-500 backdrop-blur-sm hover:shadow-xl hover:shadow-teal-500/10 hover:-translate-y-2">
+                        <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-4 md:p-8 border border-slate-700/50 hover:border-teal-500/30 transition-all duration-500 backdrop-blur-sm hover:shadow-xl hover:shadow-teal-500/10 hover:-translate-y-2">
                           {/* Background glow */}
                           <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-emerald-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                           
                           {/* Step number */}
-                          <div className="relative mb-6 flex justify-center">
+                          <div className="relative md:mb-6 flex justify-center">
                             <div className="relative">
                               <AnimatedNumberCircle number="2" color="#14B8A6" size={1} randomSeed={0.3} />
-                              <div className="absolute inset-0 w-20 h-20 mx-auto bg-gradient-to-r from-teal-500/15 to-emerald-500/15 rounded-full blur-xl -z-10 group-hover:from-teal-500/25 group-hover:to-emerald-500/25 transition-all duration-500"></div>
+                              <div className="absolute inset-0 w-12 h-12 md:w-20 md:h-20 mx-auto bg-gradient-to-r from-teal-500/15 to-emerald-500/15 rounded-full blur-xl -z-10 group-hover:from-teal-500/25 group-hover:to-emerald-500/25 transition-all duration-500"></div>
                             </div>
                           </div>
                           
                           {/* Content */}
                           <div className="relative z-10 text-center">
-                            <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-teal-300 transition-colors duration-300">
+                            <h3 className="text-xl md:text-2xl font-bold text-white mb-4 group-hover:text-teal-300 transition-colors duration-300">
                               Launch & Fund
                             </h3>
                             <div className="w-12 h-0.5 bg-gradient-to-r from-teal-400 to-emerald-400 mx-auto mb-4 opacity-50 group-hover:opacity-100 transition-opacity duration-300"></div>
-                            <p className="text-gray-300 leading-relaxed group-hover:text-gray-200 transition-colors duration-300">
+                            <p className="text-sm md:text-base text-gray-300 leading-relaxed group-hover:text-gray-200 transition-colors duration-300">
                               Create ERC20 tokens and automatically establish liquidity pools with initial funding and pricing discovery mechanisms.
                             </p>
                           </div>
@@ -285,25 +285,25 @@ export default function ClientPage() {
 
                       {/* Step 3 */}
                       <div className="relative group">
-                        <div className="relative h-full bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-8 border border-slate-700/50 hover:border-purple-500/30 transition-all duration-500 backdrop-blur-sm hover:shadow-xl hover:shadow-purple-500/10 hover:-translate-y-2">
+                        <div className="relative h-full bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-4 md:p-8 border border-slate-700/50 hover:border-purple-500/30 transition-all duration-500 backdrop-blur-sm hover:shadow-xl hover:shadow-purple-500/10 hover:-translate-y-2">
                           {/* Background glow */}
                           <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                           
                           {/* Step number */}
-                          <div className="relative mb-6 flex justify-center">
+                          <div className="relative  flex justify-center">
                             <div className="relative">
                               <AnimatedNumberCircle number="3" color="#8B5CF6" size={1} randomSeed={0.9} />
-                              <div className="absolute inset-0 w-20 h-20 mx-auto bg-gradient-to-r from-purple-500/15 to-pink-500/15 rounded-full blur-xl -z-10 group-hover:from-purple-500/25 group-hover:to-pink-500/25 transition-all duration-500"></div>
+                              <div className="absolute inset-0 w-12 h-12 md:w-20 md:h-20 mx-auto bg-gradient-to-r from-purple-500/15 to-pink-500/15 rounded-full blur-xl -z-10 group-hover:from-purple-500/25 group-hover:to-pink-500/25 transition-all duration-500"></div>
                             </div>
                           </div>
                           
                           {/* Content */}
                           <div className="relative z-10 text-center">
-                            <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-purple-300 transition-colors duration-300">
+                            <h3 className="text-xl md:text-2xl font-bold text-white mb-4 group-hover:text-purple-300 transition-colors duration-300">
                               Trade, Borrow, Earn
                             </h3>
                             <div className="w-12 h-0.5 bg-gradient-to-r from-purple-400 to-pink-400 mx-auto mb-4 opacity-50 group-hover:opacity-100 transition-opacity duration-300"></div>
-                            <p className="text-gray-300 leading-relaxed group-hover:text-gray-200 transition-colors duration-300">
+                            <p className="text-sm md:text-base text-gray-300 leading-relaxed group-hover:text-gray-200 transition-colors duration-300">
                               Unlock instant liquidity, participate in lending protocols, and monetize through subdomain revenue streams.
                             </p>
                           </div>
@@ -434,14 +434,14 @@ export default function ClientPage() {
                   <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
                     {/* Fractional Ownership */}
                     <div className="relative group">
-                      <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-8 border border-slate-700/50 hover:border-blue-500/30 transition-all duration-500 backdrop-blur-sm hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-2">
+                      <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-4 md:p-8 border border-slate-700/50 hover:border-blue-500/30 transition-all duration-500 backdrop-blur-sm hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-2">
                         {/* Background glow */}
                         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                         
                         {/* Icon */}
-                        <div className="relative mb-6 flex justify-center">
-                          <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center group-hover:shadow-lg group-hover:shadow-blue-500/40 transition-all duration-300 group-hover:scale-110">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="relative mb-4 md:mb-6 flex justify-center">
+                          <div className="h-12 w-12 md:h-16 md:w-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center group-hover:shadow-lg group-hover:shadow-blue-500/40 transition-all duration-300 group-hover:scale-110">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 md:h-8 md:w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
                             </svg>
                           </div>
@@ -450,11 +450,11 @@ export default function ClientPage() {
                         
                         {/* Content */}
                         <div className="relative z-10 text-center">
-                          <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-blue-300 transition-colors duration-300">
+                          <h3 className="text-xl md:text-2xl font-bold text-white mb-4 group-hover:text-blue-300 transition-colors duration-300">
                             Fractional Ownership
                           </h3>
                           <div className="w-12 h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 mx-auto mb-4 opacity-50 group-hover:opacity-100 transition-opacity duration-300"></div>
-                          <p className="text-gray-300 leading-relaxed group-hover:text-gray-200 transition-colors duration-300">
+                          <p className="text-sm md:text-base text-gray-300 leading-relaxed group-hover:text-gray-200 transition-colors duration-300">
                             Convert domain names into fungible tokens that can be traded on open markets, unlocking value and liquidity.
                           </p>
                         </div>
@@ -466,14 +466,14 @@ export default function ClientPage() {
 
                     {/* Liquidity Pools */}
                     <div className="relative group">
-                      <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-8 border border-slate-700/50 hover:border-teal-500/30 transition-all duration-500 backdrop-blur-sm hover:shadow-xl hover:shadow-teal-500/10 hover:-translate-y-2">
+                      <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-4 md:p-8 border border-slate-700/50 hover:border-teal-500/30 transition-all duration-500 backdrop-blur-sm hover:shadow-xl hover:shadow-teal-500/10 hover:-translate-y-2">
                         {/* Background glow */}
                         <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-emerald-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                         
                         {/* Icon */}
-                        <div className="relative mb-6 flex justify-center">
-                          <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center group-hover:shadow-lg group-hover:shadow-teal-500/40 transition-all duration-300 group-hover:scale-110">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="relative mb-4 md:mb-6 flex justify-center">
+                          <div className="h-12 w-12 md:h-16 md:w-16 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center group-hover:shadow-lg group-hover:shadow-teal-500/40 transition-all duration-300 group-hover:scale-110">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 md:h-8 md:w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                           </div>
@@ -482,11 +482,11 @@ export default function ClientPage() {
                         
                         {/* Content */}
                         <div className="relative z-10 text-center">
-                          <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-teal-300 transition-colors duration-300">
+                          <h3 className="text-xl md:text-2xl font-bold text-white mb-4 group-hover:text-teal-300 transition-colors duration-300">
                             Liquidity Pools
                           </h3>
                           <div className="w-12 h-0.5 bg-gradient-to-r from-teal-400 to-emerald-400 mx-auto mb-4 opacity-50 group-hover:opacity-100 transition-opacity duration-300"></div>
-                          <p className="text-gray-300 leading-relaxed group-hover:text-gray-200 transition-colors duration-300">
+                          <p className="text-sm md:text-base text-gray-300 leading-relaxed group-hover:text-gray-200 transition-colors duration-300">
                             Automatic market making ensures ongoing price discovery and instant liquidity for domain token traders.
                           </p>
                         </div>
@@ -498,14 +498,14 @@ export default function ClientPage() {
 
                     {/* Subdomain Utility */}
                     <div className="relative group">
-                      <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-8 border border-slate-700/50 hover:border-purple-500/30 transition-all duration-500 backdrop-blur-sm hover:shadow-xl hover:shadow-purple-500/10 hover:-translate-y-2">
+                      <div className="relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-4 md:p-8 border border-slate-700/50 hover:border-purple-500/30 transition-all duration-500 backdrop-blur-sm hover:shadow-xl hover:shadow-purple-500/10 hover:-translate-y-2">
                         {/* Background glow */}
                         <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                         
                         {/* Icon */}
-                        <div className="relative mb-6 flex justify-center">
-                          <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center group-hover:shadow-lg group-hover:shadow-purple-500/40 transition-all duration-300 group-hover:scale-110">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="relative mb-4 md:mb-6 flex justify-center">
+                          <div className="h-12 w-12 md:h-16 md:w-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center group-hover:shadow-lg group-hover:shadow-purple-500/40 transition-all duration-300 group-hover:scale-110">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 md:h-8 md:w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                           </div>
@@ -514,11 +514,11 @@ export default function ClientPage() {
                         
                         {/* Content */}
                         <div className="relative z-10 text-center">
-                          <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-purple-300 transition-colors duration-300">
+                          <h3 className="text-xl md:text-2xl font-bold text-white mb-4 group-hover:text-purple-300 transition-colors duration-300">
                             Subdomain Utility
                           </h3>
                           <div className="w-12 h-0.5 bg-gradient-to-r from-purple-400 to-pink-400 mx-auto mb-4 opacity-50 group-hover:opacity-100 transition-opacity duration-300"></div>
-                          <p className="text-gray-300 leading-relaxed group-hover:text-gray-200 transition-colors duration-300">
+                          <p className="text-sm md:text-base text-gray-300 leading-relaxed group-hover:text-gray-200 transition-colors duration-300">
                             Token holders can participate in governance, earning revenue from subdomain registrations and usage.
                           </p>
                         </div>
