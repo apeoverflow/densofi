@@ -244,7 +244,7 @@ export default function ClientPage() {
                             </h3>
                             <div className="w-12 h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 mx-auto mb-4 opacity-50 group-hover:opacity-100 transition-opacity duration-300"></div>
                             <p className="text-sm md:text-base text-gray-300 leading-relaxed group-hover:text-gray-200 transition-colors duration-300">
-                              Use ENS or DNS TXT records to prove ownership, then mint both NFT representation and fractional ERC20 tokens of your domain.
+                              Use DNS TXT records to prove ownership, then mint both NFT representation and fractional ERC20 tokens of your domain.
                             </p>
                           </div>
                           
