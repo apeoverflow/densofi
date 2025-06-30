@@ -290,7 +290,7 @@ export default function ClientPage() {
                           <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                           
                           {/* Step number */}
-                          <div className="relative  flex justify-center">
+                          <div className="relative md:mb-6 flex justify-center">
                             <div className="relative">
                               <AnimatedNumberCircle number="3" color="#8B5CF6" size={1} randomSeed={0.9} />
                               <div className="absolute inset-0 w-12 h-12 md:w-20 md:h-20 mx-auto bg-gradient-to-r from-purple-500/15 to-pink-500/15 rounded-full blur-xl -z-10 group-hover:from-purple-500/25 group-hover:to-pink-500/25 transition-all duration-500"></div>
