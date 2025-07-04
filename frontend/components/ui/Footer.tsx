@@ -36,8 +36,9 @@ export default function Footer() {
               <div>
                 <h4 className="font-medium text-white mb-4">Connect</h4>
                 <div className="space-y-2">
-                  <a href="#" className="block text-gray-400 hover:text-white">Telegram</a>
-                  <a href="#" className="block text-gray-400 hover:text-white">Twitter</a>
+                  <a href="https://t.me/+H5Z6_hPdJao5MWY5" className="block text-gray-400 hover:text-white">Telegram</a>
+                  <a href="https://twitter.com/densofinance" className="block text-gray-400 hover:text-white">Twitter</a>
+                  <a href="https://discord.gg/juhHmAw4" className="block text-gray-400 hover:text-white">Discord</a>
                 </div>
               </div>
             </div>
