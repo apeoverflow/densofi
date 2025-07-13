@@ -20,7 +20,7 @@ Domain names are a growing $2.4 Billion dollar RWA (Real World Asset) market, bu
 2. **NFT Minting** - Domain ownership is represented as ERC1155 NFTs
 3. **Token Creation** - Domain NFTs can be converted to Superchain ERC20 tokens (1M supply)
 4. **Launchpad Mechanics** - Tokens use bonding curve pricing until market cap threshold
-5. **Uniswap V3 Launch** - Upon reaching threshold, liquidity is deployed to Uniswap V3
+5. **PunchSwap V3 Launch** - Upon reaching threshold, liquidity is deployed to PunchSwap V3
 6. **Fee Collection** - Domain owners collect trading fees through dedicated vaults
 7. **Subdomain Rights** - Token holders with 5%+ can register valuable subdomains
 
