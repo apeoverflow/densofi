@@ -1,4 +1,4 @@
-# Densofi 
+# Densofi <img src="https://raw.githubusercontent.com/apeoverflow/densofi/refs/heads/main/frontend/public/denso-pixel.png" height="50px"/>
 
 🌐 **Live Demo:** https://densofi.com
 
