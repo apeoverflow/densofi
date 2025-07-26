@@ -260,7 +260,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Contact
 
 📧 **Email:** chimera_defi@protonmail.com  
-🌐 **Website:** https://densofi.vercel.app  
+🌐 **Website:** [densofi.com](https://www.densofi.com/)
 🐦 **Twitter:** [@DensoFi](https://twitter.com/DensoFi)  
 💬 **Discord:** [Join our community](https://discord.gg/densofi)
 
