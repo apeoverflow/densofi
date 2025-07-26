@@ -94,7 +94,7 @@ Launchpad:           0x9AFDC6EcC6DB0176102f9E7EAA104E899b2Dc833
    tokenMinter.createTokenFromNFT(tokenId, false); // false = send to launchpad
    ```
 
-4. **Launch on Uniswap**
+4. **Launch on PunchSwap**
    ```solidity
    // After market cap threshold reached
    launchpad.launchToken(tokenAddress);
@@ -115,9 +115,9 @@ Launchpad:           0x9AFDC6EcC6DB0176102f9E7EAA104E899b2Dc833
    launchpad.sellTokens(tokenAddress, tokenAmount, minEthOut);
    ```
 
-3. **Trade on Uniswap** (Post-Launch)
+3. **Trade on PunchSwap** (Post-Launch)
    ```solidity
-   // Once launched, tokens trade on Uniswap V3
+   // Once launched, tokens trade on PunchSwap V3
    // Standard DEX trading applies
    ```
 
@@ -205,14 +205,14 @@ genhtml lcov.info -o coverage/
 
 ### 🔄 Bonding Curve Mechanics
 - **Dynamic Pricing** - Token price increases with each purchase
-- **Market Cap Threshold** - $75,000 USD triggers Uniswap launch
+- **Market Cap Threshold** - $75,000 USD triggers PunchSwap launch
 - **Sell Penalty** - Configurable penalty (0-10%) to discourage dumping
 
 ### 🏦 Fee Structure
 - **Creation Fee** - $1 USD equivalent to create tokens
 - **Transaction Fee** - 1% on all trades
-- **Launch Fee** - 3% when moving to Uniswap
-- **Trading Fees** - 0.3% Uniswap V3 fees collected by domain owners
+- **Launch Fee** - 3% when moving to PunchSwap
+- **Trading Fees** - 0.3% PunchSwap V3 fees collected by domain owners
 
 ### 🔗 Cross-Chain Support
 - **Superchain ERC20** - Native cross-chain token standard
