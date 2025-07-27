@@ -141,7 +141,7 @@ router.get('/status', (req, res) => {
  * Trigger manual processing of pending events
  * Requires API key authentication
  */
-router.post('/process-pending', requireApiKey, async (req: AuthenticatedRequest, res) => {
+router.post('/debug/process-pending', requireApiKey, async (req: AuthenticatedRequest, res) => {
   try {
     await DomainService.processPendingRegistrations();
     await DomainService.processPendingOwnershipUpdates();
@@ -209,7 +209,7 @@ router.get('/domains/:name/:walletAddress/verify', requireWalletAuth, async (req
  * Get detailed event listener status
  * Requires API key authentication
  */
-router.get('/event-listeners/status', requireApiKey, async (req: AuthenticatedRequest, res) => {
+router.get('/debug/event-listeners/status', requireApiKey, async (req: AuthenticatedRequest, res) => {
   try {
     const status = {
       domainEventListener: {
@@ -235,80 +235,120 @@ router.get('/event-listeners/status', requireApiKey, async (req: AuthenticatedRe
   }
 });
 
-/**
- * Debug endpoint to check wallet authentication status
- * Requires wallet address in X-Wallet-Address header
- */
-router.get('/debug/wallet-auth', (req, res) => {
-  try {
-    const walletAddress = req.headers['x-wallet-address'] as string;
-    const authHeader = req.headers.authorization;
-    
-    const debugInfo = {
-      providedWalletAddress: walletAddress,
-      normalizedWalletAddress: walletAddress ? walletAddress.toLowerCase() : null,
-      authorizationHeader: authHeader ? authHeader.substring(0, 20) + '...' : null,
-      ipAddress: req.ip || req.connection.remoteAddress || 'unknown'
-    };
-
-    if (!walletAddress) {
-      return res.json({
-        success: false,
-        debug: debugInfo,
-        error: 'No X-Wallet-Address header provided'
-      });
-    }
-
-    const walletInfo = walletAuthService.getWalletInfo(walletAddress);
-    
-    if (!walletInfo) {
-      // Let's also check all stored wallets for debugging
-      const allStats = walletAuthService.getAdminStats();
-      return res.json({
-        success: false,
-        debug: {
-          ...debugInfo,
-          walletNotFound: true,
-          totalStoredWallets: allStats.totalWallets,
-          storedWalletsPreview: allStats.topWallets.slice(0, 3).map(w => ({
-            address: w.walletAddress,
-            lastSeen: w.lastSeen
-          }))
-        },
-        error: 'Wallet not found in authenticated registry'
-      });
-    }
-
-    // Check authentication freshness
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const isAuthValid = walletInfo.lastSeen >= twentyFourHoursAgo;
-
-    return res.json({
-      success: true,
-      debug: debugInfo,
-      walletInfo: {
-        walletAddress: walletInfo.walletAddress,
-        lastSeen: walletInfo.lastSeen,
-        firstSeen: walletInfo.firstSeen,
-        signInCount: walletInfo.signInCount,
-        ipCount: walletInfo.ipAddresses.size,
-        isAuthValid,
-        timeSinceLastSeen: Date.now() - walletInfo.lastSeen.getTime()
-      }
-    });
-  } catch (error) {
-    logger.error('Debug wallet auth error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Debug endpoint error'
-    });
-  }
-});
+// Debug routes have been moved to debug-routes.ts
+// These routes are commented out but kept for reference
+// /**
+//  * Get service connection status
+//  */
+// router.get('/status', (req, res) => {
+//   try {
+//     const status = ConnectionManager.getStatus();
+//     res.json({
+//       success: true,
+//       data: status
+//     });
+//   } catch (error) {
+//     logger.error('Error getting service status:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: 'Failed to get service status'
+//     });
+//   }
+// });
+// 
+// /**
+//  * Trigger manual processing of pending events
+//  * Requires API key authentication
+//  */
+// router.post('/debug/process-pending', requireApiKey, async (req: AuthenticatedRequest, res) => {
+//   try {
+//     await DomainService.processPendingRegistrations();
+//     await DomainService.processPendingOwnershipUpdates();
+//     
+//     const responseMessage = ENV.ENABLE_EVENT_LISTENERS 
+//       ? 'Pending events processed successfully'
+//       : 'Pending events processed successfully (Note: Event listeners are disabled - events must be processed manually)';
+//     
+//     res.json({
+//       success: true,
+//       message: responseMessage,
+//       eventListenersEnabled: ENV.ENABLE_EVENT_LISTENERS
+//     });
+//   } catch (error) {
+//     logger.error('Error processing pending events:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: 'Failed to process pending events'
+//     });
+//   }
+// });
+// 
+// /**
+//  * Debug endpoint to check wallet authentication status
+//  * Requires wallet address in X-Wallet-Address header
+//  */
+// router.get('/debug/wallet-auth', (req, res) => {
+//   try {
+//     const walletAddress = req.headers['x-wallet-address'] as string;
+//     const authHeader = req.headers.authorization;
+//     
+//     const debugInfo = {
+//       providedWalletAddress: walletAddress,
+//       normalizedWalletAddress: walletAddress ? walletAddress.toLowerCase() : null,
+//       authorizationHeader: authHeader ? authHeader.substring(0, 20) + '...' : null,
+//       ipAddress: req.ip || req.connection.remoteAddress || 'unknown'
+//     };
+// 
+//     if (!walletAddress) {
+//       return res.json({
+//         success: false,
+//         debug: debugInfo,
+//         error: 'No X-Wallet-Address header provided'
+//       });
+//     }
+// 
+//     const walletInfo = walletAuthService.getWalletInfo(walletAddress);
+//     
+//     if (!walletInfo) {
+//       // Let's also check all stored wallets for debugging
+//       const allStats = walletAuthService.getAdminStats();
+//       return res.json({
+//         success: false,
+//         debug: {
+//           ...debugInfo,
+//           walletNotFound: true,
+//           totalStoredWallets: allStats.totalWallets,
+//           storedWalletsPreview: allStats.topWallets.slice(0, 3).map(w => ({
+//             address: w.walletAddress,
+//             lastSeen: w.lastSeen
+//           }))
+//         },
+//         error: 'Wallet not found in authenticated registry'
+//       });
+//     }
+// 
+//     // Check authentication freshness
+//     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+//     const isAuthValid = walletInfo.lastSeen >= twentyFourHoursAgo;
+// 
+//     return res.json({
+//       success: true,
+//       debug: debugInfo,
+//       walletInfo: {
+//         walletAddress: walletInfo.walletAddress,
+//         lastSeen: walletInfo.lastSeen,
+//         firstSeen: walletInfo.firstSeen,
+//         signInCount: walletInfo.signInCount,
+//         ipCount: walletInfo.ipAddresses.size,
+//         isAuthValid,
+//         timeSinceLastSeen: Date.now() - walletInfo.lastSeen.getTime()
+//       }
+//     });
+//   } catch (error) {
+//     logger.error('Debug wallet auth error:', error);
+//     res.status(500).json({
 
 // Auth routes have been moved to auth-routes.ts
-// /**
-//  * Check authentication status
-//  * Uses optional authentication - will show if authenticated or not
 //  */
 // router.get('/auth/status', optionalApiKey, (req: WalletAuthenticatedRequest, res) => {
 //   try {

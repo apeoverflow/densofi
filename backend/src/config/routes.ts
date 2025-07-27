@@ -3,6 +3,11 @@ export const ROUTES = {
   HEALTH: '/health',
   STATUS: '/api/status',
 
+  // Debug Routes
+  DEBUG_STATUS: '/api/debug/status',
+  DEBUG_EVENT_LISTENERS: '/api/debug/event-listeners/status',
+  DEBUG_PROCESS_PENDING: '/api/debug/process-pending',
+
   // Domain Management
   DOMAINS: '/api/domains',
   DOMAIN_BY_NAME: '/api/domains/:name',
@@ -25,13 +30,20 @@ export const ROUTES = {
   GAME_LEADERBOARD: '/api/game/leaderboard',
   GAME_STATS: '/api/game/stats',
   GAME_STATS_BY_ADDRESS: '/api/game/stats/:address',
-  GAME_HISTORY: '/api/game/history/:address'
+  GAME_HISTORY: '/api/game/history/:address',
+  DEBUG_GAME_STATS: '/api/debug/game/stats',
+  DEBUG_GAME_HISTORY: '/api/debug/game/history/:address'
 } as const;
 
 export const ROUTE_DESCRIPTIONS = {
   // Health and Status
   [ROUTES.HEALTH]: 'Health check',
   [ROUTES.STATUS]: 'Service connection status',
+
+  // Debug Routes
+  [ROUTES.DEBUG_STATUS]: 'Debug service status',
+  [ROUTES.DEBUG_EVENT_LISTENERS]: 'Get event listener status',
+  [ROUTES.DEBUG_PROCESS_PENDING]: 'Manually process pending events (debug)',
 
   // Domain Management
   [ROUTES.DOMAINS]: 'Get all registered domains',
