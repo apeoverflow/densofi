@@ -12,6 +12,7 @@ import { walletAuthService } from '../services/wallet-auth-service.js';
 
 const router = express.Router();
 
+// Active domain routes
 /**
  * Get all domains
  */
@@ -119,52 +120,6 @@ router.get('/nfts/:address', async (req, res) => {
 });
 
 /**
- * Get service connection status
- */
-router.get('/status', (req, res) => {
-  try {
-    const status = ConnectionManager.getStatus();
-    res.json({
-      success: true,
-      data: status
-    });
-  } catch (error) {
-    logger.error('Error getting service status:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get service status'
-    });
-  }
-});
-
-/**
- * Trigger manual processing of pending events
- * Requires API key authentication
- */
-router.post('/debug/process-pending', requireApiKey, async (req: AuthenticatedRequest, res) => {
-  try {
-    await DomainService.processPendingRegistrations();
-    await DomainService.processPendingOwnershipUpdates();
-    
-    const responseMessage = ENV.ENABLE_EVENT_LISTENERS 
-      ? 'Pending events processed successfully'
-      : 'Pending events processed successfully (Note: Event listeners are disabled - events must be processed manually)';
-    
-    res.json({
-      success: true,
-      message: responseMessage,
-      eventListenersEnabled: ENV.ENABLE_EVENT_LISTENERS
-    });
-  } catch (error) {
-    logger.error('Error processing pending events:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to process pending events'
-    });
-  }
-});
-
-/**
  * Verify domain ownership via DNS
  * Requires wallet authentication - wallet must match the one in the URL
  */ 
@@ -205,36 +160,83 @@ router.get('/domains/:name/:walletAddress/verify', requireWalletAuth, async (req
   }
 });
 
-/**
- * Get detailed event listener status
- * Requires API key authentication
- */
-router.get('/debug/event-listeners/status', requireApiKey, async (req: AuthenticatedRequest, res) => {
-  try {
-    const status = {
-      domainEventListener: {
-        isListening: domainEventListener.getStatus(),
-        lastActivity: 'unknown' // Could be enhanced to track last event time
-      },
-      nftMinterEventListener: {
-        isListening: nftMinterEventListener.getStatus(),
-        lastActivity: 'unknown' // Could be enhanced to track last event time
-      }
-    };
-    
-    res.json({
-      success: true,
-      data: status
-    });
-  } catch (error) {
-    logger.error('Error getting event listener status:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get event listener status'
-    });
-  }
-});
-
+// Commented out routes (moved to debug-routes.ts)
+// /**
+//  * Get service connection status
+//  */
+// router.get('/status', (req, res) => {
+//   try {
+//     const status = ConnectionManager.getStatus();
+//     res.json({
+//       success: true,
+//       data: status
+//     });
+//   } catch (error) {
+//     logger.error('Error getting service status:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: 'Failed to get service status'
+//     });
+//   }
+// });
+// 
+// /**
+//  * Trigger manual processing of pending events
+//  * Requires API key authentication
+//  */
+// router.post('/debug/process-pending', requireApiKey, async (req: AuthenticatedRequest, res) => {
+//   try {
+//     await DomainService.processPendingRegistrations();
+//     await DomainService.processPendingOwnershipUpdates();
+//     
+//     const responseMessage = ENV.ENABLE_EVENT_LISTENERS 
+//       ? 'Pending events processed successfully'
+//       : 'Pending events processed successfully (Note: Event listeners are disabled - events must be processed manually)';
+//     
+//     res.json({
+//       success: true,
+//       message: responseMessage,
+//       eventListenersEnabled: ENV.ENABLE_EVENT_LISTENERS
+//     });
+//   } catch (error) {
+//     logger.error('Error processing pending events:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: 'Failed to process pending events'
+//     });
+//   }
+// });
+// 
+// /**
+//  * Get detailed event listener status
+//  * Requires API key authentication
+//  */
+// router.get('/debug/event-listeners/status', requireApiKey, async (req: AuthenticatedRequest, res) => {
+//   try {
+//     const status = {
+//       domainEventListener: {
+//         isListening: domainEventListener.getStatus(),
+//         lastActivity: 'unknown' // Could be enhanced to track last event time
+//       },
+//       nftMinterEventListener: {
+//         isListening: nftMinterEventListener.getStatus(),
+//         lastActivity: 'unknown' // Could be enhanced to track last event time
+//       }
+//     };
+//     
+//     res.json({
+//       success: true,
+//       data: status
+//     });
+//   } catch (error) {
+//     logger.error('Error getting event listener status:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: 'Failed to get event listener status'
+//     });
+//   }
+// });
+// 
 // Debug routes have been moved to debug-routes.ts
 // These routes are commented out but kept for reference
 // /**
@@ -509,27 +511,6 @@ router.get('/debug/event-listeners/status', requireApiKey, async (req: Authentic
 // });
 
 // Admin routes have been moved to admin-routes.ts
-// /**
-//  * Get wallet authentication statistics (Admin only)
-//  * Requires API key authentication
-//  */
-// router.get('/admin/wallet-auth-stats', requireApiKey, (req: AuthenticatedRequest, res) => {
-//   try {
-//     const stats = walletAuthService.getAdminStats();
-//     
-//     res.json({
-//       success: true,
-//       data: stats
-//     });
-//   } catch (error) {
-//     logger.error('Error fetching admin wallet auth stats:', error);
-//     res.status(500).json({
-//       success: false,
-//       error: 'Failed to fetch wallet authentication statistics'
-//     });
-//   }
-// });
-// 
 // /**
 //  * Get all verified wallets with pagination (Admin only)
 //  * Requires API key authentication
