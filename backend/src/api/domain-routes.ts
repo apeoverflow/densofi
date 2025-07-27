@@ -138,168 +138,6 @@ router.get('/status', (req, res) => {
 });
 
 /**
- * Check authentication status
- * Uses optional authentication - will show if authenticated or not
- */
-router.get('/auth/status', optionalApiKey, (req: WalletAuthenticatedRequest, res) => {
-  try {
-    res.json({
-      success: true,
-      data: {
-        isAuthenticated: !!req.isAdminAuthenticated,
-        walletAddress: req.wallet?.walletAddress || null,
-        isAdminAuthenticated: !!req.isAdminAuthenticated
-      }
-    });
-  } catch (error) {
-    logger.error('Error checking auth status:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to check authentication status'
-    });
-  }
-});
-
-/**
- * Request message to sign for wallet authentication
- */
-router.post('/auth/request-message', (req, res) => {
-  try {
-    const authData = walletAuthService.generateAuthMessage();
-    
-    res.json({
-      success: true,
-      data: authData
-    });
-  } catch (error) {
-    logger.error('Error generating auth message:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to generate authentication message'
-    });
-  }
-});
-
-/**
- * Verify wallet signature and authenticate user
- */
-router.post('/auth/verify-signature', async (req, res) => {
-  try {
-    const { nonce, signature, walletAddress } = req.body;
-    
-    if (!nonce || !signature || !walletAddress) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing required fields: nonce, signature, walletAddress'
-      });
-    }
-
-    const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
-    const userAgent = req.get('User-Agent');
-
-    const authResult = await walletAuthService.verifySignature(
-      { nonce, signature, walletAddress },
-      ipAddress,
-      userAgent
-    );
-
-    res.json({
-      success: true,
-      message: 'Wallet authenticated successfully',
-      data: authResult
-    });
-  } catch (error) {
-    logger.error('Error verifying wallet signature:', error);
-    res.status(400).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to verify signature'
-    });
-  }
-});
-
-/**
- * Get wallet authentication information
- */
-router.get('/auth/wallet/:address', (req, res) => {
-  try {
-    const { address } = req.params;
-    const walletInfo = walletAuthService.getWalletInfo(address);
-    
-    if (!walletInfo) {
-      return res.status(404).json({
-        success: false,
-        error: 'Wallet not found or never authenticated'
-      });
-    }
-
-    // Convert Set to Array for JSON response
-    const responseData = {
-      ...walletInfo,
-      ipAddresses: Array.from(walletInfo.ipAddresses)
-    };
-
-    res.json({
-      success: true,
-      data: responseData
-    });
-  } catch (error) {
-    logger.error('Error fetching wallet info:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch wallet information'
-    });
-  }
-});
-
-/**
- * Get wallets associated with an IP address
- */
-router.get('/auth/ip/:ip/wallets', (req, res) => {
-  try {
-    const { ip } = req.params;
-    const wallets = walletAuthService.getWalletsForIP(ip);
-    
-    res.json({
-      success: true,
-      data: {
-        ipAddress: ip,
-        wallets,
-        count: wallets.length
-      }
-    });
-  } catch (error) {
-    logger.error('Error fetching IP wallet associations:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch IP wallet associations'
-    });
-  }
-});
-
-/**
- * Get authentication statistics
- */
-router.get('/auth/stats', (req, res) => {
-  try {
-    const stats = walletAuthService.getAuthStats();
-    
-    res.json({
-      success: true,
-      data: {
-        ...stats,
-        currentIP: req.ip || req.connection.remoteAddress || 'unknown'
-      }
-    });
-  } catch (error) {
-    logger.error('Error fetching auth stats:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch authentication statistics'
-    });
-  }
-});
-
-/**
  * Trigger manual processing of pending events
  * Requires API key authentication
  */
@@ -397,6 +235,239 @@ router.get('/event-listeners/status', requireApiKey, async (req: AuthenticatedRe
   }
 });
 
+/**
+ * Debug endpoint to check wallet authentication status
+ * Requires wallet address in X-Wallet-Address header
+ */
+router.get('/debug/wallet-auth', (req, res) => {
+  try {
+    const walletAddress = req.headers['x-wallet-address'] as string;
+    const authHeader = req.headers.authorization;
+    
+    const debugInfo = {
+      providedWalletAddress: walletAddress,
+      normalizedWalletAddress: walletAddress ? walletAddress.toLowerCase() : null,
+      authorizationHeader: authHeader ? authHeader.substring(0, 20) + '...' : null,
+      ipAddress: req.ip || req.connection.remoteAddress || 'unknown'
+    };
+
+    if (!walletAddress) {
+      return res.json({
+        success: false,
+        debug: debugInfo,
+        error: 'No X-Wallet-Address header provided'
+      });
+    }
+
+    const walletInfo = walletAuthService.getWalletInfo(walletAddress);
+    
+    if (!walletInfo) {
+      // Let's also check all stored wallets for debugging
+      const allStats = walletAuthService.getAdminStats();
+      return res.json({
+        success: false,
+        debug: {
+          ...debugInfo,
+          walletNotFound: true,
+          totalStoredWallets: allStats.totalWallets,
+          storedWalletsPreview: allStats.topWallets.slice(0, 3).map(w => ({
+            address: w.walletAddress,
+            lastSeen: w.lastSeen
+          }))
+        },
+        error: 'Wallet not found in authenticated registry'
+      });
+    }
+
+    // Check authentication freshness
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const isAuthValid = walletInfo.lastSeen >= twentyFourHoursAgo;
+
+    return res.json({
+      success: true,
+      debug: debugInfo,
+      walletInfo: {
+        walletAddress: walletInfo.walletAddress,
+        lastSeen: walletInfo.lastSeen,
+        firstSeen: walletInfo.firstSeen,
+        signInCount: walletInfo.signInCount,
+        ipCount: walletInfo.ipAddresses.size,
+        isAuthValid,
+        timeSinceLastSeen: Date.now() - walletInfo.lastSeen.getTime()
+      }
+    });
+  } catch (error) {
+    logger.error('Debug wallet auth error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Debug endpoint error'
+    });
+  }
+});
+
+// Auth routes have been moved to auth-routes.ts
+// /**
+//  * Check authentication status
+//  * Uses optional authentication - will show if authenticated or not
+//  */
+// router.get('/auth/status', optionalApiKey, (req: WalletAuthenticatedRequest, res) => {
+//   try {
+//     res.json({
+//       success: true,
+//       data: {
+//         isAuthenticated: !!req.isAdminAuthenticated,
+//         walletAddress: req.wallet?.walletAddress || null,
+//         isAdminAuthenticated: !!req.isAdminAuthenticated
+//       }
+//     });
+//   } catch (error) {
+//     logger.error('Error checking auth status:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: 'Failed to check authentication status'
+//     });
+//   }
+// });
+// 
+// /**
+//  * Request message to sign for wallet authentication
+//  */
+// router.post('/auth/request-message', (req, res) => {
+//   try {
+//     const authData = walletAuthService.generateAuthMessage();
+//     
+//     res.json({
+//       success: true,
+//       data: authData
+//     });
+//   } catch (error) {
+//     logger.error('Error generating auth message:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: 'Failed to generate authentication message'
+//     });
+//   }
+// });
+// 
+// /**
+//  * Verify wallet signature and authenticate user
+//  */
+// router.post('/auth/verify-signature', async (req, res) => {
+//   try {
+//     const { nonce, signature, walletAddress } = req.body;
+//     
+//     if (!nonce || !signature || !walletAddress) {
+//       return res.status(400).json({
+//         success: false,
+//         error: 'Missing required fields: nonce, signature, walletAddress'
+//       });
+//     }
+// 
+//     const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+//     const userAgent = req.get('User-Agent');
+// 
+//     const authResult = await walletAuthService.verifySignature(
+//       { nonce, signature, walletAddress },
+//       ipAddress,
+//       userAgent
+//     );
+// 
+//     res.json({
+//       success: true,
+//       message: 'Wallet authenticated successfully',
+//       data: authResult
+//     });
+//   } catch (error) {
+//     logger.error('Error verifying wallet signature:', error);
+//     res.status(400).json({
+//       success: false,
+//       error: error instanceof Error ? error.message : 'Failed to verify signature'
+//     });
+//   }
+// });
+// 
+// /**
+//  * Get wallet authentication information
+//  */
+// router.get('/auth/wallet/:address', (req, res) => {
+//   try {
+//     const { address } = req.params;
+//     const walletInfo = walletAuthService.getWalletInfo(address);
+//     
+//     if (!walletInfo) {
+//       return res.status(404).json({
+//         success: false,
+//         error: 'Wallet not found or never authenticated'
+//       });
+//     }
+// 
+//     // Convert Set to Array for JSON response
+//     const responseData = {
+//       ...walletInfo,
+//       ipAddresses: Array.from(walletInfo.ipAddresses)
+//     };
+// 
+//     res.json({
+//       success: true,
+//       data: responseData
+//     });
+//   } catch (error) {
+//     logger.error('Error fetching wallet info:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: 'Failed to fetch wallet information'
+//     });
+//   }
+// });
+// 
+// /**
+//  * Get wallets associated with an IP address
+//  */
+// router.get('/auth/ip/:ip/wallets', (req, res) => {
+//   try {
+//     const { ip } = req.params;
+//     const wallets = walletAuthService.getWalletsForIP(ip);
+//     
+//     res.json({
+//       success: true,
+//       data: {
+//         ipAddress: ip,
+//         wallets,
+//         count: wallets.length
+//       }
+//     });
+//   } catch (error) {
+//     logger.error('Error fetching IP wallet associations:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: 'Failed to fetch IP wallet associations'
+//     });
+//   }
+// });
+// 
+// /**
+//  * Get authentication statistics
+//  */
+// router.get('/auth/stats', (req, res) => {
+//   try {
+//     const stats = walletAuthService.getAuthStats();
+//     
+//     res.json({
+//       success: true,
+//       data: {
+//         ...stats,
+//         currentIP: req.ip || req.connection.remoteAddress || 'unknown'
+//       }
+//     });
+//   } catch (error) {
+//     logger.error('Error fetching auth stats:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: 'Failed to fetch authentication statistics'
+//     });
+//   }
+// });
+
 // Admin routes have been moved to admin-routes.ts
 // /**
 //  * Get wallet authentication statistics (Admin only)
@@ -482,76 +553,6 @@ router.get('/event-listeners/status', requireApiKey, async (req: AuthenticatedRe
 //     });
 //   }
 // });
-
-/**
- * Debug endpoint to check wallet authentication status
- * Requires wallet address in X-Wallet-Address header
- */
-router.get('/debug/wallet-auth', (req, res) => {
-  try {
-    const walletAddress = req.headers['x-wallet-address'] as string;
-    const authHeader = req.headers.authorization;
-    
-    const debugInfo = {
-      providedWalletAddress: walletAddress,
-      normalizedWalletAddress: walletAddress ? walletAddress.toLowerCase() : null,
-      authorizationHeader: authHeader ? authHeader.substring(0, 20) + '...' : null,
-      ipAddress: req.ip || req.connection.remoteAddress || 'unknown'
-    };
-
-    if (!walletAddress) {
-      return res.json({
-        success: false,
-        debug: debugInfo,
-        error: 'No X-Wallet-Address header provided'
-      });
-    }
-
-    const walletInfo = walletAuthService.getWalletInfo(walletAddress);
-    
-    if (!walletInfo) {
-      // Let's also check all stored wallets for debugging
-      const allStats = walletAuthService.getAdminStats();
-      return res.json({
-        success: false,
-        debug: {
-          ...debugInfo,
-          walletNotFound: true,
-          totalStoredWallets: allStats.totalWallets,
-          storedWalletsPreview: allStats.topWallets.slice(0, 3).map(w => ({
-            address: w.walletAddress,
-            lastSeen: w.lastSeen
-          }))
-        },
-        error: 'Wallet not found in authenticated registry'
-      });
-    }
-
-    // Check authentication freshness
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const isAuthValid = walletInfo.lastSeen >= twentyFourHoursAgo;
-
-    return res.json({
-      success: true,
-      debug: debugInfo,
-      walletInfo: {
-        walletAddress: walletInfo.walletAddress,
-        lastSeen: walletInfo.lastSeen,
-        firstSeen: walletInfo.firstSeen,
-        signInCount: walletInfo.signInCount,
-        ipCount: walletInfo.ipAddresses.size,
-        isAuthValid,
-        timeSinceLastSeen: Date.now() - walletInfo.lastSeen.getTime()
-      }
-    });
-  } catch (error) {
-    logger.error('Debug wallet auth error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Debug endpoint error'
-    });
-  }
-});
 
 /**
  * Submit game XP score

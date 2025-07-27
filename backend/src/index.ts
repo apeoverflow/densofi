@@ -2,6 +2,7 @@ import { logger } from './utils/logger.js';
 import { ConnectionManager } from './services/connection-manager.js';
 import { startServer } from './server.js';
 import { validateConfiguration, logConfiguration } from './utils/config-validator.js';
+import { ROUTE_DESCRIPTIONS } from './config/routes.js';
 
 async function main() {
   logger.info('🚀 Starting DensoFi Domain Registration Service...');
@@ -33,8 +34,12 @@ async function main() {
     logger.info('  POST /api/process-pending - Manually process pending events');
     logger.info('  GET  /api/domains/:name/:walletAddress/verify - Verify domain ownership via DNS');
     logger.info('  GET  /api/event-listeners/status - Get event listener status');
-    
-    
+    logger.info('');
+    Object.entries(ROUTE_DESCRIPTIONS).forEach(([path, description]) => {
+      const method = path.includes('/submit-xp') ? 'POST' : 'GET';
+      logger.info(`  ${method}  ${path} - ${description}`);
+    });
+    logger.info('');
     // Keep the process running
     process.stdin.resume();
 

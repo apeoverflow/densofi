@@ -2,8 +2,10 @@ import express from 'express';
 import { domainRoutes } from './api/domain-routes.js';
 import gameRoutes from './api/game-routes.js';
 import adminRoutes from './api/admin-routes.js';
+import authRoutes from './api/auth-routes.js';
 import { logger } from './utils/logger.js';
 import { ENV } from './config/env.js';
+import { ROUTE_DESCRIPTIONS } from './config/routes.js';
 
 export function createServer() {
   const app = express();
@@ -38,6 +40,7 @@ export function createServer() {
   app.use('/api', domainRoutes);
   app.use('/api/game', gameRoutes);
   app.use('/api/admin', adminRoutes);
+  app.use('/api/auth', authRoutes);
 
   // Health check endpoint
   app.get('/health', (req, res) => {
@@ -75,20 +78,10 @@ export function startServer() {
   const server = app.listen(port, () => {
     logger.info('');
   logger.info('Available endpoints:');
-  logger.info('  GET  /health - Health check');
-  logger.info('  GET  /api/status - Service connection status');
-  logger.info('  GET  /api/domains - Get all registered domains');
-  logger.info('  GET  /api/domains/:name - Get specific domain');
-  logger.info('  GET  /api/domains/:name/status - Check domain registration status');
-  logger.info('  GET  /api/nfts/:address - Get NFTs owned by address');
-  logger.info('  POST /api/process-pending - Manually process pending events');
-  logger.info('  GET  /api/domains/:name/:walletAddress/verify - Verify domain ownership via DNS');
-  logger.info('  GET  /api/event-listeners/status - Get event listener status');
-  logger.info('  POST /api/game/submit-xp - Submit game XP score');
-  logger.info('  GET  /api/game/leaderboard - Get player XP leaderboard');
-  logger.info('  GET  /api/game/stats - Get overall game statistics');
-  logger.info('  GET  /api/game/stats/:address - Get player statistics');
-  logger.info('  GET  /api/game/history/:address - Get player game history');
+  Object.entries(ROUTE_DESCRIPTIONS).forEach(([path, description]) => {
+    const method = path.includes('/submit-xp') ? 'POST' : 'GET';
+    logger.info(`  ${method}  ${path} - ${description}`);
+  });
   logger.info('');
   logger.info(`🌐 API server running on port ${port}`);
   });
