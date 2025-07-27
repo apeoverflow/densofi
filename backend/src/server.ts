@@ -1,6 +1,7 @@
 import express from 'express';
 import { domainRoutes } from './api/domain-routes.js';
 import gameRoutes from './api/game-routes.js';
+import adminRoutes from './api/admin-routes.js';
 import { logger } from './utils/logger.js';
 import { ENV } from './config/env.js';
 
@@ -36,6 +37,7 @@ export function createServer() {
   // API routes
   app.use('/api', domainRoutes);
   app.use('/api/game', gameRoutes);
+  app.use('/api/admin', adminRoutes);
 
   // Health check endpoint
   app.get('/health', (req, res) => {

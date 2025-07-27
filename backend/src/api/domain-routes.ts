@@ -5,10 +5,10 @@ import { domainEventListener } from '../services/domain-event-listener.js';
 import { nftMinterEventListener } from '../services/nft-minter-event-listener.js';
 import { NFTMinterService } from '../services/nft-minter-service.js';
 import { logger } from '../utils/logger.js';
-import { requireApiKey, optionalApiKey, AuthenticatedRequest } from '../middleware/auth.js';
-import { walletAuthService } from '../services/wallet-auth-service.js';
+import { optionalApiKey, requireApiKey, AuthenticatedRequest } from '../middleware/auth.js';
 import { requireWalletAuth, optionalWalletAuth, WalletAuthenticatedRequest } from '../middleware/wallet-auth.js';
 import { ENV } from '../config/env.js';
+import { walletAuthService } from '../services/wallet-auth-service.js';
 
 const router = express.Router();
 
@@ -141,13 +141,14 @@ router.get('/status', (req, res) => {
  * Check authentication status
  * Uses optional authentication - will show if authenticated or not
  */
-router.get('/auth/status', optionalApiKey, (req: AuthenticatedRequest, res) => {
+router.get('/auth/status', optionalApiKey, (req: WalletAuthenticatedRequest, res) => {
   try {
     res.json({
       success: true,
       data: {
-        authenticated: !!req.isAuthenticated,
-        message: req.isAuthenticated ? 'Valid API key provided' : 'No valid API key provided'
+        isAuthenticated: !!req.isAdminAuthenticated,
+        walletAddress: req.wallet?.walletAddress || null,
+        isAdminAuthenticated: !!req.isAdminAuthenticated
       }
     });
   } catch (error) {
@@ -344,7 +345,7 @@ router.get('/domains/:name/:walletAddress/verify', requireWalletAuth, async (req
         });
       }
     }
-    
+
     const isVerified = await DomainService.verifyDomainViaDns(name, walletAddress);
     res.status(200).json({
       success: true,
@@ -396,90 +397,91 @@ router.get('/event-listeners/status', requireApiKey, async (req: AuthenticatedRe
   }
 });
 
-/**
- * Get wallet authentication statistics (Admin only)
- * Requires API key authentication
- */
-router.get('/admin/wallet-auth-stats', requireApiKey, (req: AuthenticatedRequest, res) => {
-  try {
-    const stats = walletAuthService.getAdminStats();
-    
-    res.json({
-      success: true,
-      data: stats
-    });
-  } catch (error) {
-    logger.error('Error fetching admin wallet auth stats:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch wallet authentication statistics'
-    });
-  }
-});
+// Admin routes have been moved to admin-routes.ts
+// /**
+//  * Get wallet authentication statistics (Admin only)
+//  * Requires API key authentication
+//  */
+// router.get('/admin/wallet-auth-stats', requireApiKey, (req: AuthenticatedRequest, res) => {
+//   try {
+//     const stats = walletAuthService.getAdminStats();
+//     
+//     res.json({
+//       success: true,
+//       data: stats
+//     });
+//   } catch (error) {
+//     logger.error('Error fetching admin wallet auth stats:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: 'Failed to fetch wallet authentication statistics'
+//     });
+//   }
+// });
+// 
+// /**
+//  * Get all verified wallets with pagination (Admin only)
+//  * Requires API key authentication
+//  */
+// router.get('/admin/wallets', requireApiKey, (req: AuthenticatedRequest, res) => {
+//   try {
+//     const page = parseInt(req.query.page as string) || 1;
+//     const limit = parseInt(req.query.limit as string) || 50;
+//     const sortBy = req.query.sortBy as string || 'lastSeen';
+//     const order = (req.query.order as string) === 'asc' ? 'asc' : 'desc';
 
-/**
- * Get all verified wallets with pagination (Admin only)
- * Requires API key authentication
- */
-router.get('/admin/wallets', requireApiKey, (req: AuthenticatedRequest, res) => {
-  try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 50;
-    const sortBy = req.query.sortBy as string || 'lastSeen';
-    const order = (req.query.order as string) === 'asc' ? 'asc' : 'desc';
+//     const result = walletAuthService.getPaginatedWallets(page, limit, sortBy, order);
+//     
+//     res.json({
+//       success: true,
+//       data: result
+//     });
+//   } catch (error) {
+//     logger.error('Error fetching paginated wallets:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: 'Failed to fetch wallet list'
+//     });
+//   }
+// });
+// 
+// /**
+//  * Get detailed wallet information (Admin only)
+//  * Requires API key authentication
+//  */
+// router.get('/admin/wallets/:address', requireApiKey, (req: AuthenticatedRequest, res) => {
+//   try {
+//     const { address } = req.params;
+//     const walletInfo = walletAuthService.getWalletInfo(address);
+//     
+//     if (!walletInfo) {
+//       return res.status(404).json({
+//         success: false,
+//         error: 'Wallet not found or never authenticated'
+//       });
+//     }
 
-    const result = walletAuthService.getPaginatedWallets(page, limit, sortBy, order);
-    
-    res.json({
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    logger.error('Error fetching paginated wallets:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch wallet list'
-    });
-  }
-});
+//     // Convert Set to Array and add additional admin info
+//     const responseData = {
+//       ...walletInfo,
+//       ipAddresses: Array.from(walletInfo.ipAddresses),
+//       ipCount: walletInfo.ipAddresses.size,
+//       isRecent: new Date(Date.now() - 24 * 60 * 60 * 1000) < walletInfo.lastSeen,
+//       hasSuspiciousActivity: !!(walletInfo.suspiciousActivity && walletInfo.suspiciousActivity.length > 0)
+//     };
 
-/**
- * Get detailed wallet information (Admin only)
- * Requires API key authentication
- */
-router.get('/admin/wallets/:address', requireApiKey, (req: AuthenticatedRequest, res) => {
-  try {
-    const { address } = req.params;
-    const walletInfo = walletAuthService.getWalletInfo(address);
-    
-    if (!walletInfo) {
-      return res.status(404).json({
-        success: false,
-        error: 'Wallet not found or never authenticated'
-      });
-    }
-
-    // Convert Set to Array and add additional admin info
-    const responseData = {
-      ...walletInfo,
-      ipAddresses: Array.from(walletInfo.ipAddresses),
-      ipCount: walletInfo.ipAddresses.size,
-      isRecent: new Date(Date.now() - 24 * 60 * 60 * 1000) < walletInfo.lastSeen,
-      hasSuspiciousActivity: !!(walletInfo.suspiciousActivity && walletInfo.suspiciousActivity.length > 0)
-    };
-
-    res.json({
-      success: true,
-      data: responseData
-    });
-  } catch (error) {
-    logger.error('Error fetching admin wallet details:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch wallet details'
-    });
-  }
-});
+//     res.json({
+//       success: true,
+//       data: responseData
+//     });
+//   } catch (error) {
+//     logger.error('Error fetching admin wallet details:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: 'Failed to fetch wallet details'
+//     });
+//   }
+// });
 
 /**
  * Debug endpoint to check wallet authentication status
