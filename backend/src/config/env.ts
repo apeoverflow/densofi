@@ -8,6 +8,7 @@ export const ENV = {
 
   // Authentication
   ADMIN_API_KEY: process.env.ADMIN_API_KEY,
+  JWT_SECRET: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
 
   // MongoDB Configuration
   MONGO_URL: process.env.MONGO_URL,

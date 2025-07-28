@@ -327,34 +327,53 @@ router.post('/process-pending', requireAdminKey, async (req: AuthenticatedReques
 
 /**
  * Verify domain ownership via DNS
- * Requires wallet authentication - wallet must match the one in the URL
+ * Requires wallet authentication - uses JWT wallet address unless admin key provided
  */ 
 router.get('/domains/:name/:walletAddress/verify', requireWalletAuth, async (req: WalletAuthenticatedRequest, res) => {
   try {
     const { name, walletAddress } = req.params;
     
-    // If admin authenticated, allow access to any wallet verification
-    if (!req.isAdminAuthenticated) {
-      // For wallet auth, ensure the authenticated wallet matches the requested wallet
-      if (!req.wallet || req.wallet.walletAddress !== walletAddress.toLowerCase()) {
-        return res.status(403).json({
+    // Determine which wallet address to use for verification
+    let targetWalletAddress: string;
+    
+    if (req.isAdminAuthenticated) {
+      // Admin can verify any wallet address from URL parameter
+      targetWalletAddress = walletAddress;
+    } else {
+      // Regular users must use their JWT-authenticated wallet address
+      if (!req.walletAddress) {
+        return res.status(401).json({
           success: false,
-          error: 'Wallet address mismatch',
-          message: 'You can only verify domains for your authenticated wallet (or use admin API key)'
+          error: 'Wallet authentication failed',
+          message: 'No authenticated wallet address found in JWT token'
+        });
+      }
+      
+      // For security, ignore the URL parameter and use JWT wallet address
+      targetWalletAddress = req.walletAddress;
+      
+      // Optional: Log if URL param doesn't match JWT address (for debugging)
+      if (walletAddress.toLowerCase() !== req.walletAddress.toLowerCase()) {
+        logger.warn('Wallet address mismatch ignored - using JWT address', {
+          urlParam: walletAddress,
+          jwtAddress: req.walletAddress,
+          path: req.path,
+          ip: req.ip
         });
       }
     }
     
-    const isVerified = await DomainService.verifyDomainViaDns(name, walletAddress);
+    const isVerified = await DomainService.verifyDomainViaDns(name, targetWalletAddress);
     res.status(200).json({
       success: true,
       data: {
         domainName: name,
-        walletAddress,
+        walletAddress: targetWalletAddress,
         isVerified,
-        authenticatedWallet: req.wallet?.walletAddress || null,
+        authenticatedWallet: req.walletAddress || null,
         authType: req.isAdminAuthenticated ? 'admin' : 'wallet',
-        adminOverride: !!req.isAdminAuthenticated
+        adminOverride: !!req.isAdminAuthenticated,
+        ...(req.isAdminAuthenticated ? {} : { note: 'Used JWT wallet address for verification' })
       }
     });
   } catch (error) {
@@ -559,10 +578,10 @@ router.post('/game/submit-xp', adminKeyOrWalletAuth, async (req: WalletAuthentic
   try {
     const { score, gameType = 'dino-runner', difficulty = 'normal' } = req.body;
     
-    if (!req.wallet) {
+    if (!req.walletAddress || !req.isWalletAuthenticated) {
       return res.status(401).json({
         success: false,
-        error: 'Wallet authentication required'
+        error: 'Wallet authentication required - please provide valid JWT token'
       });
     }
     
@@ -573,7 +592,7 @@ router.post('/game/submit-xp', adminKeyOrWalletAuth, async (req: WalletAuthentic
       });
     }
 
-    const walletAddress = req.wallet.walletAddress;
+    const walletAddress = req.walletAddress;
     const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
     const userAgent = req.get('User-Agent');
 
@@ -674,7 +693,7 @@ router.get('/game/stats', async (req, res) => {
 router.get('/game/stats/:address?', adminKeyOrWalletAuth, async (req: WalletAuthenticatedRequest, res) => {
   try {
     const requestedAddress = req.params.address;
-    const authenticatedAddress = req.wallet?.walletAddress;
+    const authenticatedAddress = req.walletAddress; // Use JWT-derived wallet address
     const isAdmin = req.isAdminAuthenticated;
 
     // Determine which address to get stats for
@@ -751,7 +770,7 @@ router.get('/game/stats/:address?', adminKeyOrWalletAuth, async (req: WalletAuth
 router.get('/game/history/:address?', adminKeyOrWalletAuth, async (req: WalletAuthenticatedRequest, res) => {
   try {
     const requestedAddress = req.params.address;
-    const authenticatedAddress = req.wallet?.walletAddress;
+    const authenticatedAddress = req.walletAddress; // Use JWT-derived wallet address
     const isAdmin = req.isAdminAuthenticated;
 
     // Determine which address to get history for
