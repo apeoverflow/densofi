@@ -5,9 +5,9 @@ import { domainEventListener } from '../services/domain-event-listener.js';
 import { nftMinterEventListener } from '../services/nft-minter-event-listener.js';
 import { NFTMinterService } from '../services/nft-minter-service.js';
 import { logger } from '../utils/logger.js';
-import { requireApiKey, optionalApiKey, AuthenticatedRequest } from '../middleware/auth.js';
+import { requireAdminKey, AuthenticatedRequest } from '../middleware/auth.js';
 import { walletAuthService } from '../services/wallet-auth-service.js';
-import { requireWalletAuth, optionalWalletAuth, WalletAuthenticatedRequest } from '../middleware/wallet-auth.js';
+import { requireWalletAuth, adminKeyOrWalletAuth, WalletAuthenticatedRequest } from '../middleware/wallet-auth.js';
 import { ENV } from '../config/env.js';
 
 const router = express.Router();
@@ -141,7 +141,7 @@ router.get('/status', (req, res) => {
  * Check authentication status
  * Uses optional authentication - will show if authenticated or not
  */
-router.get('/auth/status', optionalApiKey, (req: AuthenticatedRequest, res) => {
+router.get('/auth/status', requireAdminKey, (req: AuthenticatedRequest, res) => {
   try {
     res.json({
       success: true,
@@ -302,7 +302,7 @@ router.get('/auth/stats', (req, res) => {
  * Trigger manual processing of pending events
  * Requires API key authentication
  */
-router.post('/process-pending', requireApiKey, async (req: AuthenticatedRequest, res) => {
+router.post('/process-pending', requireAdminKey, async (req: AuthenticatedRequest, res) => {
   try {
     await DomainService.processPendingRegistrations();
     await DomainService.processPendingOwnershipUpdates();
@@ -370,7 +370,7 @@ router.get('/domains/:name/:walletAddress/verify', requireWalletAuth, async (req
  * Get detailed event listener status
  * Requires API key authentication
  */
-router.get('/event-listeners/status', requireApiKey, async (req: AuthenticatedRequest, res) => {
+router.get('/event-listeners/status', requireAdminKey, async (req: AuthenticatedRequest, res) => {
   try {
     const status = {
       domainEventListener: {
@@ -400,7 +400,7 @@ router.get('/event-listeners/status', requireApiKey, async (req: AuthenticatedRe
  * Get wallet authentication statistics (Admin only)
  * Requires API key authentication
  */
-router.get('/admin/wallet-auth-stats', requireApiKey, (req: AuthenticatedRequest, res) => {
+router.get('/admin/wallet-auth-stats', requireAdminKey, (req: AuthenticatedRequest, res) => {
   try {
     const stats = walletAuthService.getAdminStats();
     
@@ -421,7 +421,7 @@ router.get('/admin/wallet-auth-stats', requireApiKey, (req: AuthenticatedRequest
  * Get all verified wallets with pagination (Admin only)
  * Requires API key authentication
  */
-router.get('/admin/wallets', requireApiKey, (req: AuthenticatedRequest, res) => {
+router.get('/admin/wallets', requireAdminKey, (req: AuthenticatedRequest, res) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 50;
@@ -447,7 +447,7 @@ router.get('/admin/wallets', requireApiKey, (req: AuthenticatedRequest, res) => 
  * Get detailed wallet information (Admin only)
  * Requires API key authentication
  */
-router.get('/admin/wallets/:address', requireApiKey, (req: AuthenticatedRequest, res) => {
+router.get('/admin/wallets/:address', requireAdminKey, (req: AuthenticatedRequest, res) => {
   try {
     const { address } = req.params;
     const walletInfo = walletAuthService.getWalletInfo(address);
@@ -555,7 +555,7 @@ router.get('/debug/wallet-auth', (req, res) => {
  * Submit game XP score
  * Requires wallet authentication
  */
-router.post('/game/submit-xp', optionalWalletAuth, async (req: WalletAuthenticatedRequest, res) => {
+router.post('/game/submit-xp', adminKeyOrWalletAuth, async (req: WalletAuthenticatedRequest, res) => {
   try {
     const { score, gameType = 'dino-runner', difficulty = 'normal' } = req.body;
     
@@ -671,7 +671,7 @@ router.get('/game/stats', async (req, res) => {
  * Get player stats
  * Requires wallet authentication or admin override
  */
-router.get('/game/stats/:address?', optionalWalletAuth, async (req: WalletAuthenticatedRequest, res) => {
+router.get('/game/stats/:address?', adminKeyOrWalletAuth, async (req: WalletAuthenticatedRequest, res) => {
   try {
     const requestedAddress = req.params.address;
     const authenticatedAddress = req.wallet?.walletAddress;
@@ -748,7 +748,7 @@ router.get('/game/stats/:address?', optionalWalletAuth, async (req: WalletAuthen
  * Get player game history
  * Requires wallet authentication or admin override
  */
-router.get('/game/history/:address?', optionalWalletAuth, async (req: WalletAuthenticatedRequest, res) => {
+router.get('/game/history/:address?', adminKeyOrWalletAuth, async (req: WalletAuthenticatedRequest, res) => {
   try {
     const requestedAddress = req.params.address;
     const authenticatedAddress = req.wallet?.walletAddress;

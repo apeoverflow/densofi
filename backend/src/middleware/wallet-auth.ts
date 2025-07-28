@@ -120,10 +120,10 @@ export function requireWalletAuth(req: WalletAuthenticatedRequest, res: Response
 }
 
 /**
- * Optional wallet authentication middleware
- * Adds wallet info if provided but doesn't require it
+ * Optional wallet authentication middleware with admin key override
+ * Adds wallet info if provided but doesn't require it, or allows admin key override
  */
-export function optionalWalletAuth(req: WalletAuthenticatedRequest, res: Response, next: NextFunction) {
+export function adminKeyOrWalletAuth(req: WalletAuthenticatedRequest, res: Response, next: NextFunction) {
   try {
     // Check for admin authentication first
     if (checkAdminAuth(req)) {

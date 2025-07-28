@@ -7,9 +7,9 @@ export interface AuthenticatedRequest extends Request {
 }
 
 /**
- * Middleware to validate API key authentication
+ * Middleware to validate admin API key authentication
  */
-export function requireApiKey(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+export function requireAdminKey(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
     // Check if ADMIN_API_KEY is configured
     if (!ENV.ADMIN_API_KEY) {
@@ -80,32 +80,4 @@ export function requireApiKey(req: AuthenticatedRequest, res: Response, next: Ne
   }
 }
 
-/**
- * Optional middleware that adds authentication info but doesn't require it
- */
-export function optionalApiKey(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-  try {
-    const authHeader = req.headers.authorization;
-    
-    if (authHeader && ENV.ADMIN_API_KEY) {
-      let apiKey: string;
-      
-      if (authHeader.startsWith('Bearer ')) {
-        apiKey = authHeader.substring(7);
-      } else if (authHeader.startsWith('ApiKey ')) {
-        apiKey = authHeader.substring(7);
-      } else {
-        apiKey = authHeader;
-      }
-
-      if (apiKey === ENV.ADMIN_API_KEY) {
-        req.isAuthenticated = true;
-      }
-    }
-    
-    next();
-  } catch (error) {
-    logger.error('Optional authentication middleware error:', error);
-    next(); // Continue without authentication
-  }
-} 
+ 
