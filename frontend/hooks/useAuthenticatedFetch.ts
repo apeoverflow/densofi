@@ -32,12 +32,7 @@ export function useAuthenticatedFetch() {
       ...(headers as Record<string, string>),
     };
     
-    // Add wallet address header for authenticated requests
-    if (isAuthenticated && address) {
-      finalHeaders['X-Wallet-Address'] = address.toLowerCase();
-    }
-    
-    // Only add auth headers if they have values
+    // Only add auth headers if they have values - JWT token contains wallet address
     Object.entries(authHeaders).forEach(([key, value]) => {
       if (value) {
         finalHeaders[key] = value;
