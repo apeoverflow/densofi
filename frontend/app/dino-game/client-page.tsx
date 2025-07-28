@@ -186,7 +186,7 @@ export default function DinoGameClient() {
             return;
           }
         } catch (error) {
-          console.error('Failed to load player stats:', error);
+          console.log('Failed to load player stats:', error);
         }
       }
       
@@ -282,7 +282,7 @@ export default function DinoGameClient() {
             setPlayerHistory([]);
           }
         } catch (error) {
-          console.error('Failed to load player history:', error);
+          console.log('Failed to load player history:', error);
           setPlayerHistory([]);
         }
       } else {
@@ -290,7 +290,7 @@ export default function DinoGameClient() {
         setPlayerHistory([]);
       }
     } catch (error) {
-      console.error('Failed to load comprehensive stats:', error);
+      console.log('Failed to load comprehensive stats:', error);
     } finally {
       setStatsLoading(false);
     }
@@ -1473,7 +1473,7 @@ export default function DinoGameClient() {
               }
             }
           } catch (error) {
-            console.error('Failed to refresh player stats:', error);
+            console.log('Failed to refresh player stats:', error);
           }
         }
         
@@ -1484,9 +1484,24 @@ export default function DinoGameClient() {
       }
       
     } catch (error) {
-      console.error('Failed to claim XP:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to claim XP. Please try again.';
-      setToast({ message: errorMessage, type: 'error' });
+      console.log('Failed to claim XP:', error);
+      
+      // Handle authentication errors
+      if (error instanceof Error && (
+        error.message.includes('Authentication') || 
+        error.message.includes('401') ||
+        error.message.includes('JWT token') ||
+        error.message.includes('Wallet authentication required')
+      )) {
+        console.log('Auth error detected in game - clearing localStorage');
+        localStorage.removeItem('wallet-auth');
+        setToast({ message: 'Authentication expired. Please re-authenticate your wallet to continue.', type: 'error' });
+        // Force page refresh to show authenticate button
+        window.location.reload();
+      } else {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to claim XP. Please try again.';
+        setToast({ message: errorMessage, type: 'error' });
+      }
     } finally {
       setIsClaimingXP(false);
     }

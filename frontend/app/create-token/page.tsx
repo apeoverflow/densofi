@@ -16,7 +16,7 @@ import { useWalletAuth } from "@/hooks/useWalletAuth";
 import { useAuthenticatedFetch } from "@/hooks/useAuthenticatedFetch";
 import { useDomainRegistrationEvents, useNFTMintingEvents, useDomainMintableStatus } from "@/hooks/useDomainEvents";
 import { useNFTMinting } from "@/hooks/useNFTMinting";
-import { useDomainVerification } from "@/hooks/useDomainVerification";
+import { useDomainVerification, type DomainVerificationError } from "@/hooks/useDomainVerification";
 import { formatEther, parseEther } from 'viem';
 import React from 'react';
 import { Alchemy, Network } from "alchemy-sdk";
@@ -400,29 +400,32 @@ const DomainVerificationStep = ({ onComplete }: { onComplete: (domain: string) =
       console.log('🔍 Using wallet address:', address);
       console.log('🔍 Backend service URL:', BACKEND_SERVICE_URL);
 
-      // Add an additional safety wrapper around the hook call
+      // Call domain verification
       let result;
       try {
         result = await verifyDomain(domainName.trim(), address);
       } catch (hookCallError: any) {
-        // If the hook call itself fails, handle it gracefully
-        console.error('Hook call failed:', hookCallError);
-        console.error('Hook call error details:', {
-          message: hookCallError?.message,
-          status: hookCallError?.status,
-          response: hookCallError?.response
-        });
-
-        // Provide more specific error information
-        if (hookCallError?.message?.includes('404')) {
-          throw new Error(`Verification endpoint not found. Please check backend service configuration.`);
-        } else if (hookCallError?.message?.includes('500')) {
-          throw new Error(`Backend server error. Please try again in a moment.`);
-        } else if (hookCallError?.message?.includes('Network')) {
-          throw new Error(`Network error: Cannot connect to verification service at ${BACKEND_SERVICE_URL}`);
-        } else {
-          throw new Error(`Domain verification service error: ${hookCallError?.message || 'Unknown error'}`);
+        console.log('Domain verification failed:', hookCallError);
+        
+        // If it's an auth error, clear localStorage and force re-authentication
+        if (hookCallError && typeof hookCallError === 'object' && 'type' in hookCallError) {
+          const domainError = hookCallError as DomainVerificationError;
+          
+          if (domainError.type === 'auth_error') {
+            console.log('Auth error detected - clearing localStorage and resetting auth state');
+            localStorage.removeItem('wallet-auth');
+            setCustomError('Authentication expired. Please re-authenticate your wallet using the button above.');
+            // Force page refresh to update auth state
+            window.location.reload();
+            return;
+          }
+          
+          throw new Error(domainError.message);
         }
+
+        // Fallback error handling
+        const errorMessage = hookCallError instanceof Error ? hookCallError.message : 'Domain verification failed';
+        throw new Error(errorMessage);
       }
 
       console.log('✅ Domain verification result:', result);
@@ -438,7 +441,7 @@ const DomainVerificationStep = ({ onComplete }: { onComplete: (domain: string) =
         setCustomError(`Domain ownership verification failed. Expected wallet: ${address}, Domain: ${domainName.trim()}. Please ensure your DNS TXT record is set up correctly.`);
       }
     } catch (error: any) {
-      console.error('Error verifying domain:', error);
+      console.log('Error verifying domain:', error);
 
       // Prevent the error from propagating and crashing the page
       let errorMessage = 'Unknown error occurred';
@@ -750,32 +753,16 @@ const DomainVerificationStep = ({ onComplete }: { onComplete: (domain: string) =
             {customError || verificationError || hookError || 'Unable to verify domain ownership'}
           </p>
 
-          {!customError?.toLowerCase().includes('authentication') && (
-            <div className="text-xs text-gray-400">
-              <p>Common issues:</p>
-              <ul className="list-disc list-inside ml-2 mt-1">
-                <li>DNS TXT record not set up correctly</li>
-                <li>DNS propagation still in progress</li>
-                <li>Wallet address in TXT record doesn't match connected wallet</li>
-                <li>Domain doesn't exist or isn't accessible</li>
-              </ul>
-            </div>
-          )}
-
-          {customError?.toLowerCase().includes('authentication') && (
-            <div className="mt-3">
-              <Button
-                onClick={() => {
-                  setCustomError(null);
-                  // You might want to trigger a re-authentication here
-                }}
-                variant="outline"
-                className="text-yellow-400 border-yellow-400 hover:bg-yellow-400/10"
-              >
-                Clear Error & Retry
-              </Button>
-            </div>
-          )}
+          <div className="text-xs text-gray-400">
+            <p>Common issues:</p>
+            <ul className="list-disc list-inside ml-2 mt-1">
+              <li>DNS TXT record not set up correctly</li>
+              <li>DNS propagation still in progress</li>
+              <li>Wallet address in TXT record doesn't match connected wallet</li>
+              <li>Domain doesn't exist or isn't accessible</li>
+              <li>Authentication expired - use the "Authenticate Wallet" button above</li>
+            </ul>
+          </div>
         </div>
       )}
 
