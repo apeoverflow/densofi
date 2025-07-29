@@ -347,7 +347,7 @@ const DomainVerificationStep = ({ onComplete }: { onComplete: (domain: string) =
 
     setIsCheckingBackendAuth(true);
     try {
-      const response = await fetch(`${BACKEND_SERVICE_URL}/api/debug/wallet-auth`, {
+      const response = await fetch(`${BACKEND_SERVICE_URL}/api/auth/status`, {
         headers: {
           'X-Wallet-Address': address,
           'Content-Type': 'application/json'
@@ -556,7 +556,7 @@ const DomainVerificationStep = ({ onComplete }: { onComplete: (domain: string) =
                 onAuthError={(error) => {
                   setCustomError(`Authentication failed: ${error}`);
                 }}
-                className="px-3 py-2 text-sm bg-yellow-600 hover:bg-yellow-700 whitespace-nowrap"
+                className="px-3 py-2 text-sm  whitespace-nowrap"
               />
             </div>
           </div>
@@ -661,7 +661,7 @@ const DomainVerificationStep = ({ onComplete }: { onComplete: (domain: string) =
                   setIsTestingBackend(true);
                   setBackendTestResult(null);
                   try {
-                    const response = await fetch(`${BACKEND_SERVICE_URL}/api/debug/wallet-auth`, {
+                    const response = await fetch(`${BACKEND_SERVICE_URL}/api/auth/status`, {
                       headers: {
                         'X-Wallet-Address': address || '',
                         'Content-Type': 'application/json'
