@@ -41,6 +41,10 @@ function checkAdminAuth(req: WalletAuthenticatedRequest): boolean {
  * Admin API key from environment can also be used for authentication
  */
 export function requireWalletAuth(req: WalletAuthenticatedRequest, res: Response, next: NextFunction) {
+  req.isAdminAuthenticated = false;
+  req.isWalletAuthenticated = false;
+  req.wallet = undefined;
+  req.walletAddress = undefined;
   try {
     // Check for admin authentication first
     if (checkAdminAuth(req)) {
@@ -110,7 +114,7 @@ export function requireWalletAuth(req: WalletAuthenticatedRequest, res: Response
  * Checks for JWT token in Authorization header or falls back to admin key
  * Sets req.walletAddress from validated JWT token for route usage
  */
-export function adminKeyOrWalletAuth(req: WalletAuthenticatedRequest, res: Response, next: NextFunction) {
+export function requireAdminKeyOrWalletAuth(req: WalletAuthenticatedRequest, res: Response, next: NextFunction) {
   // Reset authentication state
   req.isAdminAuthenticated = false;
   req.isWalletAuthenticated = false;
@@ -130,7 +134,7 @@ export function adminKeyOrWalletAuth(req: WalletAuthenticatedRequest, res: Respo
 
     // Check for JWT token in Authorization header
     const authHeader = req.headers.authorization;
-    logger.info('Middleware Debug - adminKeyOrWalletAuth', {
+    logger.info('Middleware Debug - requireAdminKeyOrWalletAuth', {
       hasAuthHeader: !!authHeader,
       authHeaderType: authHeader ? (authHeader.startsWith('Bearer ') ? 'Bearer' : 'Other') : 'None',
       path: req.path

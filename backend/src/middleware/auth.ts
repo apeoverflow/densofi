@@ -2,14 +2,14 @@ import { Request, Response, NextFunction } from 'express';
 import { ENV } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 
-export interface AuthenticatedRequest extends Request {
+export interface AdminAuthenticatedRequest extends Request {
   isAdminAuthenticated?: boolean;
 }
 
 /**
  * Middleware to validate admin API key authentication
  */
-export function requireAdminKey(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+export function requireAdminKey(req: AdminAuthenticatedRequest, res: Response, next: NextFunction) {
   req.isAdminAuthenticated = false;
   try {
     // Check if ADMIN_API_KEY is configured
