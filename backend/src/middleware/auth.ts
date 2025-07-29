@@ -3,13 +3,14 @@ import { ENV } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 
 export interface AuthenticatedRequest extends Request {
-  isAuthenticated?: boolean;
+  isAdminAuthenticated?: boolean;
 }
 
 /**
  * Middleware to validate admin API key authentication
  */
 export function requireAdminKey(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  req.isAdminAuthenticated = false;
   try {
     // Check if ADMIN_API_KEY is configured
     if (!ENV.ADMIN_API_KEY) {
@@ -64,20 +65,18 @@ export function requireAdminKey(req: AuthenticatedRequest, res: Response, next: 
     }
 
     // Authentication successful
-    req.isAuthenticated = true;
-    logger.info('API key authentication successful', {
+    req.isAdminAuthenticated = true;
+    logger.info('Admin API key authentication successful', {
       ip: req.ip,
       path: req.path
     });
     
     next();
   } catch (error) {
-    logger.error('Authentication middleware error:', error);
+    logger.error('Admin API key authentication middleware error:', error);
     res.status(500).json({
       success: false,
-      error: 'Authentication error'
+      error: 'Admin API key authentication error'
     });
   }
 }
-
- 
