@@ -17,7 +17,9 @@ import { useDomainVerification, type DomainVerificationError } from "@/hooks/use
 import { formatEther, parseEther } from 'viem';
 import React from 'react';
 import { Alchemy, Network } from "alchemy-sdk";
-import { NFT_MINTER_SEPOLIA_ADDRESS as CONTRACT_ADDRESS } from "../../constants/contract";
+import { STATIC_ADDRESSES } from "../../constants/contract";
+
+const CONTRACT_ADDRESS = STATIC_ADDRESSES.flow.nftMinter;
 import { InteractiveBackground } from "@/components/ui/InteractiveBackground";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { AnimatedHeadingGlow } from "@/components/ui/AnimatedHeadingGlow";

@@ -11,13 +11,13 @@ import addresses747 from './deployment-addresses/747-addresses.json';
 import addresses11155111 from './deployment-addresses/11155111-addresses.json';
 
 // Supported chain IDs
-export const SUPPORTED_CHAIN_IDS = [747, 11155111] as const;
+export const SUPPORTED_CHAIN_IDS = [747] as const; // 11155111] as const;
 export type SupportedChainId = typeof SUPPORTED_CHAIN_IDS[number];
 
 // Chain configurations
 export const CHAIN_CONFIGS = {
   747: addresses747,
-  11155111: addresses11155111,
+  // 11155111: addresses11155111,
 } as const;
 
 
@@ -81,8 +81,8 @@ export function getChainName(chainId: SupportedChainId): string {
   switch (chainId) {
     case 747:
       return 'Flow Mainnet';
-    case 11155111:
-      return 'Sepolia';
+    // case 11155111:
+    //   return 'Sepolia';
     default:
       return `Chain ${chainId}`;
   }
@@ -115,12 +115,12 @@ export const LAUNCHPAD_ADDRESS = (chainId: SupportedChainId) => getContractAddre
 
 // If you need static addresses for specific networks (for backward compatibility)
 export const STATIC_ADDRESSES = {
-  sepolia: {
-    domainRegistration: getContractAddress(11155111, 'domainRegistration'),
-    nftMinter: getContractAddress(11155111, 'nftMinter'),
-    tokenMinter: getContractAddress(11155111, 'tokenMinter'),
-    launchpad: getContractAddress(11155111, 'launchpad'),
-  },
+  // sepolia: {
+  //   domainRegistration: getContractAddress(11155111, 'domainRegistration'),
+  //   nftMinter: getContractAddress(11155111, 'nftMinter'),
+  //   tokenMinter: getContractAddress(11155111, 'tokenMinter'),
+  //   launchpad: getContractAddress(11155111, 'launchpad'),
+  // },
   flow: {
     domainRegistration: getContractAddress(747, 'domainRegistration'),
     nftMinter: getContractAddress(747, 'nftMinter'),
@@ -130,4 +130,4 @@ export const STATIC_ADDRESSES = {
 } as const;
 
 // For immediate backward compatibility with existing code
-export const NFT_MINTER_SEPOLIA_ADDRESS = STATIC_ADDRESSES.sepolia.nftMinter;
+// export const NFT_MINTER_SEPOLIA_ADDRESS = STATIC_ADDRESSES.sepolia.nftMinter;
