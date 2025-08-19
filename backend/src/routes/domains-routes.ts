@@ -1,6 +1,5 @@
 import express from 'express';
 import { DomainsController } from '../controllers/domains-controller.js';
-import { requireWalletAuth } from '../middleware/wallet-auth.js';
 
 const router = express.Router();
 
@@ -17,6 +16,6 @@ router.get('/domains/:name/status', DomainsController.getDomainStatus);
 router.get('/nfts/:address', DomainsController.getNFTsByAddress);
 
 // Verify domain ownership via DNS
-router.get('/domains/:name/:walletAddress/verify', requireWalletAuth, DomainsController.verifyDomainOwnership);
+router.get('/domains/:name/:walletAddress/verify', DomainsController.verifyDomainOwnership);
 
 export { router as domainsRoutes };

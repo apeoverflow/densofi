@@ -11,9 +11,6 @@ import { useNFTMinterContract } from "@/hooks/useNFTMinterContract";
 import { useTokenMinterContract } from "@/hooks/useTokenMinterContract";
 import { useLaunchpadContract } from "@/hooks/useLaunchpadContract";
 import { WalletConnectButton } from "@/components/WalletConnectButton";
-import { WalletAuthButton } from "@/components/WalletAuthButton";
-import { useWalletAuth } from "@/hooks/useWalletAuth";
-import { useAuthenticatedFetch } from "@/hooks/useAuthenticatedFetch";
 import { useDomainRegistrationEvents, useNFTMintingEvents, useDomainMintableStatus } from "@/hooks/useDomainEvents";
 import { useNFTMinting } from "@/hooks/useNFTMinting";
 import { useDomainVerification, type DomainVerificationError } from "@/hooks/useDomainVerification";
@@ -27,10 +24,6 @@ import { AnimatedHeadingGlow } from "@/components/ui/AnimatedHeadingGlow";
 
 
 
-// Environment variable for backend service URL
-import config from '@/lib/config';
-
-const BACKEND_SERVICE_URL = config.apiBaseUrl;
 
 // Alchemy configuration
 const apiKey = "rpHRPKA38BMxeGGjtjkGTEAZc0nRtb9D";
@@ -102,170 +95,6 @@ const Step = ({ title, completed, active, children }: StepProps) => {
   );
 };
 
-// Backend Validation Component - Updated to use proper authentication
-const BackendValidationStep = ({ onComplete }: { onComplete: () => void }) => {
-  const [isValidating, setIsValidating] = useState(false);
-  const [validationComplete, setValidationComplete] = useState(false);
-  const [validationError, setValidationError] = useState<string | null>(null);
-  const { address } = useWalletConnection();
-  const { isAuthenticated, isLoading: authLoading, error: authError } = useWalletAuth();
-  const authenticatedFetch = useAuthenticatedFetch();
-
-  const handleValidation = async () => {
-    if (!address) {
-      setValidationError('Wallet not connected');
-      return;
-    }
-
-    if (!isAuthenticated) {
-      setValidationError('Wallet not authenticated. Please authenticate your wallet first.');
-      return;
-    }
-
-    setIsValidating(true);
-    setValidationError(null);
-
-    try {
-      // Test backend connection with a simple status check
-      const response = await authenticatedFetch(`${BACKEND_SERVICE_URL}/api/status`, {
-        method: 'GET',
-      });
-
-      if (!response.ok) {
-        throw new Error(`Backend service error: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        setValidationComplete(true);
-        onComplete();
-      } else {
-        throw new Error(data.message || 'Backend validation failed');
-      }
-    } catch (error) {
-      console.error('Backend validation error:', error);
-      setValidationError(error instanceof Error ? error.message : 'Unknown error occurred');
-    } finally {
-      setIsValidating(false);
-    }
-  };
-
-  // Auto-trigger validation when wallet is authenticated
-  useEffect(() => {
-    if (isAuthenticated && address && !validationComplete && !isValidating && !validationError) {
-      handleValidation();
-    }
-  }, [isAuthenticated, address, validationComplete, isValidating, validationError]);
-
-  if (validationComplete) {
-    return (
-      <div className="text-center">
-        <div className="mb-4 flex justify-center">
-          <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center border-2 border-green-400">
-            <img src="/pixel/star-pixel.png" alt="Success" className="w-8 h-8" />
-          </div>
-        </div>
-        <h3 className="text-xl font-bold mb-2">Backend Validation Complete!</h3>
-        <p className="mb-4 text-gray-300">
-          Your wallet has been authenticated and validated by our backend service.
-        </p>
-      </div>
-    );
-  }
-
-  // Show authentication component if not authenticated
-  if (!isAuthenticated) {
-    return (
-      <div className="space-y-4">
-        <div className="bg-blue-900/30 border border-blue-700/50 p-4 rounded-md">
-          <h4 className="text-blue-400 font-bold mb-2">Backend Service Validation</h4>
-          <p className="text-gray-300 text-sm mb-4">
-            Connecting to our backend service to validate your wallet and prepare for domain registration.
-          </p>
-          <div className="text-xs text-gray-400">
-            <p>Service URL: {BACKEND_SERVICE_URL}</p>
-            <p>Wallet: {address}</p>
-          </div>
-        </div>
-
-        <div className="bg-yellow-900/30 border border-yellow-700/50 p-4 rounded-md">
-          <h4 className="text-yellow-400 font-bold mb-2">Authentication Required</h4>
-          <p className="text-gray-300 text-sm mb-4">
-            Please authenticate your wallet to proceed with backend validation.
-          </p>
-
-          <WalletAuthButton
-            onAuthSuccess={() => {
-              // Validation will auto-trigger after authentication
-            }}
-            onAuthError={(error) => {
-              setValidationError(`Authentication failed: ${error}`);
-            }}
-            className="w-full"
-          />
-        </div>
-
-        {authError && (
-          <div className="bg-red-900/30 border border-red-700/50 p-4 rounded-md">
-            <h4 className="text-red-400 font-bold mb-2">Authentication Error</h4>
-            <p className="text-gray-300 text-sm">
-              {authError}
-            </p>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="bg-blue-900/30 border border-blue-700/50 p-4 rounded-md">
-        <h4 className="text-blue-400 font-bold mb-2">Backend Service Validation</h4>
-        <p className="text-gray-300 text-sm mb-4">
-          Connecting to our backend service to validate your wallet and prepare for domain registration.
-        </p>
-        <div className="text-xs text-gray-400">
-          <p>Service URL: {BACKEND_SERVICE_URL}</p>
-          <p>Wallet: {address}</p>
-        </div>
-      </div>
-
-      {isValidating && (
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-500 mx-auto mb-2"></div>
-          <p className="text-gray-300 text-sm">Validating with backend service...</p>
-        </div>
-      )}
-
-      {validationError && (
-        <div className="bg-red-900/30 border border-red-700/50 p-4 rounded-md">
-          <h4 className="text-red-400 font-bold mb-2">Validation Failed</h4>
-          <p className="text-gray-300 text-sm mb-4">
-            Error: {validationError}
-          </p>
-          <Button
-            onClick={handleValidation}
-            disabled={isValidating || !isAuthenticated}
-            className="bg-red-600 hover:bg-red-700"
-          >
-            {isValidating ? 'Retrying...' : 'Retry Validation'}
-          </Button>
-        </div>
-      )}
-
-      {!isValidating && !validationError && !validationComplete && isAuthenticated && (
-        <Button
-          onClick={handleValidation}
-          disabled={!address || !isAuthenticated}
-          className="w-full"
-        >
-          Start Backend Validation
-        </Button>
-      )}
-    </div>
-  );
-};
 
 // Safe wrapper for domain verification to prevent hook errors from crashing the page
 const SafeDomainVerificationWrapper = ({ onComplete }: { onComplete: (domain: string) => void }) => {
@@ -315,11 +144,18 @@ const DomainVerificationStep = ({ onComplete }: { onComplete: (domain: string) =
   const [showInstructions, setShowInstructions] = useState(false);
   const [customError, setCustomError] = useState<string | null>(null);
   const [hookError, setHookError] = useState<string | null>(null);
-  const [isTestingBackend, setIsTestingBackend] = useState(false);
-  const [backendTestResult, setBackendTestResult] = useState<string | null>(null);
-  const [isBackendAuthenticated, setIsBackendAuthenticated] = useState<boolean | null>(null);
-  const [isCheckingBackendAuth, setIsCheckingBackendAuth] = useState(false);
-  const [showDebugInfo, setShowDebugInfo] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  // Copy to clipboard with feedback
+  const copyToClipboard = async (text: string, fieldName: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(fieldName);
+      setTimeout(() => setCopiedField(null), 2000); // Clear after 2 seconds
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+    }
+  };
 
   // Safely use the domain verification hook with error boundary
   let verifyDomain: any = null;
@@ -339,39 +175,7 @@ const DomainVerificationStep = ({ onComplete }: { onComplete: (domain: string) =
   }
 
   const { address } = useWalletConnection();
-  const { isAuthenticated } = useWalletAuth();
 
-  // Function to check backend authentication
-  const checkBackendAuthentication = async () => {
-    if (!address) return false;
-
-    setIsCheckingBackendAuth(true);
-    try {
-      const response = await fetch(`${BACKEND_SERVICE_URL}/api/auth/status`, {
-        headers: {
-          'X-Wallet-Address': address,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await response.json();
-      const isBackendAuth = data.success && !data.debug?.walletNotFound;
-      setIsBackendAuthenticated(isBackendAuth);
-      return isBackendAuth;
-    } catch (error) {
-      console.error('Failed to check backend auth:', error);
-      setIsBackendAuthenticated(false);
-      return false;
-    } finally {
-      setIsCheckingBackendAuth(false);
-    }
-  };
-
-  // Check backend authentication when component mounts or address changes
-  useEffect(() => {
-    if (address && isAuthenticated) {
-      checkBackendAuthentication();
-    }
-  }, [address, isAuthenticated]);
 
   const handleVerifyDomain = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -387,18 +191,12 @@ const DomainVerificationStep = ({ onComplete }: { onComplete: (domain: string) =
       return;
     }
 
-    // Check authentication before proceeding
-    if (!isAuthenticated) {
-      setCustomError('Wallet authentication required. Please complete the backend validation step first.');
-      return;
-    }
 
     setIsSubmitting(true);
 
     try {
       console.log('🔍 Verifying domain ownership for:', domainName.trim());
       console.log('🔍 Using wallet address:', address);
-      console.log('🔍 Backend service URL:', BACKEND_SERVICE_URL);
 
       // Call domain verification
       let result;
@@ -407,20 +205,9 @@ const DomainVerificationStep = ({ onComplete }: { onComplete: (domain: string) =
       } catch (hookCallError: any) {
         console.log('Domain verification failed:', hookCallError);
         
-        // If it's an auth error, clear localStorage and force re-authentication
-        if (hookCallError && typeof hookCallError === 'object' && 'type' in hookCallError) {
-          const domainError = hookCallError as DomainVerificationError;
-          
-          if (domainError.type === 'auth_error') {
-            console.log('Auth error detected - clearing localStorage and resetting auth state');
-            localStorage.removeItem('wallet-auth');
-            setCustomError('Authentication expired. Please re-authenticate your wallet using the button above.');
-            // Force page refresh to update auth state
-            window.location.reload();
-            return;
-          }
-          
-          throw new Error(domainError.message);
+        // If it's a domain verification error, throw with the message
+        if (hookCallError && typeof hookCallError === 'object' && 'message' in hookCallError) {
+          throw new Error(hookCallError.message);
         }
 
         // Fallback error handling
@@ -526,171 +313,12 @@ const DomainVerificationStep = ({ onComplete }: { onComplete: (domain: string) =
       </div>
 
       <div className="bg-blue-900/30 border border-blue-700/50 p-4 rounded-md">
-        <div className="flex items-center justify-between mb-2">
-          <h4 className="text-blue-400 font-bold">Domain Ownership Verification</h4>
-          <button
-            onClick={() => setShowDebugInfo(!showDebugInfo)}
-            className="px-2 py-1 text-xs text-gray-400 hover:text-gray-300 border border-gray-600 hover:border-gray-500 rounded transition-colors"
-            title="Toggle debug information"
-          >
-            {showDebugInfo ? 'Hide Debug' : 'Debug'}
-          </button>
-        </div>
+        <h4 className="text-blue-400 font-bold mb-2">Domain Ownership Verification</h4>
         <p className="text-gray-300 text-sm mb-3">
           To verify domain ownership, you need to add a DNS TXT record to your domain.
         </p>
 
-        {/* Authentication prompt when needed */}
-        {isAuthenticated && isBackendAuthenticated === false && (
-          <div className="mb-4 p-3 bg-yellow-900/20 border border-yellow-700/50 rounded-md">
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <p className="text-yellow-400 text-sm font-medium mb-1">Authentication Required</p>
-                <p className="text-gray-300 text-xs">You need to authenticate with our backend service to verify domain ownership.</p>
-              </div>
-              <WalletAuthButton
-                onAuthSuccess={() => {
-                  checkBackendAuthentication();
-                  setCustomError(null);
-                }}
-                onAuthError={(error) => {
-                  setCustomError(`Authentication failed: ${error}`);
-                }}
-                className="px-3 py-2 text-sm  whitespace-nowrap"
-              />
-            </div>
-          </div>
-        )}
 
-        {/* Debug Information - Only shown when showDebugInfo is true */}
-        {showDebugInfo && (
-          <div className="mb-4 p-3 bg-slate-800/50 rounded-md border border-slate-600">
-            <div className="flex items-center justify-between mb-3">
-              <h5 className="text-slate-300 font-medium text-sm">System Status</h5>
-              {isCheckingBackendAuth && (
-                <div className="flex items-center gap-1">
-                  <div className="animate-spin rounded-full h-3 w-3 border-t border-blue-400"></div>
-                  <span className="text-xs text-blue-400">Checking...</span>
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 text-xs mb-3">
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400">Wallet:</span>
-                  <span className={address ? 'text-green-400' : 'text-red-400'}>
-                    {address ? (
-                      <span className="flex items-center gap-1">
-                        <img src="/pixel/star-pixel.png" alt="Success" className="w-3 h-3" />
-                        Connected
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1">
-                        <img src="/pixel/diamond-pixel.png" alt="Error" className="w-3 h-3" />
-                        Not connected
-                      </span>
-                    )}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400">Frontend Auth:</span>
-                  <span className={isAuthenticated ? 'text-green-400' : 'text-red-400'}>
-                    {isAuthenticated ? (
-                      <span className="flex items-center gap-1">
-                        <img src="/pixel/star-pixel.png" alt="Success" className="w-3 h-3" />
-                        Authenticated
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1">
-                        <img src="/pixel/diamond-pixel.png" alt="Error" className="w-3 h-3" />
-                        Not authenticated
-                      </span>
-                    )}
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400">Backend Auth:</span>
-                  <span className={
-                    isBackendAuthenticated === null ? 'text-gray-400' :
-                      isBackendAuthenticated ? 'text-green-400' : 'text-red-400'
-                  }>
-                    {isBackendAuthenticated === null ? (
-                      <span className="flex items-center gap-1">
-                        <img src="/pixel/link-pixelated.png" alt="Loading" className="w-3 h-3 animate-pulse" />
-                        Checking...
-                      </span>
-                    ) : isBackendAuthenticated ? (
-                      <span className="flex items-center gap-1">
-                        <img src="/pixel/star-pixel.png" alt="Success" className="w-3 h-3" />
-                        Verified
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1">
-                        <img src="/pixel/diamond-pixel.png" alt="Error" className="w-3 h-3" />
-                        Required
-                      </span>
-                    )}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400">Can Verify:</span>
-                  <span className={canVerify && isBackendAuthenticated ? 'text-green-400' : 'text-red-400'}>
-                    {canVerify && isBackendAuthenticated ? (
-                      <span className="flex items-center gap-1">
-                        <img src="/pixel/star-pixel.png" alt="Success" className="w-3 h-3" />
-                        Ready
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1">
-                        <img src="/pixel/diamond-pixel.png" alt="Error" className="w-3 h-3" />
-                        Not ready
-                      </span>
-                    )}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-gray-600">
-              <button
-                onClick={async () => {
-                  setIsTestingBackend(true);
-                  setBackendTestResult(null);
-                  try {
-                    const response = await fetch(`${BACKEND_SERVICE_URL}/api/auth/status`, {
-                      headers: {
-                        'X-Wallet-Address': address || '',
-                        'Content-Type': 'application/json'
-                      }
-                    });
-                    const data = await response.json();
-                    setBackendTestResult(`Backend Auth Test: ${JSON.stringify(data, null, 2)}`);
-                  } catch (error) {
-                    setBackendTestResult(`Backend Auth Test Failed: ${error instanceof Error ? error.message : String(error)}`);
-                  } finally {
-                    setIsTestingBackend(false);
-                  }
-                }}
-                disabled={isTestingBackend || !address}
-                className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-xs"
-              >
-                {isTestingBackend ? 'Testing...' : 'Test Backend Auth'}
-              </button>
-            </div>
-
-            {backendTestResult && (
-              <div className="mt-2 p-2 bg-gray-900 rounded">
-                <pre className="text-xs text-gray-300 whitespace-pre-wrap overflow-x-auto">
-                  {backendTestResult}
-                </pre>
-              </div>
-            )}
-          </div>
-        )}
         <Button
           type="button"
           variant="outline"
@@ -706,10 +334,34 @@ const DomainVerificationStep = ({ onComplete }: { onComplete: (domain: string) =
             <div className="text-xs text-gray-300 space-y-2">
               <p><strong>1.</strong> Go to your domain's DNS settings</p>
               <p><strong>2.</strong> Add a new TXT record with:</p>
-              <div className="bg-slate-900 p-2 rounded border-l-4 border-blue-500 ml-4">
-                <p><strong>Name/Host:</strong> <code className="text-blue-400">_densofi</code></p>
-                <p><strong>Value:</strong> <code className="text-green-400">a={address}</code></p>
-                <p><strong>TTL:</strong> <code className="text-gray-400">300</code> (or default)</p>
+              <div className="bg-slate-900 p-3 rounded border-l-4 border-blue-500 ml-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <strong>Name/Host:</strong> <code className="text-blue-400">_densofi</code>
+                  </div>
+                  <button
+                    onClick={() => copyToClipboard('_densofi', 'name')}
+                    className="ml-2 px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                    title="Copy to clipboard"
+                  >
+                    {copiedField === 'name' ? '✓ Copied!' : 'Copy'}
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <strong>Value:</strong> <code className="text-green-400">a={address}</code>
+                  </div>
+                  <button
+                    onClick={() => copyToClipboard(`a=${address}`, 'value')}
+                    className="ml-2 px-2 py-1 text-xs bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+                    title="Copy to clipboard"
+                  >
+                    {copiedField === 'value' ? '✓ Copied!' : 'Copy'}
+                  </button>
+                </div>
+                <div>
+                  <strong>TTL:</strong> <code className="text-gray-400">300</code> (or default)
+                </div>
               </div>
               <p><strong>3.</strong> Wait a few minutes for DNS propagation</p>
               <p><strong>4.</strong> Click "Verify Domain Ownership" below</p>
@@ -725,23 +377,21 @@ const DomainVerificationStep = ({ onComplete }: { onComplete: (domain: string) =
 
       <Button
         type="submit"
-        disabled={isVerifying || isSubmitting || !domainName.trim() || !canVerify || !isAuthenticated || !verifyDomain || !!hookError || isBackendAuthenticated === false || isCheckingBackendAuth}
+        disabled={isVerifying || isSubmitting || !domainName.trim() || !canVerify || !verifyDomain || !!hookError}
         className="w-full"
       >
         {hookError ? 'Verification Service Unavailable' :
-          isCheckingBackendAuth ? 'Checking Authentication...' :
-            isBackendAuthenticated === false ? 'Backend Authentication Required' :
-              isVerifying || isSubmitting ? 'Verifying Domain...' :
-                'Verify Domain Ownership'}
+          isVerifying || isSubmitting ? 'Verifying Domain...' :
+            'Verify Domain Ownership'}
       </Button>
 
 
 
-      {(!canVerify && isAuthenticated) && (
+      {!canVerify && (
         <div className="bg-yellow-900/30 border border-yellow-700/50 p-4 rounded-md">
           <h4 className="text-yellow-400 font-bold mb-2">Verification Not Available</h4>
           <p className="text-gray-300 text-sm">
-            Please ensure your wallet is connected and authenticated to verify domain ownership.
+            Please ensure your wallet is connected to verify domain ownership.
           </p>
         </div>
       )}
@@ -1045,63 +695,28 @@ const NFTMintingStep = ({ domain, onComplete }: { domain: string; onComplete: (n
     try {
       let foundNfts: NFT[] = [];
 
-      // Method 1: Try backend API first
+      // Load NFTs using Alchemy
       try {
-        console.log("🔄 Method 1: Checking backend API for new NFT...");
-        const backendResponse = await fetch(`${BACKEND_SERVICE_URL}/api/nfts/${address}`, {
-          headers: {
-            'Content-Type': 'application/json'
-          }
+        console.log("🔄 Loading NFTs using Alchemy...");
+        const response = await alchemy.nft.getNftsForOwner(address, {
+          contractAddresses: [CONTRACT_ADDRESS]
         });
 
-        if (backendResponse.ok) {
-          const backendData = await backendResponse.json();
-          console.log('📋 Backend NFT response:', backendData);
-
-          if (backendData.success && backendData.data && backendData.data.nfts && Array.isArray(backendData.data.nfts)) {
-            foundNfts = backendData.data.nfts.map((nft: any) => ({
-              id: {
-                tokenId: nft.tokenId.toString()
-              },
-              title: nft.title || `Domain NFT #${nft.tokenId}`,
-              description: nft.description || "",
-              media: [{
-                gateway: nft.image || ""
-              }],
-              contract: {
-                address: CONTRACT_ADDRESS
-              }
-            }));
+        foundNfts = response.ownedNfts.map((nft: any) => ({
+          id: {
+            tokenId: nft.tokenId
+          },
+          title: nft.title || `Domain NFT #${nft.tokenId}`,
+          description: nft.description || "",
+          media: [{
+            gateway: nft.media?.[0]?.gateway || ""
+          }],
+          contract: {
+            address: nft.contract.address
           }
-        }
-      } catch (backendError) {
-        console.warn("⚠️ Backend API not available:", backendError);
-      }
-
-      // Method 2: Fallback to Alchemy
-      if (foundNfts.length === 0) {
-        try {
-          console.log("🔄 Method 2: Trying Alchemy as fallback...");
-          const response = await alchemy.nft.getNftsForOwner(address, {
-            contractAddresses: [CONTRACT_ADDRESS]
-          });
-
-          foundNfts = response.ownedNfts.map((nft: any) => ({
-            id: {
-              tokenId: nft.tokenId
-            },
-            title: nft.title || `Domain NFT #${nft.tokenId}`,
-            description: nft.description || "",
-            media: [{
-              gateway: nft.media?.[0]?.gateway || ""
-            }],
-            contract: {
-              address: nft.contract.address
-            }
-          }));
-        } catch (alchemyError) {
-          console.warn("⚠️ Alchemy also failed:", alchemyError);
-        }
+        }));
+      } catch (alchemyError) {
+        console.warn("⚠️ Alchemy loading failed:", alchemyError);
       }
 
       console.log('📋 Found NFTs:', foundNfts.length);
@@ -1455,46 +1070,10 @@ const NFTSelectionStep = ({ onComplete }: { onComplete: (nftId: number, domain: 
       let formattedNfts: NFT[] = [];
       const methods = [];
 
-      // Method 1: Try backend API first
       try {
-        console.log("🔄 Method 1: Trying backend API...");
-        const backendResponse = await fetch(`${BACKEND_SERVICE_URL}/api/nfts/${owner}`, {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (backendResponse.ok) {
-          const backendData = await backendResponse.json();
-          console.log("📋 Backend NFT response:", backendData);
-
-          if (backendData.success && backendData.data && backendData.data.nfts && Array.isArray(backendData.data.nfts)) {
-            formattedNfts = backendData.data.nfts.map((nft: any) => ({
-              id: {
-                tokenId: nft.tokenId
-              },
-              title: nft.title || `Domain NFT #${nft.tokenId}`,
-              description: nft.description || "",
-              media: [{
-                gateway: nft.image || ""
-              }],
-              contract: {
-                address: CONTRACT_ADDRESS
-              }
-            }));
-            methods.push('Backend API');
-          }
-        }
-      } catch (backendError) {
-        console.warn("⚠️ Backend API not available:", backendError);
-        methods.push('Backend API (failed)');
-      }
-
-      // Method 2: Try Alchemy as fallback
-      if (formattedNfts.length === 0) {
-        try {
-          console.log("🔄 Method 2: Trying Alchemy API fallback...");
-          const response = await alchemy.nft.getNftsForOwner(owner, {
+        // Load NFTs using Alchemy
+        console.log("🔄 Loading NFTs using Alchemy...");
+        const response = await alchemy.nft.getNftsForOwner(owner, {
             contractAddresses: [CONTRACT_ADDRESS]
           });
 
@@ -1517,7 +1096,7 @@ const NFTSelectionStep = ({ onComplete }: { onComplete: (nftId: number, domain: 
               }
             };
           });
-          methods.push('Alchemy Fallback');
+          methods.push('Alchemy');
 
           // Try getting all NFTs and filtering if no results
           if (formattedNfts.length === 0) {
@@ -1547,25 +1126,23 @@ const NFTSelectionStep = ({ onComplete }: { onComplete: (nftId: number, domain: 
           }
         } catch (alchemyError) {
           console.warn("⚠️ Alchemy API also failed:", alchemyError);
-          methods.push('Alchemy Fallback (failed)');
+          methods.push('Alchemy (failed)');
         }
-      }
 
-      setDebugInfo({
-        contractAddress: CONTRACT_ADDRESS,
-        ownerAddress: owner,
-        totalNfts: formattedNfts.length,
-        networkDetected: 'Ethereum Sepolia',
-        methodsAttempted: methods,
-        successfulMethod: formattedNfts.length > 0 ? methods[methods.findIndex(m => !m.includes('failed'))] : 'none',
-        rawResponse: formattedNfts
-      });
+        setDebugInfo({
+          contractAddress: CONTRACT_ADDRESS,
+          ownerAddress: owner,
+          totalNfts: formattedNfts.length,
+          networkDetected: 'Ethereum Sepolia',
+          methodsAttempted: methods,
+          successfulMethod: formattedNfts.length > 0 ? methods[methods.findIndex(m => !m.includes('failed'))] : 'none',
+          rawResponse: formattedNfts
+        });
 
-      console.log("✅ Final formatted NFTs:", formattedNfts);
-      console.log("📊 Methods attempted:", methods);
-      setNfts(formattedNfts);
-
-    } catch (error) {
+        console.log("✅ Final formatted NFTs:", formattedNfts);
+        console.log("📊 Methods attempted:", methods);
+        setNfts(formattedNfts);
+      } catch (error) {
       console.error("❌ Error fetching NFTs:", error);
       setError(error instanceof Error ? error.message : "Unknown error occurred");
     } finally {
@@ -2060,59 +1637,45 @@ const TokenCreationStep = ({ domain, nftId }: { domain: string; nftId: number })
 // Main Create Token Content - Modal-based with choice between new domain and existing NFT
 const CreateTokenContent = () => {
   const { isConnected } = useAccount();
-  const { isAuthenticated } = useWalletAuth();
   const [mode, setMode] = useState<'choose' | 'new-domain' | 'existing-nft'>('choose');
-  const [currentStep, setCurrentStep] = useState(3); // Start at step 3
-  const [backendValidated, setBackendValidated] = useState(false);
+  const [currentStep, setCurrentStep] = useState(2); // Start at step 2 (domain verification)
   const [domainVerified, setDomainVerified] = useState(false);
   const [verifiedDomain, setVerifiedDomain] = useState('');
   const [registeredDomain, setRegisteredDomain] = useState('');
   const [mintedNftId, setMintedNftId] = useState<number | null>(null);
   const [fromExistingNFT, setFromExistingNFT] = useState(false);
 
-  // Check for issues that require showing steps 1 & 2
+  // Check for issues that require showing step 1
   const hasWalletIssue = !isConnected;
-  const hasBackendIssue = isConnected && !isAuthenticated;
 
-  // Auto-set backend validated if authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      setBackendValidated(true);
-    }
-  }, [isAuthenticated]);
-
-  const handleBackendValidated = () => {
-    setBackendValidated(true);
-    setCurrentStep(3);
-  };
 
   const handleDomainVerified = (domain: string) => {
     setVerifiedDomain(domain);
     setDomainVerified(true);
-    setCurrentStep(4);
+    setCurrentStep(3);
   };
 
   const handleDomainRegistered = (domain: string) => {
     setRegisteredDomain(domain);
-    setCurrentStep(5);
+    setCurrentStep(4);
   };
 
   const handleNFTMinted = (nftId: number) => {
     setMintedNftId(nftId);
-    setCurrentStep(6);
+    setCurrentStep(5);
   };
 
   const handleExistingNFTSelected = (nftId: number, domain: string) => {
     setMintedNftId(nftId);
     setRegisteredDomain(domain);
     setFromExistingNFT(true);
-    setCurrentStep(6);
+    setCurrentStep(5);
   };
 
   // Mode Selection Screen
-  if (mode === 'choose' && !hasWalletIssue && !hasBackendIssue) {
+  if (mode === 'choose' && !hasWalletIssue) {
     return (
-      <div className="space-y-4 sm:space-y-6">
+      <div className="w-full max-w-4xl mx-auto space-y-4 sm:space-y-6">
         <div className="text-center mb-4 sm:mb-6">
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-4 bg-gradient-to-r from-blue-400 via-purple-500 to-teal-400 bg-clip-text text-transparent">
             Choose Your Path
@@ -2254,7 +1817,7 @@ const CreateTokenContent = () => {
   // Existing NFT flow
   if (mode === 'existing-nft') {
     return (
-      <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+      <div className="w-full max-w-4xl mx-auto space-y-3 sm:space-y-4 lg:space-y-6">
         <div className="flex items-center justify-between mb-3 sm:mb-4 lg:mb-6">
           <button
             onClick={() => setMode('choose')}
@@ -2280,7 +1843,7 @@ const CreateTokenContent = () => {
 
   // New domain flow (starts at step 3, shows 1&2 only if issues)
   return (
-    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+    <div className="w-full max-w-4xl mx-auto space-y-3 sm:space-y-4 lg:space-y-6">
       {mode === 'new-domain' && (
         <div className="flex items-center justify-between mb-3 sm:mb-4 lg:mb-6">
           <button
@@ -2313,18 +1876,8 @@ const CreateTokenContent = () => {
         </Step>
       )}
 
-      {hasBackendIssue && (
-        <Step
-          title="Backend Validation"
-          completed={backendValidated}
-          active={isConnected && !backendValidated}
-        >
-          <BackendValidationStep onComplete={handleBackendValidated} />
-        </Step>
-      )}
-
-      {/* Main flow starts at step 3 */}
-      {!hasWalletIssue && !hasBackendIssue && (
+      {/* Main flow starts at step 2 */}
+      {!hasWalletIssue && (
         <>
           <Step
             title="Verify Domain Ownership"
@@ -2343,12 +1896,12 @@ const CreateTokenContent = () => {
 
           <Step
             title="Register Domain"
-            completed={currentStep > 4}
-            active={domainVerified && currentStep === 4}
+            completed={currentStep > 3}
+            active={domainVerified && currentStep === 3}
           >
             {!domainVerified ? (
               <p className="text-gray-400">Complete previous step to proceed</p>
-            ) : currentStep > 4 ? (
+            ) : currentStep > 3 ? (
               <p className="text-green-400 flex items-center gap-2">
                 <img src="/pixel/star-pixel.png" alt="Success" className="w-4 h-4" />
                 Domain "{registeredDomain}" registered successfully!
@@ -2360,12 +1913,12 @@ const CreateTokenContent = () => {
 
           <Step
             title="Mint Domain NFT"
-            completed={currentStep > 5}
-            active={currentStep === 5}
+            completed={currentStep > 4}
+            active={currentStep === 4}
           >
-            {currentStep < 5 ? (
+            {currentStep < 4 ? (
               <p className="text-gray-400">Complete previous steps to proceed</p>
-            ) : currentStep > 5 ? (
+            ) : currentStep > 4 ? (
               <p className="text-green-400 flex items-center gap-2">
                 <img src="/pixel/game-pixel.png" alt="NFT" className="w-4 h-4" />
                 NFT #{mintedNftId} minted successfully!
@@ -2378,9 +1931,9 @@ const CreateTokenContent = () => {
           <Step
             title="Create Domain Token"
             completed={false}
-            active={currentStep === 6}
+            active={currentStep === 5}
           >
-            {currentStep < 6 ? (
+            {currentStep < 5 ? (
               <p className="text-gray-400">Complete previous steps to proceed</p>
             ) : (
               <TokenCreationStep domain={registeredDomain} nftId={mintedNftId!} />

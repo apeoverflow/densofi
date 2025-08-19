@@ -2,13 +2,12 @@ import { Request, Response } from 'express';
 import { DomainService } from '../services/domain-service.js';
 import { NFTMinterService } from '../services/nft-minter-service.js';
 import { logger } from '../utils/logger.js';
-import { WalletAuthenticatedRequest } from '../middleware/wallet-auth.js';
 
 export class DomainsController {
   /**
    * Get all domains
    */
-  static async getAllDomains(req: Request, res: Response) {
+  static async getAllDomains(_req: Request, res: Response) {
     try {
       const domains = await DomainService.getAllDomains();
       res.json({
@@ -113,53 +112,18 @@ export class DomainsController {
 
   /**
    * Verify domain ownership via DNS
-   * Requires wallet authentication - uses JWT wallet address unless admin key provided
    */ 
-  static async verifyDomainOwnership(req: WalletAuthenticatedRequest, res: Response) {
+  static async verifyDomainOwnership(req: Request, res: Response) {
     try {
       const { name, walletAddress } = req.params;
       
-      // Determine which wallet address to use for verification
-      let targetWalletAddress: string;
-      
-      if (req.isAdminAuthenticated) {
-        // Admin can verify any wallet address from URL parameter
-        targetWalletAddress = walletAddress;
-      } else {
-        // Regular users must use their JWT-authenticated wallet address
-        if (!req.walletAddress) {
-          return res.status(401).json({
-            success: false,
-            error: 'Wallet authentication failed',
-            message: 'No authenticated wallet address found in JWT token'
-          });
-        }
-        
-        // For security, ignore the URL parameter and use JWT wallet address
-        targetWalletAddress = req.walletAddress;
-        
-        // Optional: Log if URL param doesn't match JWT address (for debugging)
-        if (walletAddress.toLowerCase() !== req.walletAddress.toLowerCase()) {
-          logger.warn('Wallet address mismatch ignored - using JWT address', {
-            urlParam: walletAddress,
-            jwtAddress: req.walletAddress,
-            path: req.path,
-            ip: req.ip
-          });
-        }
-      }
-      
-      const isVerified = await DomainService.verifyDomainViaDns(name, targetWalletAddress);
+      const isVerified = await DomainService.verifyDomainViaDns(name, walletAddress);
       res.status(200).json({
         success: true,
         data: {
           domainName: name,
-          walletAddress: targetWalletAddress,
-          isVerified,
-          authenticatedWallet: req.walletAddress || null,
-          authType: req.isAdminAuthenticated ? 'admin' : 'wallet',
-          adminOverride: !!req.isAdminAuthenticated,
-          ...(req.isAdminAuthenticated ? {} : { note: 'Used JWT wallet address for verification' })
+          walletAddress,
+          isVerified
         }
       });
     } catch (error) {

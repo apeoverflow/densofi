@@ -1,20 +1,18 @@
 import { Request, Response } from 'express';
 import { logger } from '../utils/logger.js';
-import { WalletAuthenticatedRequest } from '../middleware/wallet-auth.js';
 
 export class GameController {
   /**
    * Submit game XP score
-   * Requires wallet authentication
    */
-  static async submitXP(req: WalletAuthenticatedRequest, res: Response) {
+  static async submitXP(req: Request, res: Response) {
     try {
-      const { score, gameType = 'dino-runner', difficulty = 'normal' } = req.body;
+      const { score, walletAddress, gameType = 'dino-runner', difficulty = 'normal' } = req.body;
       
-      if (!req.walletAddress || !req.isWalletAuthenticated) {
-        return res.status(401).json({
+      if (!walletAddress) {
+        return res.status(400).json({
           success: false,
-          error: 'Wallet authentication required - please provide valid JWT token'
+          error: 'Wallet address is required'
         });
       }
       
@@ -24,9 +22,7 @@ export class GameController {
           error: 'Invalid score: must be a non-negative number'
         });
       }
-
-      const walletAddress = req.walletAddress;
-      const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+      const ipAddress = req.ip || 'unknown';
       const userAgent = req.get('User-Agent');
 
       // Submit XP to database and update player stats
@@ -121,36 +117,19 @@ export class GameController {
 
   /**
    * Get player stats
-   * Requires wallet authentication or admin override
    */
-  static async getPlayerStats(req: WalletAuthenticatedRequest, res: Response) {
+  static async getPlayerStats(req: Request, res: Response) {
     try {
       const requestedAddress = req.params.address;
-      const authenticatedAddress = req.walletAddress; // Use JWT-derived wallet address
-      const isAdmin = req.isAdminAuthenticated;
 
-      // Determine which address to get stats for
-      let targetAddress: string;
-      
-      if (requestedAddress) {
-        // If a specific address is requested, check permissions
-        if (!isAdmin && authenticatedAddress !== requestedAddress.toLowerCase()) {
-          return res.status(403).json({
-            success: false,
-            error: 'Can only view your own stats unless admin'
-          });
-        }
-        targetAddress = requestedAddress;
-      } else {
-        // No specific address requested, use authenticated wallet
-        if (!authenticatedAddress) {
-          return res.status(401).json({
-            success: false,
-            error: 'Wallet authentication required to view stats'
-          });
-        }
-        targetAddress = authenticatedAddress;
+      if (!requestedAddress) {
+        return res.status(400).json({
+          success: false,
+          error: 'Wallet address is required'
+        });
       }
+
+      const targetAddress = requestedAddress;
 
       // Get player stats from database
       const { GameService } = await import('../services/game-service.js');
@@ -198,36 +177,19 @@ export class GameController {
 
   /**
    * Get player game history
-   * Requires wallet authentication or admin override
    */
-  static async getPlayerGameHistory(req: WalletAuthenticatedRequest, res: Response) {
+  static async getPlayerGameHistory(req: Request, res: Response) {
     try {
       const requestedAddress = req.params.address;
-      const authenticatedAddress = req.walletAddress; // Use JWT-derived wallet address
-      const isAdmin = req.isAdminAuthenticated;
 
-      // Determine which address to get history for
-      let targetAddress: string;
-      
-      if (requestedAddress) {
-        // If a specific address is requested, check permissions
-        if (!isAdmin && authenticatedAddress !== requestedAddress.toLowerCase()) {
-          return res.status(403).json({
-            success: false,
-            error: 'Can only view your own game history unless admin'
-          });
-        }
-        targetAddress = requestedAddress;
-      } else {
-        // No specific address requested, use authenticated wallet
-        if (!authenticatedAddress) {
-          return res.status(401).json({
-            success: false,
-            error: 'Wallet authentication required to view game history'
-          });
-        }
-        targetAddress = authenticatedAddress;
+      if (!requestedAddress) {
+        return res.status(400).json({
+          success: false,
+          error: 'Wallet address is required'
+        });
       }
+
+      const targetAddress = requestedAddress;
 
       const limit = parseInt(req.query.limit as string) || 20;
       const offset = parseInt(req.query.offset as string) || 0;

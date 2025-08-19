@@ -1,14 +1,11 @@
 import { useState, useCallback } from 'react';
-import { useAuthenticatedFetch } from './useAuthenticatedFetch';
-import { useWalletAuth } from './useWalletAuth';
+import { useAccount } from 'wagmi';
+import config from '@/lib/config';
 
 interface DomainVerificationResult {
   domainName: string;
   walletAddress: string;
   isVerified: boolean;
-  authenticatedWallet: string | null;
-  authType: 'admin' | 'wallet';
-  adminOverride: boolean;
 }
 
 interface DomainVerificationError {
@@ -19,8 +16,7 @@ interface DomainVerificationError {
 }
 
 export function useDomainVerification() {
-  const { isAuthenticated, connectedAddress } = useWalletAuth();
-  const authenticatedFetch = useAuthenticatedFetch();
+  const { address, isConnected } = useAccount();
   
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState<DomainVerificationError | null>(null);
@@ -29,9 +25,9 @@ export function useDomainVerification() {
     domainName: string, 
     walletAddress?: string
   ): Promise<DomainVerificationResult> => {
-    if (!isAuthenticated) {
+    if (!isConnected || !address) {
       const authError: DomainVerificationError = {
-        message: 'Please connect and authenticate your wallet to verify domain ownership',
+        message: 'Please connect your wallet to verify domain ownership',
         type: 'auth_error',
         requiresReauth: true
       };
@@ -39,7 +35,7 @@ export function useDomainVerification() {
       throw authError;
     }
 
-    const targetWallet = walletAddress || connectedAddress;
+    const targetWallet = walletAddress || address;
     if (!targetWallet) {
       const validationError: DomainVerificationError = {
         message: 'No wallet address provided for verification',
@@ -53,10 +49,9 @@ export function useDomainVerification() {
     setError(null);
 
     try {
-      const response = await authenticatedFetch(
-        `/api/domains/${domainName}/${targetWallet}/verify`,
+      const response = await fetch(
+        `${config.apiUrl}/domains/${domainName}/${targetWallet}/verify`,
         { 
-          requireAuth: true,
           method: 'GET'
         }
       );
@@ -74,14 +69,14 @@ export function useDomainVerification() {
         
         if (response.status === 401) {
           domainError = {
-            message: 'Authentication expired. Please re-authenticate your wallet to continue.',
+            message: 'Wallet not connected. Please connect your wallet to continue.',
             type: 'auth_error',
             requiresReauth: true,
             status: response.status
           };
         } else if (response.status === 403) {
           domainError = {
-            message: 'Access denied. Make sure you are verifying your own domain.',
+            message: 'Access denied. Make sure you are verifying with the correct wallet.',
             type: 'auth_error',
             status: response.status
           };
@@ -138,7 +133,7 @@ export function useDomainVerification() {
     } finally {
       setIsVerifying(false);
     }
-  }, [isAuthenticated, connectedAddress, authenticatedFetch]);
+  }, [address, isConnected]);
 
   const clearError = useCallback(() => {
     setError(null);
@@ -149,7 +144,7 @@ export function useDomainVerification() {
     isVerifying,
     error,
     clearError,
-    canVerify: isAuthenticated && !!connectedAddress,
+    canVerify: isConnected && !!address,
   };
 }
 
