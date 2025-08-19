@@ -1,5 +1,7 @@
 import { verifyMessage } from 'viem';
+import jwt from 'jsonwebtoken';
 import { logger } from '../utils/logger.js';
+import { ENV } from '../config/env.js';
 
 export interface WalletAuthData {
   walletAddress: string;
@@ -35,6 +37,13 @@ export interface AuthResult {
   isVerified: boolean;
   sessionId: string;
   expiresAt: string;
+  jwtToken: string;
+}
+
+export interface JWTPayload {
+  walletAddress: string;
+  iat: number;
+  exp: number;
 }
 
 class WalletAuthService {
@@ -179,9 +188,10 @@ Valid until: ${expiresAt.toISOString()}`;
       signInCount: walletData.signInCount
     });
 
-    // Generate session ID and expiration
+    // Generate session ID, JWT token, and expiration
     const sessionId = this.generateSessionId();
     const sessionExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    const jwtToken = this.generateJWT(normalizedAddress);
 
     return {
       walletAddress: normalizedAddress,
@@ -191,10 +201,10 @@ Valid until: ${expiresAt.toISOString()}`;
       firstSeen: walletData.firstSeen,
       lastSeen: walletData.lastSeen,
       suspiciousActivity: walletData.suspiciousActivity,
-      // Required for frontend authentication
       isVerified: true,
       sessionId: sessionId,
-      expiresAt: sessionExpiresAt.toISOString()
+      expiresAt: sessionExpiresAt.toISOString(),
+      jwtToken: jwtToken
     };
   }
 
@@ -335,6 +345,73 @@ Valid until: ${expiresAt.toISOString()}`;
     return Math.random().toString(36).substring(2, 15) + 
            Math.random().toString(36).substring(2, 15) + 
            Date.now().toString(36);
+  }
+
+  /**
+   * Generate JWT token for wallet authentication
+   */
+  generateJWT(walletAddress: string): string {
+    const payload: JWTPayload = {
+      walletAddress: walletAddress.toLowerCase(),
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
+    };
+    
+    return jwt.sign(payload, ENV.JWT_SECRET);
+  }
+
+  /**
+   * Verify JWT token and return wallet address if valid
+   */
+  verifyJWT(token: string): { walletAddress: string; isValid: boolean } {
+    try {
+      logger.info('JWT Verification Debug', {
+        tokenLength: token.length,
+        tokenPrefix: token.substring(0, 20) + '...',
+        jwtSecret: ENV.JWT_SECRET.substring(0, 10) + '...'
+      });
+      
+      const decoded = jwt.verify(token, ENV.JWT_SECRET) as JWTPayload;
+      
+      logger.info('JWT decoded successfully', {
+        walletAddress: decoded.walletAddress,
+        issuedAt: new Date(decoded.iat * 1000),
+        expiresAt: new Date(decoded.exp * 1000)
+      });
+      
+      // Additional validation: check if wallet still exists in our system
+      const walletInfo = this.getWalletInfo(decoded.walletAddress);
+      if (!walletInfo) {
+        logger.warn('JWT valid but wallet not found in auth service', {
+          walletAddress: decoded.walletAddress
+        });
+        return { walletAddress: decoded.walletAddress, isValid: false };
+      }
+      
+      // Check if wallet authentication is still recent (24 hour window)
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      if (walletInfo.lastSeen < twentyFourHoursAgo) {
+        logger.warn('JWT valid but wallet session expired', {
+          walletAddress: decoded.walletAddress,
+          lastSeen: walletInfo.lastSeen
+        });
+        return { walletAddress: decoded.walletAddress, isValid: false };
+      }
+      
+      logger.info('JWT validation successful', {
+        walletAddress: decoded.walletAddress,
+        lastSeen: walletInfo.lastSeen
+      });
+      
+      return { walletAddress: decoded.walletAddress, isValid: true };
+    } catch (error) {
+      logger.warn('JWT verification failed', { 
+        tokenLength: token.length,
+        tokenPrefix: token.substring(0, 20) + '...',
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+      return { walletAddress: '', isValid: false };
+    }
   }
 
   private generateSessionId(): string {

@@ -1,16 +1,11 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useAccount, useSignMessage } from 'wagmi';
+import { useAccount } from 'wagmi';
 import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import { WalletConnectButton } from "@/components/WalletConnectButton";
 import { InteractiveBackground } from "@/components/ui/InteractiveBackground";
-import { WalletAuthButton } from "@/components/WalletAuthButton";
-import { useWalletAuth } from "@/hooks/useWalletAuth";
-import { useAuthenticatedFetch } from "@/hooks/useAuthenticatedFetch";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AuthErrorHandler } from "@/components/AuthErrorHandler";
 import config from '@/lib/config';
 
 interface Obstacle {
@@ -121,14 +116,6 @@ const PixelIcon = ({ src, alt, size = 16 }: { src: string; alt: string; size?: n
 
 export default function DinoGameClient() {
   const { address, isConnected } = useAccount();
-  const { signMessageAsync } = useSignMessage();
-  const { isAuthenticated, error: authError, isLoading: authLoading, sessionId, forceRefreshAuthState } = useWalletAuth();
-  
-  // Debug logging
-  useEffect(() => {
-    console.log('DinoGame auth state:', { isConnected, isAuthenticated, authError, authLoading });
-  }, [isConnected, isAuthenticated, authError, authLoading]);
-  const authenticatedFetch = useAuthenticatedFetch();
   const [gameState, setGameState] = useState<GameState>(INITIAL_GAME_STATE);
   const [keys, setKeys] = useState<Set<string>>(new Set<string>());
   const [totalXP, setTotalXP] = useState(0);
@@ -159,14 +146,13 @@ export default function DinoGameClient() {
     }
   }, [toast]);
 
-  // Load player stats from server when authenticated
+  // Load player stats from server
   useEffect(() => {
     const loadPlayerStats = async () => {
-      if (isAuthenticated && address && authenticatedFetch) {
+      if (address) {
         try {
-          const response = await authenticatedFetch(`${config.apiUrl}/game/stats/${address}`, {
+          const response = await fetch(`${config.apiUrl}/game/stats/${address}`, {
             method: 'GET',
-            requireAuth: false // Try without strict auth requirement
           });
 
           if (response.ok) {
@@ -186,11 +172,11 @@ export default function DinoGameClient() {
             return;
           }
         } catch (error) {
-          console.error('Failed to load player stats:', error);
+          console.log('Failed to load player stats:', error);
         }
       }
       
-      // Fallback to localStorage (not authenticated or error occurred)
+      // Fallback to localStorage (no address or error occurred)
       const storedXP = localStorage.getItem('densofi-game-xp');
       if (storedXP) {
         setTotalXP(parseInt(storedXP, 10) || 0);
@@ -202,7 +188,7 @@ export default function DinoGameClient() {
     };
 
     loadPlayerStats();
-  }, [isAuthenticated, address, authenticatedFetch]);
+  }, [address]);
 
   // Save XP to localStorage as backup
   useEffect(() => {
@@ -265,32 +251,31 @@ export default function DinoGameClient() {
         setLeaderboard([]);
       }
 
-      // Load player history only if authenticated and address exists
-      if (isAuthenticated && address && authenticatedFetch) {
+      // Load player history if address exists
+      if (address) {
         try {
-                      const historyResponse = await authenticatedFetch(`${config.apiUrl}/game/history/${address}?limit=10`, {
-              method: 'GET',
-              requireAuth: false // Try without strict auth requirement first
-            });
+          const historyResponse = await fetch(`${config.apiUrl}/game/history/${address}?limit=10`, {
+            method: 'GET',
+          });
           if (historyResponse.ok) {
             const historyData = await historyResponse.json();
             if (historyData.success) {
               setPlayerHistory(historyData.data.history);
             }
           } else {
-            console.log('Player history not available or user not authenticated');
+            console.log('Player history not available');
             setPlayerHistory([]);
           }
         } catch (error) {
-          console.error('Failed to load player history:', error);
+          console.log('Failed to load player history:', error);
           setPlayerHistory([]);
         }
       } else {
-        // Clear player history if not authenticated
+        // Clear player history if no address
         setPlayerHistory([]);
       }
     } catch (error) {
-      console.error('Failed to load comprehensive stats:', error);
+      console.log('Failed to load comprehensive stats:', error);
     } finally {
       setStatsLoading(false);
     }
@@ -513,8 +498,8 @@ export default function DinoGameClient() {
 
   // Start game with countdown
   const startGame = useCallback(() => {
-    console.log('startGame called with:', { isConnected, isAuthenticated });
-    if (!isConnected || !isAuthenticated) {
+    console.log('startGame called with:', { isConnected });
+    if (!isConnected) {
       console.log('Cannot start game - wallet not connected or not authenticated');
       return;
     }
@@ -537,13 +522,7 @@ export default function DinoGameClient() {
         return prev - 1;
       });
     }, 1000);
-  }, [isConnected, isAuthenticated]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      console.log('User is now authenticated, they should be able to start the game');
-    }
-  }, [isAuthenticated]);
+  }, [isConnected]);
 
   // Reset game
   const resetGame = useCallback(() => {
@@ -1417,22 +1396,15 @@ export default function DinoGameClient() {
     setToast(null);
     
     try {
-      if (!isAuthenticated) {
-        setToast({ message: 'Please authenticate your wallet to claim XP!', type: 'error' });
-        setIsClaimingXP(false);
-        return;
-      }
-
-      // Submit XP to backend
-      if (!authenticatedFetch) {
-        throw new Error('Authentication service not available');
-      }
-
-      const response = await authenticatedFetch('/api/game/submit-xp', {
+      // Submit XP to backend (no authentication required)
+      const response = await fetch(`${config.apiUrl}/game/submit-xp`, {
         method: 'POST',
-        requireAuth: true,
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           score: gameState.score,
+          walletAddress: address,
           gameType: 'dino-runner',
           difficulty: 'normal'
         })
@@ -1459,11 +1431,10 @@ export default function DinoGameClient() {
         setToast({ message, type: 'success' }); 
         
         // Refresh player stats to get updated rank
-        if (address && authenticatedFetch) {
+        if (address) {
           try {
-            const statsResponse = await authenticatedFetch(`${config.apiUrl}/game/stats/${address}`, {
+            const statsResponse = await fetch(`${config.apiUrl}/game/stats/${address}`, {
               method: 'GET',
-              requireAuth: false
             });
             if (statsResponse.ok) {
               const statsData = await statsResponse.json();
@@ -1473,7 +1444,7 @@ export default function DinoGameClient() {
               }
             }
           } catch (error) {
-            console.error('Failed to refresh player stats:', error);
+            console.log('Failed to refresh player stats:', error);
           }
         }
         
@@ -1484,7 +1455,7 @@ export default function DinoGameClient() {
       }
       
     } catch (error) {
-      console.error('Failed to claim XP:', error);
+      console.log('Failed to claim XP:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to claim XP. Please try again.';
       setToast({ message: errorMessage, type: 'error' });
     } finally {
@@ -1530,7 +1501,6 @@ export default function DinoGameClient() {
 
 
           {/* Authentication Status Alert with Reset Option */}
-          <AuthErrorHandler error={authError} />
           
           
           {/* Enhanced Stats Section */}
@@ -1597,7 +1567,7 @@ export default function DinoGameClient() {
                 <div className="relative bg-gradient-to-br from-slate-800/30 to-slate-900/30 rounded-md p-1.5 border border-slate-700/30 backdrop-blur-sm">
                   <div className="relative z-10 text-center">
                     <p className="text-xs text-gray-400 mb-0.5">Status</p>
-                    <p className="text-xs sm:text-sm font-bold text-emerald-400">{isConnected ? (isAuthenticated ? 'Ready' : 'Auth Needed') : 'Connect Wallet'}</p>
+                    <p className="text-xs sm:text-sm font-bold text-emerald-400">{isConnected ? 'Ready' : 'Connect Wallet'}</p>
                   </div>
                 </div>
               </div>
@@ -1665,47 +1635,7 @@ export default function DinoGameClient() {
                         </Button>
                       </div>
                     </div>
-                  ) : isConnected && !isAuthenticated ? (
-                    <div className="space-y-3">
-                      <p className="text-gray-300 text-sm px-2">Authenticate your wallet to play and earn XP!</p>
-                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center items-center">
-                        <WalletAuthButton 
-                          onAuthSuccess={() => {
-                            console.log('Auth success callback triggered');
-                            // Additional refresh after 1 second if needed
-                            setTimeout(() => {
-                              forceRefreshAuthState();
-                            }, 1000);
-                          }}
-                        />
-                        <div className="flex gap-2">
-                          <Button 
-                            onClick={() => setShowRulesModal(true)}
-                            variant="outline"
-                            className="border-white/20 hover:bg-white/10 text-xs sm:text-sm px-3 py-2"
-                          >
-                            <span className="flex items-center gap-1">
-                              <PixelIcon src="book-pixel.png" alt="Rules" />
-                              Rules
-                            </span>
-                          </Button>
-                          <Button 
-                            onClick={() => {
-                              setShowStatsModal(true);
-                              loadComprehensiveStats();
-                            }}
-                            variant="outline"
-                            className="border-white/20 hover:bg-white/10 text-xs sm:text-sm px-3 py-2"
-                          >
-                            <span className="flex items-center gap-1">
-                              <PixelIcon src="graph-pixel.png" alt="Stats" />
-                              Stats
-                            </span>
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : isConnected && isAuthenticated && !gameState.isGameRunning && !gameState.isGameOver && gameStartCountdown === 0 ? (
+                  ) : isConnected && !gameState.isGameRunning && !gameState.isGameOver && gameStartCountdown === 0 ? (
                     <div className="space-y-3">
                       <p className="text-xs sm:text-sm text-gray-400 px-2">JUMP: TAP/SPACE/↑ • DOUBLE JUMP: Press again in air. Press Z to shoot fireballs!</p>
                       <div className="text-xs text-center text-green-400 mb-2">
@@ -1968,10 +1898,10 @@ export default function DinoGameClient() {
                     <div>
                       <h4 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                         <PixelIcon src="line-graph-pixel.png" alt="Statistics" />
-                        {isAuthenticated ? 'Your Statistics' : 'Personal Stats'}
+                        Your Statistics
                       </h4>
                       
-                      {isAuthenticated && playerStats ? (
+                      {playerStats ? (
                         <div className="space-y-4">
                           {/* Personal Stats Summary */}
                           <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg border border-slate-700/50 p-4">
@@ -2031,11 +1961,8 @@ export default function DinoGameClient() {
                       ) : (
                         <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg border border-slate-700/50 p-8 text-center">
                           <p className="text-gray-400 mb-4">
-                            {isAuthenticated ? 'Play your first game to see your statistics!' : 'Connect and authenticate your wallet to see your personal statistics and game history.'}
+                            Play your first game to see your statistics!
                           </p>
-                          {!isAuthenticated && (
-                            <WalletConnectButton />
-                          )}
                         </div>
                       )}
                     </div>

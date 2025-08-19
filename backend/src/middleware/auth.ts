@@ -2,14 +2,15 @@ import { Request, Response, NextFunction } from 'express';
 import { ENV } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 
-export interface AuthenticatedRequest extends Request {
-  isAuthenticated?: boolean;
+export interface AdminAuthenticatedRequest extends Request {
+  isAdminAuthenticated?: boolean;
 }
 
 /**
- * Middleware to validate API key authentication
+ * Middleware to validate admin API key authentication
  */
-export function requireApiKey(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+export function requireAdminKey(req: AdminAuthenticatedRequest, res: Response, next: NextFunction) {
+  req.isAdminAuthenticated = false;
   try {
     // Check if ADMIN_API_KEY is configured
     if (!ENV.ADMIN_API_KEY) {
@@ -64,48 +65,18 @@ export function requireApiKey(req: AuthenticatedRequest, res: Response, next: Ne
     }
 
     // Authentication successful
-    req.isAuthenticated = true;
-    logger.info('API key authentication successful', {
+    req.isAdminAuthenticated = true;
+    logger.info('Admin API key authentication successful', {
       ip: req.ip,
       path: req.path
     });
     
     next();
   } catch (error) {
-    logger.error('Authentication middleware error:', error);
+    logger.error('Admin API key authentication middleware error:', error);
     res.status(500).json({
       success: false,
-      error: 'Authentication error'
+      error: 'Admin API key authentication error'
     });
   }
 }
-
-/**
- * Optional middleware that adds authentication info but doesn't require it
- */
-export function optionalApiKey(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-  try {
-    const authHeader = req.headers.authorization;
-    
-    if (authHeader && ENV.ADMIN_API_KEY) {
-      let apiKey: string;
-      
-      if (authHeader.startsWith('Bearer ')) {
-        apiKey = authHeader.substring(7);
-      } else if (authHeader.startsWith('ApiKey ')) {
-        apiKey = authHeader.substring(7);
-      } else {
-        apiKey = authHeader;
-      }
-
-      if (apiKey === ENV.ADMIN_API_KEY) {
-        req.isAuthenticated = true;
-      }
-    }
-    
-    next();
-  } catch (error) {
-    logger.error('Optional authentication middleware error:', error);
-    next(); // Continue without authentication
-  }
-} 

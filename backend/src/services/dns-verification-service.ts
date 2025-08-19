@@ -25,7 +25,8 @@ export class DnsVerificationService {
       for (const record of records) {
         const recordText = Array.isArray(record) ? record.join('') : record;
         // The user's TXT record shows 'a=0x...', so we should specifically look for that format.
-        if (recordText.includes(`a=${walletAddress}`)) {
+        // Make comparison case-insensitive for wallet addresses
+        if (recordText.toLowerCase().includes(`a=${walletAddress.toLowerCase()}`)) {
           logger.info(`Successfully verified ownership of ${domainName} for wallet ${walletAddress}. Found TXT record: "${recordText}"`);
           return true;
         }

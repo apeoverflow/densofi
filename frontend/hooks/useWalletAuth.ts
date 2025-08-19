@@ -16,6 +16,7 @@ interface AuthResult {
   isVerified: boolean;
   sessionId: string;
   expiresAt: string;
+  jwtToken: string;
 }
 
 interface WalletAuthState {
@@ -23,6 +24,7 @@ interface WalletAuthState {
   isLoading: boolean;
   error: string | null;
   sessionId: string | null;
+  jwtToken: string | null;
   walletAddress: string | null;
   expiresAt: string | null;
 }
@@ -36,6 +38,7 @@ export function useWalletAuth() {
     isLoading: false,
     error: null,
     sessionId: null,
+    jwtToken: null,
     walletAddress: null,
     expiresAt: null,
   });
@@ -73,6 +76,7 @@ export function useWalletAuth() {
               isLoading: false,
               error: null,
               sessionId: parsed.sessionId,
+              jwtToken: parsed.jwtToken,
               walletAddress: parsed.walletAddress,
               expiresAt: parsed.expiresAt,
             });
@@ -92,6 +96,7 @@ export function useWalletAuth() {
               isLoading: false,
               error: null,
               sessionId: null,
+              jwtToken: null,
               walletAddress: null,
               expiresAt: null,
             });
@@ -105,6 +110,7 @@ export function useWalletAuth() {
             isLoading: false,
             error: null,
             sessionId: null,
+            jwtToken: null,
             walletAddress: null,
             expiresAt: null,
           });
@@ -116,6 +122,7 @@ export function useWalletAuth() {
             isLoading: false,
             error: null,
             sessionId: null,
+            jwtToken: null,
             walletAddress: null,
             expiresAt: null,
           });
@@ -128,6 +135,7 @@ export function useWalletAuth() {
           isLoading: false,
           error: null,
           sessionId: null,
+          jwtToken: null,
           walletAddress: null,
           expiresAt: null,
         });
@@ -146,6 +154,7 @@ export function useWalletAuth() {
         isLoading: false,
         error: null,
         sessionId: null,
+        jwtToken: null,
         walletAddress: null,
         expiresAt: null,
       });
@@ -171,6 +180,7 @@ export function useWalletAuth() {
           isLoading: false,
           error: 'Wallet changed - please re-authenticate',
           sessionId: null,
+          jwtToken: null,
           walletAddress: null,
           expiresAt: null,
         });
@@ -259,6 +269,7 @@ export function useWalletAuth() {
         isLoading: false,
         error: null,
         sessionId: authResult.sessionId,
+        jwtToken: authResult.jwtToken,
         walletAddress: authResult.walletAddress,
         expiresAt: authResult.expiresAt,
       };
@@ -269,6 +280,7 @@ export function useWalletAuth() {
       // Persist to localStorage
       localStorage.setItem('wallet-auth', JSON.stringify({
         sessionId: authResult.sessionId,
+        jwtToken: authResult.jwtToken,
         walletAddress: authResult.walletAddress,
         expiresAt: authResult.expiresAt,
       }));
@@ -290,6 +302,7 @@ export function useWalletAuth() {
                 isLoading: false,
                 error: null,
                 sessionId: parsed.sessionId,
+                jwtToken: parsed.jwtToken,
                 walletAddress: parsed.walletAddress,
                 expiresAt: parsed.expiresAt,
               });
@@ -323,6 +336,7 @@ export function useWalletAuth() {
       isLoading: false,
       error: null,
       sessionId: null,
+      jwtToken: null,
       walletAddress: null,
       expiresAt: null,
     });
@@ -341,6 +355,7 @@ export function useWalletAuth() {
       isLoading: false,
       error: null,
       sessionId: null,
+      jwtToken: null,
       walletAddress: null,
       expiresAt: null,
     });
@@ -369,6 +384,7 @@ export function useWalletAuth() {
             isLoading: false,
             error: null,
             sessionId: parsed.sessionId,
+            jwtToken: parsed.jwtToken,
             walletAddress: parsed.walletAddress,
             expiresAt: parsed.expiresAt,
           });
@@ -380,14 +396,14 @@ export function useWalletAuth() {
   }, [address, authState]);
 
   const getAuthHeaders = useCallback(() => {
-    if (!authState.sessionId) {
+    if (!authState.jwtToken) {
       return {};
     }
     
     return {
-      'Authorization': `Bearer ${authState.sessionId}`,
+      'Authorization': `Bearer ${authState.jwtToken}`,
     };
-  }, [authState.sessionId]);
+  }, [authState.jwtToken]);
 
   // Check if authentication is required based on wallet connection and current auth state
   const needsAuthentication = isConnected && !authState.isAuthenticated && !authState.isLoading;
