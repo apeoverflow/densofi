@@ -57,6 +57,7 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
     mapping(address => address) public s_tokenCreators;
     mapping(string => address) public s_domainToVault; // domain name -> vault address
     mapping(address => string) public s_vaultToDomain; // vault address -> domain name
+    mapping(address => bool) public s_authorizedMinters; // authorized token minter contracts
 
     // Events
     event TokenCreated(
@@ -104,6 +105,13 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         address indexed vault,
         address indexed newOwner
     );
+    event TokenAcceptedFromMinter(
+        address indexed creator,
+        address indexed token,
+        address indexed minter,
+        uint16 sellPenalty
+    );
+    event MinterAuthorized(address indexed minter, bool authorized);
 
     constructor(
         address _owner,
@@ -262,6 +270,72 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         );
 
         return remainingEth - initialBuy;
+    }
+
+    // Create token from authorized minter (TokenMinter contract)
+    function createTokenFromMinter(
+        address owner,
+        string memory tokenName,
+        string memory tokenSymbol,
+        uint256 initialSupply
+    ) external returns (InitialSupplySuperchainERC20) {
+        require(s_authorizedMinters[msg.sender], "Not authorized minter");
+        require(owner != address(0), "Invalid owner address");
+        require(bytes(tokenName).length > 0, "Invalid token name");
+        require(bytes(tokenSymbol).length > 0, "Invalid token symbol");
+        require(initialSupply > 0, "Invalid initial supply");
+
+        // Create token with launchpad as the launcher (this contract becomes msg.sender)
+        InitialSupplySuperchainERC20 newToken = new InitialSupplySuperchainERC20(
+            owner, // owner receives the tokens
+            tokenName, // name
+            tokenSymbol, // symbol
+            18, // decimals
+            initialSupply, // initial supply
+            block.chainid, // initial supply chain ID (current chain)
+            false // should not launch immediately - launchpad controls launch
+        );
+
+        return newToken;
+    }
+
+    // Accept token from authorized minter (TokenMinter contract)
+    function acceptTokenFromMinter(
+        address tokenAddress,
+        address creator,
+        uint16 sellPenalty
+    ) external {
+        require(s_authorizedMinters[msg.sender], "Not authorized minter");
+        require(tokenAddress != address(0), "Invalid token address");
+        require(creator != address(0), "Invalid creator address");
+        require(sellPenalty <= 100, "Sell penalty too high"); // Max 10%
+        require(s_fakePools[tokenAddress].token == address(0), "Token already exists");
+
+        // Verify that this contract owns the tokens
+        InitialSupplySuperchainERC20 token = InitialSupplySuperchainERC20(tokenAddress);
+        require(token.owner() == address(this), "Launchpad must own the token");
+        uint256 tokenSupply = token.totalSupply();
+        require(token.balanceOf(address(this)) == tokenSupply, "Incorrect token balance");
+
+        // Setup fake pool for the token
+        FakePool storage pool = s_fakePools[tokenAddress];
+        pool.token = tokenAddress;
+        pool.creator = creator;
+        pool.fakeEth = FAKE_POOL_BASE_ETHER;
+        pool.ethReserve = FAKE_POOL_BASE_ETHER;
+        pool.tokenReserve = tokenSupply;
+        pool.sellPenalty = sellPenalty;
+        pool.locked = false;
+
+        s_tokenCreators[tokenAddress] = creator;
+
+        emit TokenAcceptedFromMinter(creator, tokenAddress, msg.sender, sellPenalty);
+        emit FakePoolCreated(
+            tokenAddress,
+            sellPenalty,
+            pool.ethReserve,
+            pool.tokenReserve
+        );
     }
 
     // Buy tokens
@@ -825,6 +899,13 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
     // Admin function to set max price staleness
     function setMaxPriceStaleness(uint32 _maxStaleness) external onlyOwner {
         s_maxPriceStaleness = _maxStaleness;
+    }
+
+    // Admin function to authorize/deauthorize minter contracts
+    function setMinterAuthorization(address minter, bool authorized) external onlyOwner {
+        require(minter != address(0), "Invalid minter address");
+        s_authorizedMinters[minter] = authorized;
+        emit MinterAuthorized(minter, authorized);
     }
 
     // Admin function to update domain ownership

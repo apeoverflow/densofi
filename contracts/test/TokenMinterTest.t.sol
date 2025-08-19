@@ -7,12 +7,53 @@ import "../src/NFTMinter.sol";
 import "../src/libraries/StringBytes32.sol";
 import {InitialSupplySuperchainERC20} from "../src/InitialSupplySuperchainERC20.sol";
 
+// Mock launchpad contract for testing
+contract MockLaunchpad {
+    mapping(address => bool) public authorizedMinters;
+    
+    function setMinterAuthorization(address minter, bool authorized) external {
+        authorizedMinters[minter] = authorized;
+    }
+    
+    function createTokenFromMinter(
+        address owner,
+        string memory tokenName,
+        string memory tokenSymbol,
+        uint256 initialSupply
+    ) external returns (InitialSupplySuperchainERC20) {
+        require(authorizedMinters[msg.sender], "Not authorized minter");
+        
+        InitialSupplySuperchainERC20 newToken = new InitialSupplySuperchainERC20(
+            owner, // owner receives the tokens
+            tokenName, // name
+            tokenSymbol, // symbol
+            18, // decimals
+            initialSupply, // initial supply
+            block.chainid, // initial supply chain ID (current chain)
+            false // should not launch immediately - launchpad controls launch
+        );
+        
+        return newToken;
+    }
+    
+    function acceptTokenFromMinter(
+        address tokenAddress,
+        address creator,
+        uint16 sellPenalty
+    ) external {
+        // Mock implementation - just verify the token exists
+        require(tokenAddress != address(0), "Invalid token address");
+        require(creator != address(0), "Invalid creator address");
+    }
+}
+
 contract TokenMinterTest is Test {
     using StringBytes32 for string;
     using StringBytes32 for bytes32;
 
     TokenMinter public tokenMinter;
     NFTMinter public nftMinter;
+    MockLaunchpad public mockLaunchpad;
     address public owner;
     address public user1;
     address public user2;
@@ -40,7 +81,10 @@ contract TokenMinterTest is Test {
         owner = makeAddr("owner");
         user1 = makeAddr("user1");
         user2 = makeAddr("user2");
-        launchpadContract = makeAddr("launchpad");
+        
+        // Deploy mock launchpad
+        mockLaunchpad = new MockLaunchpad();
+        launchpadContract = address(mockLaunchpad);
 
         // Fund accounts
         vm.deal(owner, 10 ether);
@@ -58,6 +102,9 @@ contract TokenMinterTest is Test {
             address(nftMinter),
             launchpadContract
         );
+        
+        // Authorize TokenMinter in mock launchpad
+        mockLaunchpad.setMinterAuthorization(address(tokenMinter), true);
 
         // Setup NFT for user1
         vm.startPrank(owner);

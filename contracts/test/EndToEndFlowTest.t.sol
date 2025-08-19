@@ -10,6 +10,7 @@ import {DensoFiLaunchpad} from "src/DensofiLaunchpad.sol";
 import {InitialSupplySuperchainERC20} from "src/InitialSupplySuperchainERC20.sol";
 import {MockPyth} from "src/interfaces/MockPyth.sol";
 import {StringBytes32} from "src/libraries/StringBytes32.sol";
+import {DensoFiUniV3Vault} from "src/DensofiUniV3Vault.sol";
 
 contract EndToEndFlowTest is Test {
     using StringBytes32 for string;
@@ -58,6 +59,9 @@ contract EndToEndFlowTest is Test {
         address tokenContract
     );
     event TokenLaunched(address tokenContract);
+    event VaultCreated(address indexed vault, string domainName);
+    event FeesCollected(address indexed collector, uint256 amount0, uint256 amount1);
+    event DomainOwnershipUpdated(address indexed newOwner, string domainName);
 
     function setUp() public {
         // Setup test accounts
@@ -120,6 +124,11 @@ contract EndToEndFlowTest is Test {
             address(launchpad)
         );
         console.log(" TokenMinter deployed at:", address(tokenMinter));
+
+        // 6. Authorize TokenMinter in launchpad
+        vm.prank(deployer);
+        launchpad.setMinterAuthorization(address(tokenMinter), true);
+        console.log(" TokenMinter authorized in launchpad");
 
         console.log("=== SETUP COMPLETE ===\n");
     }
@@ -192,6 +201,34 @@ contract EndToEndFlowTest is Test {
         testCompleteFlowLaunchpad();
 
         console.log(" BOTH FLOWS COMPLETED SUCCESSFULLY");
+    }
+
+    function testVaultClaimingAndOwnership() public {
+        console.log("=== TESTING VAULT CLAIMING AND OWNERSHIP ===");
+
+        // Step 1: Create a token through the launchpad flow
+        console.log("\n1. SETUP TOKEN FOR VAULT TESTING");
+        _registerDomain(DOMAIN_2, user2);
+        _setupDomainForMinting(DOMAIN_2, user2);
+        uint256 nftId = _mintNFT(DOMAIN_2, user2);
+        address tokenAddress = _createTokenForLaunchpad(nftId, user2);
+
+        // Step 2: Trade to reach market cap threshold and launch
+        console.log("\n2. TRADING TO REACH LAUNCH THRESHOLD");
+        _tradeToReachThreshold(tokenAddress);
+
+        // Step 3: Launch token to create vault
+        console.log("\n3. LAUNCHING TOKEN TO CREATE VAULT");
+        address vaultAddress = _launchTokenAndGetVault(tokenAddress, user2);
+
+        // Step 4: Test vault functionality
+        console.log("\n4. TESTING VAULT FUNCTIONALITY");
+        _testVaultCreation(vaultAddress, user2);
+        _testVaultFeeCollection(vaultAddress, user2);
+        _testVaultOwnershipTransfer(vaultAddress, user2);
+        _testVaultAccessControl(vaultAddress, user2);
+
+        console.log(" VAULT CLAIMING AND OWNERSHIP TESTS COMPLETED SUCCESSFULLY\n");
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -348,6 +385,23 @@ contract EndToEndFlowTest is Test {
             "Launchpad should own the tokens"
         );
 
+        // Verify launchpad has a fake pool set up for the token
+        (
+            uint256 ethReserve,
+            uint256 tokenReserve,
+            uint256 fakeEth,
+            address creator,
+            uint16 sellPenalty,
+            bool locked
+        ) = launchpad.getPoolInfo(tokenAddress);
+        
+        assertEq(creator, user, "Creator should be the user");
+        assertEq(ethReserve, 1.56 ether, "Initial ETH reserve should be 1.56 ether");
+        assertEq(tokenReserve, 1_000_000 * 10 ** 18, "Token reserve should be 1M tokens");
+        assertEq(fakeEth, 1.56 ether, "Fake ETH should be 1.56 ether");
+        assertEq(sellPenalty, 50, "Default sell penalty should be 5%");
+        assertFalse(locked, "Pool should not be locked initially");
+
         console.log("   Token created for launchpad at address:", tokenAddress);
         emit TokenCreatedLaunchpad(
             nftMinter.getTokenNameFromId(nftId),
@@ -391,28 +445,54 @@ contract EndToEndFlowTest is Test {
         );
     }
 
-    function _tradeOnLaunchpad(address tokenAddress) internal view {
-        console.log("  - Simulating trading on launchpad");
-
-        // For this test, we can't actually create a fake pool because the token
-        // was created through TokenMinter, not through launchpad.createToken()
-        // This demonstrates the integration point where launchpad would need
-        // to handle tokens created by TokenMinter
+    function _tradeOnLaunchpad(address tokenAddress) internal {
+        console.log("  - Trading on launchpad");
 
         InitialSupplySuperchainERC20 token = InitialSupplySuperchainERC20(
             tokenAddress
         );
-        uint256 launchpadBalance = token.balanceOf(address(launchpad));
+        
+        // Verify fake pool is set up
+        (
+            uint256 ethReserve,
+            uint256 tokenReserve,
+            ,
+            ,
+            ,
+            bool locked
+        ) = launchpad.getPoolInfo(tokenAddress);
+        
+        assertFalse(locked, "Pool should not be locked yet");
+        assertEq(tokenReserve, 1_000_000 * 10 ** 18, "Should have full token supply");
 
-        console.log(
-            "   Launchpad holds",
-            launchpadBalance / 10 ** 18,
-            "tokens"
-        );
-        console.log("   Token is ready for launchpad trading setup");
+        console.log("   Initial token reserve:", tokenReserve / 10 ** 18, "tokens");
+        console.log("   Initial ETH reserve:", ethReserve, "wei");
 
-        // In a real scenario, the launchpad would need a method to accept
-        // tokens from TokenMinter and create a fake pool for trading
+        // Simulate some buying to test the pool functionality
+        address buyer = makeAddr("buyer");
+        vm.deal(buyer, 10 ether);
+
+        uint256 buyAmount = 1 ether;
+        vm.prank(buyer);
+        launchpad.buyTokens{value: buyAmount}(tokenAddress, 0);
+
+        // Check that reserves updated correctly
+        (
+            uint256 newEthReserve,
+            uint256 newTokenReserve,
+            ,
+            ,
+            ,
+        ) = launchpad.getPoolInfo(tokenAddress);
+
+        console.log("   After 1 ETH buy:");
+        console.log("   ETH reserve:", newEthReserve, "wei");
+        console.log("   Token reserve:", newTokenReserve / 10 ** 18, "tokens");
+        console.log("   Buyer token balance:", token.balanceOf(buyer) / 10 ** 18, "tokens");
+
+        assertTrue(newEthReserve > ethReserve, "ETH reserve should increase");
+        assertTrue(newTokenReserve < tokenReserve, "Token reserve should decrease");
+        assertTrue(token.balanceOf(buyer) > 0, "Buyer should have tokens");
     }
 
     function _launchTokenToUniswap(address tokenAddress) internal {
@@ -573,5 +653,185 @@ contract EndToEndFlowTest is Test {
         _verifyDirectReceiptFlow(tokenAddress, user);
 
         console.log(" Fuzz test completed successfully");
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        VAULT TESTING HELPER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function _tradeToReachThreshold(address tokenAddress) internal {
+        console.log("  - Trading to reach market cap threshold");
+
+        // Buy tokens to reach the threshold for launch
+        address buyer = makeAddr("thresholdBuyer");
+        vm.deal(buyer, 100 ether);
+
+        // Check if already locked from previous trading
+        (,,,,, bool locked) = launchpad.getPoolInfo(tokenAddress);
+        if (locked) {
+            console.log("   Pool already locked from previous trading");
+            return;
+        }
+
+        // Multiple buys to reach threshold, checking lock status after each buy
+        for (uint i = 0; i < 10; i++) {
+            (,,,,, bool isLocked) = launchpad.getPoolInfo(tokenAddress);
+            if (isLocked) {
+                console.log("   Market cap threshold reached after", i, "purchases");
+                break;
+            }
+            
+            vm.prank(buyer);
+            launchpad.buyTokens{value: 3 ether}(tokenAddress, 0);
+        }
+
+        // Verify pool is locked
+        (,,,,, bool finalLocked) = launchpad.getPoolInfo(tokenAddress);
+        assertTrue(finalLocked, "Pool should be locked after reaching threshold");
+        console.log("   Market cap threshold reached, pool locked");
+    }
+
+    function _launchTokenAndGetVault(
+        address tokenAddress,
+        address creator
+    ) internal returns (address) {
+        console.log("  - Launching token to Uniswap and creating vault");
+
+        InitialSupplySuperchainERC20 token = InitialSupplySuperchainERC20(
+            tokenAddress
+        );
+        string memory tokenName = token.name();
+        string memory domainName = _stringBeforeSpace(tokenName);
+
+        // Launch the token (only owner can launch)
+        vm.prank(deployer);
+        launchpad.launchToken{value: 1 ether}(tokenAddress);
+
+        // Get vault address from launchpad
+        address vaultAddress = launchpad.getVaultByDomain(domainName);
+        
+        assertTrue(vaultAddress != address(0), "Vault should be created");
+        console.log("   Token launched, vault created at:", vaultAddress);
+        
+        return vaultAddress;
+    }
+
+    function _testVaultCreation(address vaultAddress, address expectedOwner) internal {
+        console.log("  - Testing vault creation and initial state");
+
+        DensoFiUniV3Vault vault = DensoFiUniV3Vault(vaultAddress);
+
+        // Check vault properties
+        assertEq(vault.s_launcher(), address(launchpad), "Launcher should be launchpad");
+        assertEq(vault.s_creator(), expectedOwner, "Creator should be correct");
+        assertEq(vault.s_domainOwner(), expectedOwner, "Domain owner should initially be creator");
+        assertTrue(vault.s_tokenId() > 0, "Vault should have a position token ID");
+
+        (string memory domainName, address domainOwner, address creator) = vault.getDomainInfo();
+        assertEq(domainOwner, expectedOwner, "Domain owner should be correct");
+        assertEq(creator, expectedOwner, "Creator should be correct");
+        assertTrue(bytes(domainName).length > 0, "Domain name should be set");
+
+        console.log("   Vault creation verified - owner:", domainOwner);
+        console.log("   Domain name:", domainName);
+        console.log("   Position token ID:", vault.s_tokenId());
+    }
+
+    function _testVaultFeeCollection(address vaultAddress, address domainOwner) internal {
+        console.log("  - Testing vault fee collection");
+
+        DensoFiUniV3Vault vault = DensoFiUniV3Vault(vaultAddress);
+        
+        uint256 balanceBefore = domainOwner.balance;
+
+        // Domain owner should be able to collect fees
+        vm.prank(domainOwner);
+        vm.expectEmit(true, false, false, false);
+        emit FeesCollected(domainOwner, type(uint128).max, type(uint128).max);
+        vault.collectFees();
+
+        // Note: In a test environment without real trading, fees might be 0
+        // But the function should execute without reverting
+        console.log("   Fee collection successful for domain owner");
+        console.log("   Balance change:", domainOwner.balance - balanceBefore, "wei");
+    }
+
+    function _testVaultOwnershipTransfer(address vaultAddress, address currentOwner) internal {
+        console.log("  - Testing vault ownership transfer");
+
+        DensoFiUniV3Vault vault = DensoFiUniV3Vault(vaultAddress);
+        address newOwner = makeAddr("newVaultOwner");
+        
+        (string memory domainName,,) = vault.getDomainInfo();
+
+        // Only launchpad admin can transfer ownership
+        vm.prank(deployer);
+        vm.expectEmit(true, false, false, false);
+        emit DomainOwnershipUpdated(newOwner, domainName);
+        launchpad.updateDomainOwnership(domainName, newOwner);
+
+        // Verify ownership transfer
+        assertEq(vault.s_domainOwner(), newOwner, "Domain owner should be updated");
+
+        // New owner should be able to collect fees
+        vm.prank(newOwner);
+        vault.collectFees(); // Should not revert
+
+        // Old owner should not be able to collect fees anymore
+        vm.prank(currentOwner);
+        vm.expectRevert("DensoFiVault: Only domain owner");
+        vault.collectFees();
+
+        console.log("   Ownership transferred from", currentOwner, "to", newOwner);
+    }
+
+    function _testVaultAccessControl(address vaultAddress, address domainOwner) internal {
+        console.log("  - Testing vault access control");
+
+        DensoFiUniV3Vault vault = DensoFiUniV3Vault(vaultAddress);
+        address nonOwner = makeAddr("nonOwner");
+
+        // Non-owner should not be able to collect fees
+        vm.prank(nonOwner);
+        vm.expectRevert("DensoFiVault: Only domain owner");
+        vault.collectFees();
+
+        // Non-launcher should not be able to update domain owner
+        vm.prank(nonOwner);
+        vm.expectRevert("DensoFiVault: Only launcher");
+        vault.updateDomainOwner(makeAddr("someAddress"));
+
+        // Non-launcher should not be able to set token ID
+        vm.prank(nonOwner);
+        vm.expectRevert("DensoFiVault: Only launcher");
+        vault.setTokenId(999);
+
+        console.log("   Access control verified - only authorized addresses can perform actions");
+    }
+
+    function _stringBeforeSpace(string memory str) internal pure returns (string memory) {
+        bytes memory strBytes = bytes(str);
+
+        // Find the first space character
+        uint256 spaceIndex = type(uint256).max;
+        for (uint256 i = 0; i < strBytes.length; i++) {
+            if (strBytes[i] == 0x20) { // 0x20 is space
+                spaceIndex = i;
+                break;
+            }
+        }
+
+        // If no space found, return the entire string
+        if (spaceIndex == type(uint256).max) {
+            return str;
+        }
+
+        // Create a new bytes array with the length up to the space
+        bytes memory result = new bytes(spaceIndex);
+        for (uint256 i = 0; i < spaceIndex; i++) {
+            result[i] = strBytes[i];
+        }
+
+        return string(result);
     }
 }

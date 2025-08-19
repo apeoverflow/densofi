@@ -9,6 +9,23 @@ import "src/libraries/StringBytes32.sol";
 import {InitialSupplySuperchainERC20} from "./InitialSupplySuperchainERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
+interface IDensoFiLaunchpad {
+    function acceptTokenFromMinter(
+        address tokenAddress,
+        address creator,
+        uint16 sellPenalty
+    ) external;
+}
+
+interface IDensoFiLaunchpadExtended {
+    function createTokenFromMinter(
+        address owner,
+        string memory tokenName,
+        string memory tokenSymbol,
+        uint256 initialSupply
+    ) external returns (InitialSupplySuperchainERC20);
+}
+
 /**
  * @title TokenMinter
  * @dev Contract that allows creating ERC20 tokens from NFTs
@@ -44,6 +61,9 @@ contract TokenMinter is IERC1155Receiver, Ownable, ReentrancyGuard {
     // Mapping to store token creation details
     mapping(uint256 => TokenCreationDetails) public tokenCreationDetails;
 
+    // Default sell penalty for launchpad tokens (in basis points, 0-100 = 0-10%)
+    uint16 public defaultSellPenalty = 50; // 5%
+
     struct TokenCreationDetails {
         address creator;
         bool receivedDirectly;
@@ -63,6 +83,8 @@ contract TokenMinter is IERC1155Receiver, Ownable, ReentrancyGuard {
     event LaunchpadContractUpdated(address newLaunchpad);
     event ProceedsWithdrawn(address to, uint256 amount);
     event FixedFeeUpdated(uint256 newFee);
+    event DefaultSellPenaltyUpdated(uint16 newPenalty);
+    event TokenSentToLaunchpad(address indexed tokenAddress, address indexed creator);
 
     /**
      * @dev Constructor initializes the contract with the NFT contract address
@@ -145,15 +167,29 @@ contract TokenMinter is IERC1155Receiver, Ownable, ReentrancyGuard {
         }
 
         // Create new Superchain ERC20 token with 1 million initial supply
-        InitialSupplySuperchainERC20 newToken = new InitialSupplySuperchainERC20(
-            tokenOwner, // owner receives the tokens
-            tokenName, // name
-            tokenSymbol, // symbol
-            18, // decimals
-            1_000_000 * 10 ** 18, // initial supply (1 million tokens with 18 decimals)
-            block.chainid, // initial supply chain ID (current chain)
-            receiveTokensDirectly // should launch immediately if direct receipt
-        );
+        // If going to launchpad, we need to create it from launchpad context so launchpad becomes the launcher
+        InitialSupplySuperchainERC20 newToken;
+        
+        if (receiveTokensDirectly) {
+            // Direct receipt: create token normally with immediate launch
+            newToken = new InitialSupplySuperchainERC20(
+                tokenOwner, // owner receives the tokens
+                tokenName, // name
+                tokenSymbol, // symbol
+                18, // decimals
+                1_000_000 * 10 ** 18, // initial supply (1 million tokens with 18 decimals)
+                block.chainid, // initial supply chain ID (current chain)
+                true // should launch immediately
+            );
+        } else {
+            // Launchpad: delegate token creation to launchpad so it becomes the launcher
+            newToken = IDensoFiLaunchpadExtended(launchpadContract).createTokenFromMinter(
+                tokenOwner,
+                tokenName,
+                tokenSymbol,
+                1_000_000 * 10 ** 18
+            );
+        }
 
         tokenAddress = address(newToken);
 
@@ -171,6 +207,16 @@ contract TokenMinter is IERC1155Receiver, Ownable, ReentrancyGuard {
             creationTime: block.timestamp
         });
 
+        // If tokens went to launchpad, set up fake pool
+        if (!receiveTokensDirectly) {
+            IDensoFiLaunchpad(launchpadContract).acceptTokenFromMinter(
+                tokenAddress,
+                msg.sender,
+                defaultSellPenalty
+            );
+            emit TokenSentToLaunchpad(tokenAddress, msg.sender);
+        }
+
         emit TokenCreated(
             nftId,
             tokenAddress,
@@ -185,6 +231,16 @@ contract TokenMinter is IERC1155Receiver, Ownable, ReentrancyGuard {
     function setFixedFee(uint256 newFee) external onlyOwner {
         fixedFee = newFee;
         emit FixedFeeUpdated(newFee);
+    }
+
+    /**
+     * @dev Sets the default sell penalty for launchpad tokens (owner only)
+     * @param newPenalty The new sell penalty in basis points (0-100 = 0-10%)
+     */
+    function setDefaultSellPenalty(uint16 newPenalty) external onlyOwner {
+        require(newPenalty <= 100, "Penalty too high"); // Max 10%
+        defaultSellPenalty = newPenalty;
+        emit DefaultSellPenaltyUpdated(newPenalty);
     }
 
     /**
