@@ -115,7 +115,7 @@ export default function ClientPage() {
                     </div>
                     <div className="text-lg text-gray-300 space-y-4 mb-8 text-center md:text-left">
                       <p>Fractional tokenization of domain names with launchpad mechanics and liquidity pools.</p>
-                      <p>Enabling NFT to Cross Chain Superchain ERC20 support and subdomain registration for utility.</p>
+                      <p>Enabling NFT to Cross Chain Superchain ERC20 support and subdomain registration utility.</p>
                     </div>
                     <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
                       <Link href="/create-token" className="flex-1 sm:flex-none">
