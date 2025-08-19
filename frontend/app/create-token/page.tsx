@@ -342,7 +342,12 @@ const DomainVerificationStep = ({ onComplete }: { onComplete: (domain: string) =
                     <strong>Name/Host:</strong> <code className="text-blue-400">_densofi</code>
                   </div>
                   <button
-                    onClick={() => copyToClipboard('_densofi', 'name')}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      copyToClipboard('_densofi', 'name');
+                    }}
                     className="ml-2 px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
                     title="Copy to clipboard"
                   >
@@ -354,7 +359,12 @@ const DomainVerificationStep = ({ onComplete }: { onComplete: (domain: string) =
                     <strong>Value:</strong> <code className="text-green-400">a={address}</code>
                   </div>
                   <button
-                    onClick={() => copyToClipboard(`a=${address}`, 'value')}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      copyToClipboard(`a=${address}`, 'value');
+                    }}
                     className="ml-2 px-2 py-1 text-xs bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
                     title="Copy to clipboard"
                   >

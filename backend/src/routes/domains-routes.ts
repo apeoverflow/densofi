@@ -18,4 +18,10 @@ router.get('/nfts/:address', DomainsController.getNFTsByAddress);
 // Verify domain ownership via DNS
 router.get('/domains/:name/:walletAddress/verify', DomainsController.verifyDomainOwnership);
 
+// Get all domain tokens (for tokens page)
+router.get('/tokens', DomainsController.getAllTokens);
+
+// Get specific domain token by name
+router.get('/tokens/:name', DomainsController.getTokenByName);
+
 export { router as domainsRoutes };

@@ -5,8 +5,9 @@ import Link from "next/link";
 import dynamic from 'next/dynamic';
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
-import { IconArrowDown, IconArrowUp, IconTrendingUp } from '@tabler/icons-react';
+import { IconArrowDown, IconArrowUp, IconTrendingUp, IconLoader } from '@tabler/icons-react';
 import { ComingSoonModal } from "@/components/ui/ComingSoonModal";
+import { useToken } from "@/hooks/useTokens";
 
 // Dynamically import ApexCharts to avoid SSR issues
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
@@ -18,21 +19,22 @@ export function TokenPageClient({ id }: { id: string }) {
   const [amount, setAmount] = useState('');
   const [timeframe, setTimeframe] = useState<'24h' | '7d' | '30d' | 'all'>('7d');
   // Modal state
-  const [isComingSoonModalOpen, setIsComingSoonModalOpen] = useState(true);
+  const [isComingSoonModalOpen, setIsComingSoonModalOpen] = useState(false);
   
-  // Mock token data
-  const tokenData = {
-    name: `domain${id}.eth`,
-    price: 0.0056, // ETH
-    change24h: 12.5, // percentage
-    marketCap: 562000, // USD
-    volume24h: 124500, // USD
-    circulatingSupply: 1000000,
-    totalSupply: 10000000,
-  };
+  // Fetch token data from database
+  const { token, loading, error } = useToken(decodeURIComponent(id));
 
-  // Generate mock chart data
+  useEffect(() => {
+    // Show modal if token not found and not loading
+    if (isClient && !loading && !token && !error) {
+      setIsComingSoonModalOpen(true);
+    }
+  }, [isClient, loading, token, error]);
+
+  // Generate mock chart data based on real token price
   const generateChartData = () => {
+    if (!token) return [];
+    
     const nowDate = new Date();
     const data = [];
     
@@ -47,11 +49,13 @@ export function TokenPageClient({ id }: { id: string }) {
       const volatilityFactor = timeframe === '24h' ? 0.08 : timeframe === '7d' ? 0.05 : 0.03;
       const randomFactor = 1 + (Math.random() - 0.5) * volatilityFactor;
       
-      // Create an upward trend for the chart
-      const trendFactor = 1 + (dataPoints - i) / dataPoints * 0.15;
+      // Create an upward trend for the chart based on 24h change
+      const trendDirection = token.change24h >= 0 ? 1 : -1;
+      const trendMagnitude = Math.abs(token.change24h) / 100;
+      const trendFactor = 1 + (dataPoints - i) / dataPoints * trendDirection * trendMagnitude;
       
       // Combine factors for final price
-      const price = tokenData.price * randomFactor * trendFactor;
+      const price = token.currentPrice * randomFactor * trendFactor;
       
       data.push({
         x: time.getTime(),
@@ -93,23 +97,23 @@ export function TokenPageClient({ id }: { id: string }) {
         colorStops: [
           {
             offset: 0,
-            color: tokenData.change24h >= 0 ? '#10B981' : '#EF4444',
+            color: (token?.change24h ?? 0) >= 0 ? '#10B981' : '#EF4444',
             opacity: 0.4
           },
           {
             offset: 100,
-            color: tokenData.change24h >= 0 ? '#10B981' : '#EF4444',
+            color: (token?.change24h ?? 0) >= 0 ? '#10B981' : '#EF4444',
             opacity: 0
           }
         ]
       }
     },
-    colors: [tokenData.change24h >= 0 ? '#10B981' : '#EF4444'],
+    colors: [(token?.change24h ?? 0) >= 0 ? '#10B981' : '#EF4444'],
     grid: {
       show: true,
       borderColor: '#333333',
       strokeDashArray: 3,
-      position: 'back',
+      position: 'back' as const,
       xaxis: {
         lines: {
           show: false
@@ -171,9 +175,57 @@ export function TokenPageClient({ id }: { id: string }) {
     return null;
   }
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gradient-to-b from-slate-900 to-black overflow-hidden">
+        <div className="flex justify-center items-center min-h-screen">
+          <div className="flex items-center space-x-3">
+            <IconLoader className="animate-spin text-blue-500" size={32} />
+            <span className="text-gray-300 text-lg">Loading token details...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gradient-to-b from-slate-900 to-black overflow-hidden">
+        <div className="flex justify-center items-center min-h-screen">
+          <div className="text-center">
+            <p className="text-red-400 text-xl mb-4">Failed to load token</p>
+            <p className="text-gray-400">{error}</p>
+            <Link href="/tokens" className="text-blue-400 hover:text-blue-300 mt-4 inline-block">
+              ← Back to tokens
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Token not found
+  if (!token) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gradient-to-b from-slate-900 to-black overflow-hidden">
+        <div className="flex justify-center items-center min-h-screen">
+          <div className="text-center">
+            <p className="text-gray-300 text-xl mb-4">Token not found</p>
+            <p className="text-gray-400 mb-6">The domain token "{decodeURIComponent(id)}" does not exist.</p>
+            <Link href="/tokens" className="text-blue-400 hover:text-blue-300">
+              ← Back to tokens
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Handle buy/sell submission
   const handleTradeSubmit = () => {
-    alert(`${activeTab.toUpperCase()} order submitted for ${amount} ${tokenData.name} tokens`);
+    alert(`${activeTab.toUpperCase()} order submitted for ${amount} ${token.name} tokens`);
     setAmount('');
   };
   
@@ -192,13 +244,13 @@ export function TokenPageClient({ id }: { id: string }) {
           <div className="flex flex-wrap items-center justify-between mb-8">
             <div>
               <h1 className="text-4xl font-bold text-white mb-2">
-                {tokenData.name}
+                {token.name}
               </h1>
               <div className="flex items-center space-x-4">
-                <span className="text-3xl font-bold text-white">{tokenData.price.toFixed(6)} ETH</span>
-                <span className={`flex items-center ${tokenData.change24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  {tokenData.change24h >= 0 ? <IconArrowUp size={16} /> : <IconArrowDown size={16} />}
-                  {Math.abs(tokenData.change24h).toFixed(2)}%
+                <span className="text-3xl font-bold text-white">{token.currentPrice.toFixed(6)} ETH</span>
+                <span className={`flex items-center ${token.change24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {token.change24h >= 0 ? <IconArrowUp size={16} /> : <IconArrowDown size={16} />}
+                  {Math.abs(token.change24h).toFixed(2)}%
                 </span>
               </div>
             </div>
@@ -253,19 +305,19 @@ export function TokenPageClient({ id }: { id: string }) {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="p-4 bg-white/5 rounded-lg">
                     <p className="text-gray-400 text-sm mb-1">Market Cap</p>
-                    <p className="text-white font-medium">${tokenData.marketCap.toLocaleString()}</p>
+                    <p className="text-white font-medium">${token.marketCap.toLocaleString()}</p>
                   </div>
                   <div className="p-4 bg-white/5 rounded-lg">
                     <p className="text-gray-400 text-sm mb-1">24h Volume</p>
-                    <p className="text-white font-medium">${tokenData.volume24h.toLocaleString()}</p>
+                    <p className="text-white font-medium">{token.volume24h.toFixed(1)} ETH</p>
                   </div>
                   <div className="p-4 bg-white/5 rounded-lg">
                     <p className="text-gray-400 text-sm mb-1">Circulating Supply</p>
-                    <p className="text-white font-medium">{tokenData.circulatingSupply.toLocaleString()}</p>
+                    <p className="text-white font-medium">{token.circulatingSupply.toLocaleString()}</p>
                   </div>
                   <div className="p-4 bg-white/5 rounded-lg">
                     <p className="text-gray-400 text-sm mb-1">Total Supply</p>
-                    <p className="text-white font-medium">{tokenData.totalSupply.toLocaleString()}</p>
+                    <p className="text-white font-medium">{token.totalSupply.toLocaleString()}</p>
                   </div>
                 </div>
               </GlassCard>
@@ -325,7 +377,7 @@ export function TokenPageClient({ id }: { id: string }) {
                     <div>
                       <label className="block text-sm text-gray-400 mb-2">Estimated Cost</label>
                       <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white">
-                        {amount ? (parseFloat(amount) * tokenData.price).toFixed(6) : '0.00'} ETH
+                        {amount ? (parseFloat(amount) * token.currentPrice).toFixed(6) : '0.00'} ETH
                       </div>
                     </div>
                     
@@ -345,7 +397,7 @@ export function TokenPageClient({ id }: { id: string }) {
                   <div className="mt-6 pt-6 border-t border-white/10">
                     <div className="flex justify-between mb-2">
                       <span className="text-gray-400">Token Price</span>
-                      <span className="text-white">{tokenData.price.toFixed(6)} ETH</span>
+                      <span className="text-white">{token.currentPrice.toFixed(6)} ETH</span>
                     </div>
                     <div className="flex justify-between mb-2">
                       <span className="text-gray-400">Transaction Fee</span>
@@ -361,19 +413,27 @@ export function TokenPageClient({ id }: { id: string }) {
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-gray-400">Domain Name</span>
-                    <span className="text-white">{tokenData.name}</span>
+                    <span className="text-white">{token.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Owner Address</span>
+                    <span className="text-white text-xs font-mono">{`${token.ownerAddress.slice(0, 6)}...${token.ownerAddress.slice(-4)}`}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400">Registration Date</span>
-                    <span className="text-white">May 1, 2025</span>
+                    <span className="text-white">{token.registrationDate ? new Date(token.registrationDate).toLocaleDateString() : 'N/A'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400">Expiration Date</span>
-                    <span className="text-white">May 1, 2026</span>
+                    <span className="text-white">{new Date(token.expirationDate).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">NFT Token ID</span>
+                    <span className="text-white">{token.nftTokenId || 'Not minted'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400">Subdomains</span>
-                    <span className="text-white">3 Active</span>
+                    <span className="text-white">{token.subdomainCount} Active</span>
                   </div>
                 </div>
               </GlassCard>
@@ -382,12 +442,12 @@ export function TokenPageClient({ id }: { id: string }) {
         </div>
       </main>
       
-      {/* Coming Soon Modal */}
+      {/* Trading Coming Soon Modal */}
       <ComingSoonModal 
         isOpen={isComingSoonModalOpen} 
         onClose={() => setIsComingSoonModalOpen(false)}
-        title="Token Detail Feature Coming Soon"
-        description="We're working hard to bring you detailed token information and trading. Please check back soon!"
+        title="Token Trading Coming Soon"
+        description="Trading functionality is coming soon! For now, you can view detailed information about this domain token."
       />
     </div>
   );
