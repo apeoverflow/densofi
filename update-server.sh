@@ -36,7 +36,7 @@ echo "🔨 Building project..."
 npm run build
 
 echo "🔄 Reloading PM2 process..."
-pm2 reload densofi-backend
+pm2 reload densofi-backend --update-env
 
 echo "✅ Checking PM2 status..."
 pm2 status
