@@ -1,12 +1,12 @@
 {
   "chainId": 747,
   "deployer": "0x9b8A91c271B230e8647F01cA9d31e28b79f6d6AA",
-  "timestamp": 1755699545,
+  "timestamp": 1755693306,
   "addresses": {
-    "domainRegistration": "0x3F76C33F644219f5C00C432845f0a05ecCA86d2f",
-    "nftMinter": "0xE74d8431C4F495eEcd11790d198E02C4211E4925",
-    "tokenMinter": "0x9A3C9B51E97bef40eefba3A1b603Fa4A5DAB5503",
-    "launchpad": "0x0C7298aDA8C28191190010775b356Efa921b8a89"
+    "domainRegistration": "0x8B45460F58C5f8118958fe456CDB0Fad7EDbB0C6",
+    "nftMinter": "0x3F76C33F644219f5C00C432845f0a05ecCA86d2f",
+    "tokenMinter": "0x0C7298aDA8C28191190010775b356Efa921b8a89",
+    "launchpad": "0xE74d8431C4F495eEcd11790d198E02C4211E4925"
   },
   "parameters": {
     "domainRegistrationFee": "100000000000000",

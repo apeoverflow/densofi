@@ -3,6 +3,7 @@ import { domainsRoutes } from './routes/domains-routes.js';
 import { debugRoutes } from './routes/debug-routes.js';
 import { authRoutes } from './routes/auth-routes.js';
 import { gameRoutes } from './routes/game-routes.js';
+import { eventControlRouter } from './routes/event-control.js';
 import { logger } from './utils/logger.js';
 import { ENV } from './config/env.js';
 
@@ -40,6 +41,7 @@ export function createServer() {
   app.use('/api', debugRoutes);
   app.use('/api', authRoutes);
   app.use('/api', gameRoutes);
+  app.use('/api/event-control', eventControlRouter);
 
   // Health check endpoint
   app.get('/health', (req, res) => {

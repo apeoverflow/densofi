@@ -50,6 +50,19 @@
   },
   {
     "type": "function",
+    "name": "defaultSellPenalty",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "emergencyWithdraw",
     "inputs": [],
     "outputs": [],
@@ -305,6 +318,19 @@
   },
   {
     "type": "function",
+    "name": "setDefaultSellPenalty",
+    "inputs": [
+      {
+        "name": "newPenalty",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "setFixedFee",
     "inputs": [
       {
@@ -420,6 +446,19 @@
     "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "DefaultSellPenaltyUpdated",
+    "inputs": [
+      {
+        "name": "newPenalty",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      }
+    ],
+    "anonymous": false
   },
   {
     "type": "event",
@@ -550,6 +589,25 @@
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "TokenSentToLaunchpad",
+    "inputs": [
+      {
+        "name": "tokenAddress",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "creator",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
       }
     ],
     "anonymous": false

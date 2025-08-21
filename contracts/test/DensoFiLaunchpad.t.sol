@@ -158,20 +158,20 @@ contract DensoFiLaunchpadTest is Test {
                 vm.prank(deployer);
                 launchpad.setMaxPriceStaleness(36000); // Use the 36000 seconds you mentioned
 
-                // Try the alternative staleness function
-                try launchpad.getOraclePriceWithStaleness(36000) returns (
+                // Try the regular oracle price function
+                try launchpad.getOraclePrice() returns (
                     uint256 priceWithStaleness
                 ) {
-                    console.log("SUCCESS: getOraclePriceWithStaleness worked");
+                    console.log("SUCCESS: getOraclePrice worked");
                     console.log(
                         "Price with custom staleness:",
                         priceWithStaleness / 1e8
                     );
                 } catch Error(string memory reason) {
-                    console.log("getOraclePriceWithStaleness failed:", reason);
+                    console.log("getOraclePrice failed:", reason);
                 } catch {
                     console.log(
-                        "getOraclePriceWithStaleness failed with unknown error"
+                        "getOraclePrice failed with unknown error"
                     );
                 }
 

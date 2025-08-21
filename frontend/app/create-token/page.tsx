@@ -12,6 +12,7 @@ import { useTokenMinterContract } from "@/hooks/useTokenMinterContract";
 import { useLaunchpadContract } from "@/hooks/useLaunchpadContract";
 import { WalletConnectButton } from "@/components/WalletConnectButton";
 import { useDomainRegistrationEvents, useNFTMintingEvents, useDomainMintableStatus } from "@/hooks/useDomainEvents";
+import { useAutoTimedEventManager } from "@/hooks/useTimedEventManager";
 import { useNFTMinting } from "@/hooks/useNFTMinting";
 import { useDomainVerification, type DomainVerificationError } from "@/hooks/useDomainVerification";
 import { formatEther, parseEther } from 'viem';
@@ -147,6 +148,12 @@ const DomainVerificationStep = ({ onComplete }: { onComplete: (domain: string) =
   const [customError, setCustomError] = useState<string | null>(null);
   const [hookError, setHookError] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  // Auto-start event listeners when domain verification begins
+  useAutoTimedEventManager(
+    isSubmitting || verificationComplete,
+    `Domain verification for ${domainName || 'unknown domain'}`
+  );
 
   // Copy to clipboard with feedback
   const copyToClipboard = async (text: string, fieldName: string) => {
@@ -675,6 +682,12 @@ const NFTMintingStep = ({ domain, onComplete }: { domain: string; onComplete: (n
     success: mintingSuccess
   } = useNFTMinting();
 
+  // Auto-start event listeners for NFT minting process
+  useAutoTimedEventManager(
+    waitingForMintable || isMintingProcessing || isSearchingForNFT,
+    `NFT minting for domain ${domain}`
+  );
+
   // Monitor domain mintable status and ownership
   const {
     isReadyForMinting,
@@ -873,10 +886,14 @@ const NFTMintingStep = ({ domain, onComplete }: { domain: string; onComplete: (n
       {/* Mintable Status Monitoring */}
       {waitingForMintable && !isReadyForMinting && (
         <div className="bg-yellow-900/30 border border-yellow-700/50 p-4 rounded-md">
-          <h4 className="text-yellow-400 font-bold mb-2">Waiting for Domain to be Mintable</h4>
-          <p className="text-gray-300 text-sm mb-2">
-            Monitoring domain ownership and mintable status...
-          </p>
+          <h4 className="text-yellow-400 font-bold mb-2">🕐 Waiting for Domain to be Mintable</h4>
+          <div className="text-gray-300 text-sm mb-3">
+            <p className="mb-2">Monitoring domain ownership and mintable status...</p>
+            <div className="bg-blue-900/20 border border-blue-700/50 p-3 rounded-md">
+              <p className="text-blue-300 font-medium text-sm mb-1">⏳ Please be patient - this process may take a few minutes</p>
+              <p className="text-gray-400 text-xs">Domain verification and blockchain updates are in progress. Don't refresh the page.</p>
+            </div>
+          </div>
           <div className="text-xs text-gray-400 space-y-1">
             <p>Domain: <span className="font-mono">{domain}</span></p>
             <p>Is Mintable: <span className={isDomainMintable ? 'text-green-400' : 'text-red-400'}>
@@ -892,7 +909,7 @@ const NFTMintingStep = ({ domain, onComplete }: { domain: string; onComplete: (n
             <div className="flex items-center gap-2 mt-3">
               <div className="animate-pulse w-2 h-2 bg-green-500 rounded-full"></div>
               <p className="text-green-400 text-sm">
-                Listening for domain mintable events...
+                🔄 Actively monitoring blockchain events... (this can take 2-3 minutes)
               </p>
             </div>
           )}
@@ -915,7 +932,7 @@ const NFTMintingStep = ({ domain, onComplete }: { domain: string; onComplete: (n
         className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600"
       >
         {isMintingProcessing ? 'Minting NFT...' :
-          !isReadyForMinting ? 'Waiting for Domain to be Mintable...' :
+          !isReadyForMinting ? '⏳ Waiting for Domain (may take a few minutes)...' :
             'Mint Domain NFT'}
       </Button>
 

@@ -6,6 +6,7 @@ import { NFTMinterService } from './nft-minter-service.js';
 import { domainEventListener } from './domain-event-listener.js';
 import { nftMinterEventListener } from './nft-minter-event-listener.js';
 import { tokenMinterEventListener } from './token-minter-event-listener.js';
+import { timedEventManager } from './timed-event-manager.js';
 import { ENV } from '../config/env.js';
 
 export interface RetryConfig {
@@ -69,18 +70,9 @@ export class ConnectionManager {
       logger.info('✅ NFT minter service initialized successfully');
       
       if (ENV.ENABLE_EVENT_LISTENERS) {
-        // Start event listeners
-        logger.info('🎧 Starting domain event listener...');
-        await domainEventListener.startListening();
-        logger.info('✅ Domain event listener started successfully');
-        
-        logger.info('🎧 Starting NFT minter event listener...');
-        await nftMinterEventListener.startListening();
-        logger.info('✅ NFT minter event listener started successfully');
-        
-        logger.info('🎧 Starting Token minter event listener...');
-        await tokenMinterEventListener.startListening();
-        logger.info('✅ Token minter event listener started successfully');
+        // Initialize timed event manager but don't start listeners automatically
+        logger.info('🔧 Timed event manager initialized - listeners will start on-demand');
+        logger.info('ℹ️ Event listeners will run for 5 minutes when triggered by user activity');
         
         // Start processing pending events
         logger.info('⚙️ Starting processing loop...');
@@ -197,9 +189,8 @@ export class ConnectionManager {
     try {
       // Stop event listeners only if they were enabled
       if (ENV.ENABLE_EVENT_LISTENERS) {
-        domainEventListener.stopListening();
-        nftMinterEventListener.stopListening();
-        tokenMinterEventListener.stopListening();
+        await timedEventManager.forceReset();
+        logger.info('✅ Timed event manager reset');
       }
       
       // Disconnect from MongoDB
@@ -254,16 +245,27 @@ export class ConnectionManager {
     tokenMinterEventListener: boolean;
     eventListenersEnabled: boolean;
     processingLoopEnabled: boolean;
+    timedEventManager?: any;
   } {
-          return {
-        initialized: this.isInitialized,
-        mongodb: MongoService.getDb() !== null,
-        domainEventListener: ENV.ENABLE_EVENT_LISTENERS ? domainEventListener.getStatus() : false,
-        nftMinterEventListener: ENV.ENABLE_EVENT_LISTENERS ? nftMinterEventListener.getStatus() : false,
-        tokenMinterEventListener: ENV.ENABLE_EVENT_LISTENERS ? tokenMinterEventListener.getStatus() : false,
-        eventListenersEnabled: ENV.ENABLE_EVENT_LISTENERS,
-        processingLoopEnabled: ENV.ENABLE_EVENT_LISTENERS && this.processingLoopId !== null
-      };
+    const timedStatus = ENV.ENABLE_EVENT_LISTENERS ? timedEventManager.getStatus() : null;
+    
+    return {
+      initialized: this.isInitialized,
+      mongodb: MongoService.getDb() !== null,
+      domainEventListener: ENV.ENABLE_EVENT_LISTENERS ? domainEventListener.getStatus() : false,
+      nftMinterEventListener: ENV.ENABLE_EVENT_LISTENERS ? nftMinterEventListener.getStatus() : false,
+      tokenMinterEventListener: ENV.ENABLE_EVENT_LISTENERS ? tokenMinterEventListener.getStatus() : false,
+      eventListenersEnabled: ENV.ENABLE_EVENT_LISTENERS,
+      processingLoopEnabled: ENV.ENABLE_EVENT_LISTENERS && this.processingLoopId !== null,
+      ...(timedStatus && {
+        timedEventManager: {
+          isActive: timedStatus.isActive,
+          remainingTime: Math.round(timedStatus.remainingTime / 1000), // seconds
+          duration: timedStatus.config.duration / 1000, // seconds
+          restartCount: timedStatus.restartCount
+        }
+      })
+    };
   }
 
   /**

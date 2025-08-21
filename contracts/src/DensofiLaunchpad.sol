@@ -14,9 +14,28 @@ import {PythStructs} from "src/interfaces/PythStructs.sol";
 import {IwETH} from "src/interfaces/IwETH.sol";
 import {IUniswapV3Factory} from "src/interfaces/IUniswapV3Factory.sol";
 import {IUniswapV3Pool} from "src/interfaces/IUniswapV3Pool.sol";
-import "forge-std/console.sol";
 
 contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
+    // Custom errors
+    error InvalidParams();
+    error SellPenaltyTooHigh();
+    error InsufficientPayment();
+    error TokenNotFound();
+    error PoolLocked();
+    error NotAuthorizedMinter();
+    error InvalidAddress();
+    error TokenAlreadyExists();
+    error PoolNotReadyForLaunch();
+    error InvalidPrice();
+    error InsufficientETHForPurchase();
+    error InsufficientTokensOut();
+    error InsufficientETHOut();
+    error InsufficientETHInPool();
+    error InsufficientFeeForPriceUpdate();
+    error FeeTooHigh();
+    error InvalidTokenBalance();
+    error DomainNotFound();
+    error ArraysLengthMismatch();
     // Constants
     uint256 public constant TOKEN_SUPPLY = 1_000_000_000 ether;
     uint256 public constant FAKE_POOL_BASE_ETHER = 1.56 ether;
@@ -139,13 +158,8 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         uint16 sellPenalty,
         uint256 initialBuy
     ) external payable nonReentrant {
-        require(
-            bytes(name).length <= 18 &&
-                bytes(symbol).length <= 18 &&
-                bytes(description).length <= 512,
-            "Invalid params"
-        );
-        require(sellPenalty <= 100, "Sell penalty too high"); // Max 10%
+        if (bytes(name).length > 18 || bytes(symbol).length > 18 || bytes(description).length > 512) revert InvalidParams();
+        if (sellPenalty > 100) revert SellPenaltyTooHigh();
 
         // Calculate creation fee and remaining ETH
         uint256 remainingEth = _handleCreationFee();
@@ -183,7 +197,7 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
 
     function _handleCreationFee() internal returns (uint256) {
         uint256 creationEth = usdToEth(getOraclePrice(), s_creationPrice);
-        require(msg.value >= creationEth, "Insufficient payment");
+        if (msg.value < creationEth) revert InsufficientPayment();
 
         s_proceeds += creationEth;
         return msg.value - creationEth;
@@ -279,11 +293,10 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         string memory tokenSymbol,
         uint256 initialSupply
     ) external returns (InitialSupplySuperchainERC20) {
-        require(s_authorizedMinters[msg.sender], "Not authorized minter");
-        require(owner != address(0), "Invalid owner address");
-        require(bytes(tokenName).length > 0, "Invalid token name");
-        require(bytes(tokenSymbol).length > 0, "Invalid token symbol");
-        require(initialSupply > 0, "Invalid initial supply");
+        if (!s_authorizedMinters[msg.sender]) revert NotAuthorizedMinter();
+        if (owner == address(0)) revert InvalidAddress();
+        if (bytes(tokenName).length == 0 || bytes(tokenSymbol).length == 0) revert InvalidParams();
+        if (initialSupply == 0) revert InvalidParams();
 
         // Create token with launchpad as the launcher (this contract becomes msg.sender)
         InitialSupplySuperchainERC20 newToken = new InitialSupplySuperchainERC20(
@@ -305,17 +318,16 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         address creator,
         uint16 sellPenalty
     ) external {
-        require(s_authorizedMinters[msg.sender], "Not authorized minter");
-        require(tokenAddress != address(0), "Invalid token address");
-        require(creator != address(0), "Invalid creator address");
-        require(sellPenalty <= 100, "Sell penalty too high"); // Max 10%
-        require(s_fakePools[tokenAddress].token == address(0), "Token already exists");
+        if (!s_authorizedMinters[msg.sender]) revert NotAuthorizedMinter();
+        if (tokenAddress == address(0) || creator == address(0)) revert InvalidAddress();
+        if (sellPenalty > 100) revert SellPenaltyTooHigh();
+        if (s_fakePools[tokenAddress].token != address(0)) revert TokenAlreadyExists();
 
         // Verify that this contract owns the tokens
         InitialSupplySuperchainERC20 token = InitialSupplySuperchainERC20(tokenAddress);
-        require(token.owner() == address(this), "Launchpad must own the token");
+        if (token.owner() != address(this)) revert InvalidAddress();
         uint256 tokenSupply = token.totalSupply();
-        require(token.balanceOf(address(this)) == tokenSupply, "Incorrect token balance");
+        if (token.balanceOf(address(this)) != tokenSupply) revert InvalidTokenBalance();
 
         // Setup fake pool for the token
         FakePool storage pool = s_fakePools[tokenAddress];
@@ -343,14 +355,14 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         address tokenAddress,
         uint256 minTokensOut
     ) external payable nonReentrant {
-        require(msg.value > 0, "No ETH sent");
+        if (msg.value == 0) revert InsufficientPayment();
 
         FakePool storage pool = s_fakePools[tokenAddress];
-        require(pool.token != address(0), "Token not found");
-        require(!pool.locked, "Pool is locked");
+        if (pool.token == address(0)) revert TokenNotFound();
+        if (pool.locked) revert PoolLocked();
 
         uint256 tokensOut = _buyTokens(tokenAddress, msg.value);
-        require(tokensOut >= minTokensOut, "Insufficient tokens out");
+        if (tokensOut < minTokensOut) revert InsufficientTokensOut();
 
         InitialSupplySuperchainERC20(tokenAddress).transfer(
             msg.sender,
@@ -377,14 +389,14 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         s_pythOracle.updatePriceFeeds{value: updateFee}(pythPriceUpdate);
 
         uint256 adjustedValue = msg.value - updateFee;
-        require(adjustedValue > 0, "No ETH for purchase after update fee");
+        if (adjustedValue == 0) revert InsufficientETHForPurchase();
 
         FakePool storage pool = s_fakePools[tokenAddress];
-        require(pool.token != address(0), "Token not found");
-        require(!pool.locked, "Pool is locked");
+        if (pool.token == address(0)) revert TokenNotFound();
+        if (pool.locked) revert PoolLocked();
 
         uint256 tokensOut = _buyTokens(tokenAddress, adjustedValue);
-        require(tokensOut >= minTokensOut, "Insufficient tokens out");
+        if (tokensOut < minTokensOut) revert InsufficientTokensOut();
 
         InitialSupplySuperchainERC20(tokenAddress).transfer(
             msg.sender,
@@ -407,8 +419,8 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         uint256 minEthOut
     ) external nonReentrant {
         FakePool storage pool = s_fakePools[tokenAddress];
-        require(pool.token != address(0), "Token not found");
-        require(!pool.locked, "Pool is locked");
+        if (pool.token == address(0)) revert TokenNotFound();
+        if (pool.locked) revert PoolLocked();
 
         InitialSupplySuperchainERC20(tokenAddress).transferFrom(
             msg.sender,
@@ -417,7 +429,7 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         );
 
         uint256 ethOut = _sellTokens(tokenAddress, tokenAmount);
-        require(ethOut >= minEthOut, "Insufficient ETH out");
+        if (ethOut < minEthOut) revert InsufficientETHOut();
 
         payable(msg.sender).transfer(ethOut);
 
@@ -466,7 +478,7 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
     ) internal returns (uint256) {
         FakePool storage pool = s_fakePools[tokenAddress];
 
-        require(pool.ethReserve >= pool.fakeEth, "Insufficient ETH in pool");
+        if (pool.ethReserve < pool.fakeEth) revert InsufficientETHInPool();
 
         // Calculate ETH out using AMM formula
         uint256 ethOut = getAmountOut(
@@ -504,8 +516,8 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         address tokenAddress
     ) external payable onlyOwner nonReentrant {
         FakePool storage pool = s_fakePools[tokenAddress];
-        require(pool.token != address(0), "Token not found");
-        require(pool.locked, "Pool not ready for launch");
+        if (pool.token == address(0)) revert TokenNotFound();
+        if (!pool.locked) revert PoolNotReadyForLaunch();
 
         uint256 ethForLaunch = pool.ethReserve - pool.fakeEth;
         uint256 tokensForLaunch = pool.tokenReserve;
@@ -538,34 +550,6 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         emit TokenLaunched(pool.creator, tokenAddress, poolAddress, vault);
     }
 
-    function _stringBeforeSpace(
-        string memory str
-    ) internal pure returns (string memory) {
-        bytes memory strBytes = bytes(str);
-
-        // Find the first space character
-        uint256 spaceIndex = type(uint256).max; // Use max value to indicate "not found"
-        for (uint256 i = 0; i < strBytes.length; i++) {
-            if (strBytes[i] == 0x20) {
-                // 0x20 is the hex value for space character
-                spaceIndex = i;
-                break;
-            }
-        }
-
-        // If no space found, return the entire string
-        if (spaceIndex == type(uint256).max) {
-            return str;
-        }
-
-        // Create a new bytes array with the length up to the space
-        bytes memory result = new bytes(spaceIndex);
-        for (uint256 i = 0; i < spaceIndex; i++) {
-            result[i] = strBytes[i];
-        }
-
-        return string(result);
-    }
 
     // Create Uniswap V3 pool
     function _createUniV3Pool(
@@ -692,7 +676,7 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         bool buyOrder
     ) external view returns (uint256) {
         FakePool memory pool = s_fakePools[tokenAddress];
-        require(pool.token != address(0), "Token not found");
+        if (pool.token == address(0)) revert TokenNotFound();
 
         if (buyOrder) {
             // Calculate tokens out for ETH in
@@ -723,16 +707,6 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         uint256 usdEthPrice = getOraclePrice();
         uint256 amountUsd = ethToUsd(usdEthPrice, ethMcap);
 
-        console.log("=== Market Cap Check ===");
-        console.log("Token Price (wei per token):", tokenPrice);
-        console.log("Total Supply:", TOKEN_SUPPLY / 1e18);
-        console.log("Token Reserve:", pool.tokenReserve / 1e18);
-        console.log("Circulating Supply:", circulatingSupply / 1e18);
-        console.log("ETH Market Cap (wei):", ethMcap);
-        console.log("USD Market Cap:", amountUsd);
-        console.log("Threshold:", s_fakePoolMCapThreshold);
-
-        console.log("Threshold reached:", amountUsd >= s_fakePoolMCapThreshold);
 
         if (amountUsd >= s_fakePoolMCapThreshold) {
             pool.locked = true;
@@ -747,8 +721,8 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
             s_maxPriceStaleness
         );
 
-        require(price.price > 0, "Invalid price");
-        require(price.expo >= -18 && price.expo <= 18, "Exponent out of range");
+        if (price.price <= 0) revert InvalidPrice();
+        if (price.expo < -18 || price.expo > 18) revert InvalidPrice();
 
         uint256 base = uint64(price.price);
         uint256 ethPrice8Decimals;
@@ -764,31 +738,6 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         return ethPrice8Decimals;
     }
 
-    // Alternative oracle function that's more lenient about staleness
-    function getOraclePriceWithStaleness(
-        uint32 maxStaleness
-    ) public view returns (uint256) {
-        PythStructs.Price memory price = s_pythOracle.getPriceNoOlderThan(
-            s_ethUsdPriceId,
-            maxStaleness
-        );
-        require(price.price > 0, "Invalid price");
-
-        // Convert Pyth price to 8 decimal format
-        uint256 ethPrice8Decimals;
-        if (price.expo >= 0) {
-            ethPrice8Decimals =
-                uint256(uint64(price.price)) *
-                (10 ** uint32(price.expo)) *
-                (10 ** 8);
-        } else {
-            ethPrice8Decimals =
-                (uint256(uint64(price.price)) * (10 ** 8)) /
-                (10 ** uint32(-1 * price.expo));
-        }
-
-        return ethPrice8Decimals;
-    }
 
     function ethToUsd(
         uint256 ethUsdPrice,
@@ -810,12 +759,12 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
     }
 
     function setTxFee(uint16 _fee) external onlyOwner {
-        require(_fee <= 100, "Fee too high"); // Max 10%
+        if (_fee > 100) revert FeeTooHigh();
         s_txFee = _fee;
     }
 
     function setLaunchFee(uint16 _fee) external onlyOwner {
-        require(_fee <= 200, "Fee too high"); // Max 20%
+        if (_fee > 200) revert FeeTooHigh();
         s_launchFee = _fee;
     }
 
@@ -871,7 +820,7 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         address tokenAddress
     ) external view returns (uint256 ethMcap, uint256 usdMcap) {
         FakePool memory pool = s_fakePools[tokenAddress];
-        require(pool.token != address(0), "Token not found");
+        if (pool.token == address(0)) revert TokenNotFound();
 
         uint256 tokenPrice = getTokenPrice(pool, 1 ether);
         uint256 circulatingSupply = TOKEN_SUPPLY - pool.tokenReserve;
@@ -883,18 +832,6 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         return (ethMcap, usdMcap);
     }
 
-    // Keeper function to update prices (can be called by anyone)
-    function updatePrices(bytes[] calldata pythPriceUpdate) external payable {
-        uint256 updateFee = s_pythOracle.getUpdateFee(pythPriceUpdate);
-        require(msg.value >= updateFee, "Insufficient fee for price update");
-
-        s_pythOracle.updatePriceFeeds{value: updateFee}(pythPriceUpdate);
-
-        // Refund excess payment
-        if (msg.value > updateFee) {
-            payable(msg.sender).transfer(msg.value - updateFee);
-        }
-    }
 
     // Admin function to set max price staleness
     function setMaxPriceStaleness(uint32 _maxStaleness) external onlyOwner {
@@ -903,7 +840,7 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
 
     // Admin function to authorize/deauthorize minter contracts
     function setMinterAuthorization(address minter, bool authorized) external onlyOwner {
-        require(minter != address(0), "Invalid minter address");
+        if (minter == address(0)) revert InvalidAddress();
         s_authorizedMinters[minter] = authorized;
         emit MinterAuthorized(minter, authorized);
     }
@@ -914,30 +851,12 @@ contract DensoFiLaunchpad is Ownable, ReentrancyGuard {
         address newOwner
     ) external onlyOwner {
         address vaultAddress = s_domainToVault[domainName];
-        require(vaultAddress != address(0), "Domain not found");
+        if (vaultAddress == address(0)) revert DomainNotFound();
 
         DensoFiUniV3Vault(vaultAddress).updateDomainOwner(newOwner);
         emit VaultDomainOwnershipUpdated(vaultAddress, newOwner);
     }
 
-    // Batch update function for efficiency
-    function batchUpdateDomainOwnership(
-        string[] memory domainNames,
-        address[] memory newOwners
-    ) external onlyOwner {
-        require(
-            domainNames.length == newOwners.length,
-            "Arrays length mismatch"
-        );
-
-        for (uint256 i = 0; i < domainNames.length; i++) {
-            address vaultAddress = s_domainToVault[domainNames[i]];
-            require(vaultAddress != address(0), "Domain not found");
-
-            DensoFiUniV3Vault(vaultAddress).updateDomainOwner(newOwners[i]);
-            emit VaultDomainOwnershipUpdated(vaultAddress, newOwners[i]);
-        }
-    }
 
     // View function to get vault by domain
     function getVaultByDomain(

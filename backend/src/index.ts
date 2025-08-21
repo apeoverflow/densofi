@@ -33,6 +33,10 @@ async function main() {
     logger.info('  POST /api/process-pending - Manually process pending events');
     logger.info('  GET  /api/domains/:name/:walletAddress/verify - Verify domain ownership via DNS');
     logger.info('  GET  /api/event-listeners/status - Get event listener status');
+    logger.info('  POST /api/event-control/start - Start timed event listeners');
+    logger.info('  POST /api/event-control/stop - Stop timed event listeners');
+    logger.info('  POST /api/event-control/extend - Extend event listener duration');
+    logger.info('  GET  /api/event-control/status - Get timed event listener status');
     
     
     // Keep the process running
