@@ -13,10 +13,11 @@ type NavLink = {
 };
 
 const navLinks: NavLink[] = [
-  { label: 'Tokens', href: '/tokens', showOn: ['/', '/create-token', '/dino-game'] },
+  { label: 'Tokens', href: '/tokens', showOn: ['/', '/create-token', '/dino-game', '/partners'] },
   { label: 'All Tokens', href: '/tokens', showOn: ['/tokens/[id]'] },
-  { label: 'Dino Game', href: '/dino-game', showOn: ['/', '/tokens', '/tokens/[id]', '/create-token', '/dino-game'] },
-  { label: 'Create Token', href: '/create-token', showOn: ['/', '/tokens', '/tokens/[id]', '/dino-game'] },
+  { label: 'Partners', href: '/partners', showOn: ['/', '/tokens', '/tokens/[id]', '/create-token', '/dino-game'] },
+  { label: 'Dino Game', href: '/dino-game', showOn: ['/', '/tokens', '/tokens/[id]', '/create-token', '/dino-game', '/partners'] },
+  { label: 'Create Token', href: '/create-token', showOn: ['/', '/tokens', '/tokens/[id]', '/dino-game', '/partners'] },
 ];
 
 export default function Navbar() {

@@ -31,6 +31,7 @@ export default function Footer() {
                 <div className="space-y-2">
                   <Link href="/tokens" className="block text-gray-400 hover:text-white">Explore Tokens</Link>
                   <Link href="/create-token" className="block text-gray-400 hover:text-white">Create Token</Link>
+                  <Link href="/partners" className="block text-gray-400 hover:text-white">Partners</Link>
                 </div>
               </div>
               <div>
